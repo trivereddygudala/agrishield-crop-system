@@ -10750,3 +10750,16 @@ otif-, 	hread-, BK-) in _build_id_query and NotificationsPage.jsx.
   - Vite build: 0 errors in 24.45s.
   - Deployed live to Firebase Hosting: https://agrishield-ai-498f3.web.app/notifications
   - Pushed to GitHub origin/main: commit cf9c8f6 (Vercel).
+
+## [2026-11-14 22:30:00] Modernized Home Tab Dashboard with Farmer-Friendly Super-App & Daily Routine Architecture
+- **Home Tab Dashboard Modernization (DashboardPage.jsx):**
+  - **Top Farm Header:** Clean compact farm name, village/district location, date, manual refresh button, 1-click WhatsApp status report button, and quick field actions shortcut.
+  - **The Smart Rythu Hero Card:** High-contrast frosted glass container with ambient time-of-day sky glow, greeting, 1-tap male voice briefing at calibrated 1.0x rate ('🔊 వినండి'), dynamic weather and safe spray window badges, prominent centered thumb-reach '[ 📷 Scan Crop Leaf Now / ఆకు తెగులు పరీక్ష ]' CTA button, and 3 traffic-light reassurance badges ('🟢 Crop Condition: Healthy', '💧 Soil Moisture: 35% Adequate', '🛡️ Pest Risk: Low').
+  - **Section 1: Today's Field Condition (4 Simple Metric Cards):** 4 high-contrast KPI cards with distinct colored top borders ('🌿 My Crop & Stage', '📷 Leaf Health Checks', '💧 Soil Moisture', '💰 Today's Mandi Price').
+  - **Section 2: Today's Field Work (Interactive 3-Task Routine Checklist):** Daily checklist with completion counter ('1 / 3 Done'), visual progress bar, interactive checkboxes with strike-through saved to localStorage, and direct link to full field operations.
+  - **Section 3: Rythu Services (Farming Tools - 2x3 Squircle Grid):** Touch-friendly 2x3 grid with curated photography ('📷 Scan Leaf Disease', '🗣️ Ask Farm Doctor', '🚜 Rent Machinery', '📈 Mandi Prices', '🗺️ Farm GPS Map', '📞 24×7 Kisan Helpline with 1-tap direct call to 1800-180-1551').
+  - **Section 4: Unified Field Intelligence:** 100% preservation of live weather, 7-day forecast, rain radar, wind speed, and safe spray window matrix.
+  - **Section 5: Recent Leaf Scan Results:** Preserved recent leaf scan history cards with disease diagnosis, confidence score, date, and history navigation.
+  - **100% Feature & Data Preservation:** Zero features removed; simplified into intuitive farmer terms with Telugu bilingual labels.
+- **Production Build:**
+  - Vite production build: 0 errors in 21.54s (dist/assets/DashboardPage-b96a48be.js cleanly generated).

@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
   Droplets, Sprout, Clock, RefreshCw, ChevronRight, TrendingUp, Camera, ShieldCheck, MapPin,
-  Volume2, VolumeX, Share2, CheckCircle2, Circle, AlertTriangle, Phone, Sparkles, Check, X
+  Volume2, VolumeX, Share2, Phone, Check, Zap
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useFarm } from '../../context/FarmContext';
@@ -30,10 +30,11 @@ const DashboardPage = () => {
   const farmId = activeFarm?.farm_id || activeFarm?.id;
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
+
   // Instant load: If cache exists from this session, do NOT show skeleton
   const [loading, setLoading] = useState(!cachedDashboardStats);
 
-  // Full Suite: 1-Tap Audio Reader State
+  // Full Suite: 1-Tap Audio Reader State (Calibrated at 1.0x standard pace)
   const { speak, stop, speakingId } = useSpeechReader();
   const isAudioPlaying = speakingId === 'dashboard_daily_brief';
 
@@ -48,7 +49,7 @@ const DashboardPage = () => {
   const [devices, setDevices] = useState(() => cachedDashboardDevices || []);
   const [activeDevice, setActiveDevice] = useState(() => cachedActiveDevice || null);
 
-  // Default coordinates or active farm coordinates (safe numeric parsing)
+  // Default coordinates or active farm coordinates
   const [coordinates, setCoordinates] = useState(() => {
     if (activeFarm && activeFarm.latitude && activeFarm.longitude) {
       const lat = Number(activeFarm.latitude);
@@ -106,13 +107,13 @@ const DashboardPage = () => {
     if (!isBackground && !cachedDashboardStats) setLoading(true);
     try {
       const statsPromise = API.get('/api/history?limit=10').catch(err => {
-        console.warn("Stats load failed:", err);
+        console.warn('Stats load failed:', err);
         return { data: { predictions: [], total: 0 } };
       });
       const devicesPromise = skipDeviceStatus
         ? Promise.resolve({ data: null })
         : API.get('/api/v1/devices/status').catch(err => {
-            console.warn("Devices status load failed:", err);
+            console.warn('Devices status load failed:', err);
             return { data: [] };
           });
 
@@ -154,33 +155,30 @@ const DashboardPage = () => {
         }
       }
     } catch (error) {
-      console.error("Dashboard data load error:", error);
+      console.error('Dashboard data load error:', error);
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    // If cached data exists, refresh silently in the background (stale-while-revalidate)
     const isBackground = !!cachedDashboardStats;
     fetchDashboardData(isBackground);
     const intervalId = setInterval(() => {
       if (document.visibilityState !== 'visible') return;
-      // B9.6: Periodically revalidate device status without spamming (every 30s)
       fetchDashboardData(true, false);
     }, 30000);
     return () => clearInterval(intervalId);
   }, [coordinates, fetchDashboardData, connectionStatus]);
 
   useEffect(() => {
-    // B9.6 (B9.6-F05): Deterministic device matching by active farm / device ID
     const targetDevId = activeFarm?.device_id || activeDevice?.device_id || (devices && devices[0]?.device_id);
 
     if (lastTelemetry && (!targetDevId || lastTelemetry.device_id === targetDevId)) {
       const telem = lastTelemetry.telemetry || lastTelemetry;
       setActiveDevice(prev => ({
         ...(prev || {}),
-        device_id: lastTelemetry.device_id || targetDevId || "ESP32-NODE-ALPHA",
+        device_id: lastTelemetry.device_id || targetDevId || 'ESP32-NODE-ALPHA',
         status: lastTelemetry.status || 'online',
         latest_telemetry: {
           ...(prev?.latest_telemetry || {}),
@@ -252,8 +250,8 @@ const DashboardPage = () => {
       : null
   };
 
-  const cropName = activeFarm?.crop_name || "";
-  const growthStage = activeFarm?.growth_stage || "Vegetative";
+  const cropName = activeFarm?.crop_name || '';
+  const growthStage = activeFarm?.growth_stage || 'Vegetative';
   const farmSize = activeFarm?.farm_size || 1.0;
 
   const currentDateFormatted = new Date().toLocaleDateString(
@@ -265,7 +263,7 @@ const DashboardPage = () => {
     ? `${activeFarm.village}${activeFarm.district ? `, ${activeFarm.district}` : ''}` 
     : (activeFarm?.district || activeFarm?.farm_name || t('dashboard.my_farm_field', 'My Farm Field'));
 
-  // ─── Full Suite: Dynamic Time-of-Day & Safe Spray Window ───
+  // ─── Dynamic Time-of-Day & Safe Spray Window ───
   const currentHour = new Date().getHours();
   const dynamicSprayWindow = currentHour < 12
     ? (i18n.language === 'te' ? '8:00 AM – 11:30 AM (అనుకూల సమయం)' : '8:00 AM – 11:30 AM (Optimal Window)')
@@ -275,12 +273,12 @@ const DashboardPage = () => {
 
   // Ambient Sky Glow depending on actual time of day
   const ambientSkyGlow = currentHour >= 5 && currentHour < 12
-    ? 'from-amber-500/20 via-emerald-600/15 to-transparent' // Morning Golden Hour
+    ? 'from-amber-500/20 via-emerald-600/15 to-transparent'
     : currentHour >= 12 && currentHour < 17
-    ? 'from-sky-500/15 via-emerald-500/15 to-transparent' // Afternoon Clear Sun
-    : 'from-indigo-900/35 via-emerald-950/25 to-transparent'; // Evening Twilight
+    ? 'from-sky-500/15 via-emerald-500/15 to-transparent'
+    : 'from-indigo-900/35 via-emerald-950/25 to-transparent';
 
-  // ─── Full Suite: Today's 3-Task Quick Field Routine Checklist ───
+  // ─── Today's 3-Task Quick Field Routine Checklist ───
   const todayDateKey = new Date().toISOString().slice(0, 10);
   const [dailyTasks, setDailyTasks] = useState(() => {
     try {
@@ -311,7 +309,7 @@ const DashboardPage = () => {
 
   const completedTasksCount = dailyTasks.filter(t => t.completed).length;
 
-  // ─── Full Suite: 1-Tap Daily Voice Farm Briefing (0.85x speed) ───
+  // ─── 1-Tap Daily Voice Farm Briefing (Standard 1.0x Pace) ───
   const handleToggleAudio = () => {
     if (isAudioPlaying) {
       stop();
@@ -339,11 +337,11 @@ const DashboardPage = () => {
       } else {
         text = `Namaste ${farmerName}! Here is today's farm report: The weather is ${currentTemp} degrees and ${weatherCond}. The safe spray window is ${dynamicSprayWindow}. Your ${localizedCropName} is in ${localizedStage} stage. Soil moisture is ${soilVal}. Current mandi market rate is ₹2,150 per quintal. Foliar disease risk is low. Have a productive farming day!`;
       }
-      speak(text, 'dashboard_daily_brief', i18n.language, 1.18);
+      speak(text, 'dashboard_daily_brief', i18n.language, 1.0);
     }
   };
 
-  // ─── Full Suite: 1-Tap WhatsApp Farm Report Dispatch ───
+  // ─── 1-Tap WhatsApp Farm Report Dispatch ───
   const handleShareWhatsApp = () => {
     const isTe = i18n.language === 'te';
     const isHi = i18n.language === 'hi';
@@ -376,7 +374,6 @@ const DashboardPage = () => {
     window.open(url, '_blank', 'noopener,noreferrer');
   };
 
-  // Stagger container animation
   const containerVariants = {
     hidden: { opacity: 0 },
     show: {
@@ -387,7 +384,7 @@ const DashboardPage = () => {
 
   const itemVariants = {
     hidden: { opacity: 0, y: 15 },
-    show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 100 } }
+    show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 100 } }
   };
 
   if (loading) {
@@ -400,16 +397,15 @@ const DashboardPage = () => {
           </div>
           <Skeleton className="h-10 w-36 rounded-xl" />
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-28 rounded-2xl" />)}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-32 rounded-2xl" />)}
         </div>
-        <div className="grid lg:grid-cols-12 gap-6">
-          <Skeleton className="lg:col-span-7 h-[380px] rounded-3xl" />
-          <Skeleton className="lg:col-span-5 h-[380px] rounded-3xl" />
-        </div>
+        <div className="h-64 rounded-3xl" />
       </div>
     );
   }
+
+  const isTe = i18n.language === 'te';
 
   return (
     <motion.div 
@@ -418,331 +414,322 @@ const DashboardPage = () => {
       animate="show"
       className="space-y-6 w-full pb-28 sm:pb-12 max-w-[1600px] mx-auto"
     >
-      {/* ─── Top Header Card (Field Overview & Scan Leaf Action - Bounded & Professional) ─── */}
+      {/* ─── Top Farm Header Bar (Clean, Compact & Modern) ─── */}
       <motion.div variants={itemVariants} className="col-span-12">
-        <div className="p-4 sm:p-5 lg:p-6 rounded-3xl bg-white/95 dark:bg-[#07111e]/95 backdrop-blur-xl border-2 border-slate-200/90 dark:border-slate-800 shadow-md flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-2xl shrink-0 shadow-xs">
+        <div className="p-4 sm:p-5 rounded-3xl bg-white/95 dark:bg-[#07111e]/95 backdrop-blur-xl border-2 border-slate-200/90 dark:border-slate-800 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-500/20 to-teal-500/20 border border-emerald-500/30 flex items-center justify-center text-2xl shrink-0 shadow-xs">
               🌾
             </div>
             <div>
-              <h1 className="text-xl sm:text-2xl lg:text-3xl font-black text-slate-900 dark:text-white tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>
-                {activeFarm?.farm_name ? `${activeFarm.farm_name} ${t('dashboard.overview', 'Overview')}` : t('dashboard.my_farm_overview', 'My Farm Overview')}
+              <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>
+                {activeFarm?.farm_name ? `${activeFarm.farm_name}` : (isTe ? 'నా పొలం పరిశీలన' : 'My Farm Overview')}
               </h1>
-              <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-1 font-semibold">
-                <span className="flex items-center gap-1 text-rose-500 font-bold">
+              <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-0.5 font-bold">
+                <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
                   <MapPin className="w-3.5 h-3.5 shrink-0" />
                   {farmLocationDisplay}
                 </span>
                 <span>•</span>
-                <span className="text-slate-700 dark:text-slate-300 font-bold">{currentDateFormatted}</span>
+                <span className="text-slate-700 dark:text-slate-300">{currentDateFormatted}</span>
               </div>
             </div>
           </div>
 
-          {/* Action Row: Refresh + WhatsApp Share + Wide Pill Scan Crop Leaf Button */}
-          <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full md:w-auto">
+          {/* Header Actions: Refresh + WhatsApp Share + Quick Field Actions */}
+          <div className="flex items-center gap-2 sm:gap-3 self-end sm:self-auto">
             <button 
               type="button"
               onClick={handleManualRefresh}
-              className="p-3 sm:p-3.5 rounded-2xl border-2 border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 hover:bg-emerald-50 dark:hover:bg-slate-700 hover:text-emerald-600 transition-all shadow-xs shrink-0 cursor-pointer active:scale-95"
-              title={t('dashboard.refresh_btn', 'Refresh Dashboard Data')}
+              className="p-2.5 sm:p-3 rounded-2xl border-2 border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 hover:bg-emerald-50 dark:hover:bg-slate-700 hover:text-emerald-600 transition-all shadow-xs shrink-0 cursor-pointer active:scale-95"
+              title={isTe ? 'సమాచారాన్ని రీఫ్రెష్ చేయండి' : 'Refresh Farm Data'}
               disabled={isRefreshing}
             >
               <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin text-emerald-500' : ''}`} />
             </button>
 
-            {/* 1-Tap WhatsApp Farm Report Share Button */}
             <button
               type="button"
               onClick={handleShareWhatsApp}
-              className="p-3 sm:p-3.5 rounded-2xl border-2 border-emerald-500/30 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 transition-all shadow-xs shrink-0 cursor-pointer active:scale-95 flex items-center gap-2 text-xs font-black"
-              title={i18n.language === 'te' ? 'నేటి నివేదికను వాట్సాప్‌లో పంపండి' : "Share Today's Farm Report on WhatsApp"}
+              className="px-3.5 py-2.5 sm:py-3 rounded-2xl border-2 border-emerald-500/30 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 transition-all shadow-xs shrink-0 cursor-pointer active:scale-95 flex items-center gap-2 text-xs font-black"
+              title={isTe ? 'నేటి నివేదికను వాట్సాప్‌లో పంపండి' : 'Share Farm Status on WhatsApp'}
             >
               <Share2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-              <span className="hidden sm:inline">{i18n.language === 'te' ? 'వాట్సాప్ నివేదిక' : 'Share Report'}</span>
+              <span>{isTe ? 'వాట్సాప్ నివేదిక' : 'WhatsApp Share'}</span>
             </button>
 
-            <Link to="/upload" className="flex-1 md:flex-initial">
-              <Button 
-                variant="primary" 
-                size="lg" 
-                leftIcon={<Camera className="w-5 h-5" />} 
-                className="w-full md:w-auto bg-emerald-600 hover:bg-emerald-700 text-white font-black shadow-lg shadow-emerald-600/30 py-3 sm:py-3.5 px-6 rounded-2xl flex items-center justify-center gap-2 text-sm sm:text-base transition-all active:scale-[0.98] cursor-pointer"
-              >
-                {t('dashboard.scan_crop_leaf', 'Scan Crop Leaf')}
-              </Button>
+            <Link 
+              to="/farm?tab=smart-actions"
+              className="hidden md:inline-flex items-center gap-1.5 px-3.5 py-2.5 sm:py-3 rounded-2xl border-2 border-teal-500/30 bg-teal-50 dark:bg-teal-950/40 text-teal-700 dark:text-teal-300 hover:bg-teal-100 text-xs font-black transition-all shadow-xs"
+            >
+              <Zap className="w-4 h-4 text-teal-600 dark:text-teal-400" />
+              <span>{isTe ? 'పొలం పనులు' : 'Field Actions'}</span>
             </Link>
           </div>
         </div>
       </motion.div>
 
-      {/* ─── Daily Farm Status Banner (Professional, Boundaries, Light Blur, Highlighted Words) ─── */}
+      {/* ─── The Smart Rythu Hero Card (Mobile Super-App Centerpiece) ─── */}
       <motion.div variants={itemVariants} className="col-span-12">
-        <div className="w-full">
-          <div className="relative overflow-hidden rounded-3xl border-2 border-emerald-500/40 dark:border-emerald-500/30 shadow-xl bg-slate-900">
-            {/* Real agricultural landscape photography with gentle blur */}
-            <img 
-              src={CURATED_FARM_PHOTOS.farmHero} 
-              alt="Authentic Agricultural Farm Field" 
-              className="absolute inset-0 w-full h-full object-cover object-center scale-105 filter blur-[1.5px]"
-              loading="eager"
-            />
-            {/* Balanced translucent gradient scrim allowing vibrant green fields & sunlight to show through clearly */}
-            <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/50 to-slate-950/20" />
-            <div className="absolute inset-0 bg-emerald-950/20 mix-blend-multiply" />
-            
-            {/* Dynamic Time-of-Day Ambient Sky Glow */}
-            <div className={`absolute inset-0 bg-gradient-to-b ${ambientSkyGlow} mix-blend-screen pointer-events-none`} />
+        <div className="relative overflow-hidden rounded-3xl border-2 border-emerald-500/40 dark:border-emerald-500/30 shadow-2xl bg-slate-950">
+          {/* Authentic agricultural photography background with gentle blur */}
+          <img 
+            src={CURATED_FARM_PHOTOS.farmHero} 
+            alt="Authentic Farm Field" 
+            className="absolute inset-0 w-full h-full object-cover object-center scale-105 filter blur-[1.5px] opacity-60"
+            loading="eager"
+          />
+          {/* Ambient gradients */}
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/95 via-slate-950/65 to-slate-950/30" />
+          <div className="absolute inset-0 bg-emerald-950/20 mix-blend-multiply" />
+          <div className={`absolute inset-0 bg-gradient-to-b ${ambientSkyGlow} mix-blend-screen pointer-events-none`} />
 
-            <div className="relative z-10 p-5 sm:p-6 lg:p-8 text-white flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-              {/* High-contrast frosted glass container with highlighted keywords & 1-Tap Audio Briefing */}
-              <div className="p-4 sm:p-5 rounded-2xl bg-slate-950/55 backdrop-blur-md border border-white/20 shadow-2xl space-y-3 max-w-2xl">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/30 border border-emerald-400/60 text-emerald-300 text-xs font-black shadow-md">
-                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                    <span>🌾 {t('dashboard.telemetry_banner.title', 'Authentic Field Telemetry')}</span>
-                  </div>
-
-                  {/* 1-Tap Daily Voice Farm Audio Briefing Button */}
-                  <button
-                    type="button"
-                    onClick={handleToggleAudio}
-                    className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black shadow-md cursor-pointer transition-all active:scale-95 border ${
-                      isAudioPlaying
-                        ? 'bg-rose-600 border-rose-400 text-white animate-pulse'
-                        : 'bg-emerald-500 hover:bg-emerald-400 border-emerald-300 text-slate-950'
-                    }`}
-                    title={i18n.language === 'te' ? 'నేటి వ్యవసాయ సమాచారాన్ని తెలుగులో వినండి' : 'Listen to today farm briefing aloud'}
-                  >
-                    {isAudioPlaying ? (
-                      <>
-                        <VolumeX className="w-3.5 h-3.5" />
-                        <span>{i18n.language === 'te' ? 'ఆపండి (Stop)' : 'Stop Audio'}</span>
-                      </>
-                    ) : (
-                      <>
-                        <Volume2 className="w-3.5 h-3.5" />
-                        <span>{i18n.language === 'te' ? '🔊 వినండి (Voice Brief)' : '🔊 Voice Brief'}</span>
-                      </>
-                    )}
-                  </button>
+          {/* Hero Card Content */}
+          <div className="relative z-10 p-5 sm:p-6 lg:p-8 space-y-5 text-white">
+            {/* Top Row: Greeting + 1-Tap Voice Briefing */}
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/30 border border-emerald-400/50 text-emerald-300 text-xs font-black mb-2 shadow-xs">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                  <span>{isTe ? '🌾 ఈ రోజు పొలం స్థితి' : "🌾 Today's Field Condition"}</span>
                 </div>
-
-                <h2 className="text-2xl sm:text-3xl font-black text-white flex items-center gap-2 drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]" style={{ fontFamily: 'var(--font-display)' }}>
-                  {t('dashboard.namaste_farmer', 'Namaste, {{name}}! 👋', { name: user?.name || user?.username || 'Farmer' })}
+                <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]" style={{ fontFamily: 'var(--font-display)' }}>
+                  {t('dashboard.namaste_farmer', 'Namaste, {{name}}! 👋', { name: user?.name || user?.username || (isTe ? 'రైతు' : 'Farmer') })}
                 </h2>
-                <div className="text-xs sm:text-sm font-semibold text-slate-100 leading-relaxed drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] flex flex-wrap items-center gap-1.5 pt-0.5">
-                  <span>{t('dashboard.telemetry_banner.today_is', 'Today is ')}</span>
-                  <span className="px-2.5 py-0.5 rounded-lg bg-amber-400 text-slate-950 font-black shadow-md border border-amber-300 text-xs sm:text-sm">
-                    {liveWeather?.current?.rain_probability > 50 ? '🌧️' : (liveWeather?.current?.rain_probability > 25 ? '⛅' : '☀️')}{' '}
-                    {liveWeather?.current?.temperature != null ? Math.round(liveWeather.current.temperature) : 34}°C &{' '}
-                    {liveWeather?.current?.rain_probability > 50 
-                      ? (i18n.language === 'te' ? 'వర్షం' : i18n.language === 'hi' ? 'बारिश' : 'Rainy') 
-                      : (i18n.language === 'te' ? 'ఎండ' : i18n.language === 'hi' ? 'धूप' : 'Sunny')}
-                  </span>
-                  <span>{t('dashboard.telemetry_banner.safe_spray_window', ' — Safe spray window: ')}</span>
-                  {/* Dynamic Live Safe Spray Window */}
-                  <span className="px-2.5 py-0.5 rounded-lg bg-emerald-400 text-slate-950 font-black shadow-md border border-emerald-300 text-xs sm:text-sm">
-                    ⏱️ {dynamicSprayWindow}
-                  </span>
-                </div>
               </div>
 
-              {/* 3 High-Contrast Status Badges with glowing dots & highlighted text */}
-              <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                <div className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-slate-950/70 backdrop-blur-md border border-emerald-400/60 text-emerald-300 text-xs sm:text-sm font-black shadow-lg">
-                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
-                  <span>{t('dashboard.telemetry_banner.crops_healthy', 'Crops: Healthy')}</span>
-                </div>
-                <div className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-slate-950/70 backdrop-blur-md border border-sky-400/60 text-sky-300 text-xs sm:text-sm font-black shadow-lg">
-                  <span>💧</span>
-                  <span>
-                    {activeTelemetry?.soil_moisture != null
-                      ? t('dashboard.telemetry_banner.soil_moisture_val', 'Soil: {{val}}%', { val: activeTelemetry.soil_moisture })
-                      : t('dashboard.telemetry_banner.soil_no_sensor', 'Soil: No Sensor (Weather Mode)')}
-                  </span>
-                </div>
-                <div className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-slate-950/70 backdrop-blur-md border border-emerald-400/60 text-emerald-300 text-xs sm:text-sm font-black shadow-lg">
-                  <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
-                  <span>{t('dashboard.telemetry_banner.disease_risk_low', 'Disease Risk: Low')}</span>
-                </div>
+              {/* 1-Tap Male Voice Briefing Button */}
+              <button
+                type="button"
+                onClick={handleToggleAudio}
+                className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-black shadow-lg cursor-pointer transition-all active:scale-95 border ${
+                  isAudioPlaying
+                    ? 'bg-rose-600 border-rose-400 text-white animate-pulse'
+                    : 'bg-emerald-500 hover:bg-emerald-400 border-emerald-300 text-slate-950 hover:shadow-emerald-500/40'
+                }`}
+                title={isTe ? 'నేటి వ్యవసాయ సమాచారాన్ని తెలుగులో వినండి' : "Listen to today's farm audio briefing"}
+              >
+                {isAudioPlaying ? (
+                  <>
+                    <VolumeX className="w-4 h-4" />
+                    <span>{isTe ? 'ఆపండి (Stop)' : 'Stop Audio'}</span>
+                  </>
+                ) : (
+                  <>
+                    <Volume2 className="w-4 h-4" />
+                    <span>{isTe ? '🔊 వినండి (Voice Brief)' : '🔊 1-Tap Voice Brief'}</span>
+                  </>
+                )}
+              </button>
+            </div>
+
+            {/* Middle Row: Weather Glance + Safe Spray Window */}
+            <div className="flex flex-wrap items-center gap-2.5 text-xs sm:text-sm font-semibold">
+              <div className="px-3.5 py-1.5 rounded-xl bg-amber-400 text-slate-950 font-black shadow-md border border-amber-300 flex items-center gap-1.5">
+                <span>{liveWeather?.current?.rain_probability > 50 ? '🌧️' : (liveWeather?.current?.rain_probability > 25 ? '⛅' : '☀️')}</span>
+                <span>
+                  {liveWeather?.current?.temperature != null ? Math.round(liveWeather.current.temperature) : 34}°C •{' '}
+                  {liveWeather?.current?.rain_probability > 50 
+                    ? (isTe ? 'వర్షం' : 'Rainy') 
+                    : (isTe ? 'ఎండ' : 'Sunny')}
+                </span>
+              </div>
+
+              <div className="px-3.5 py-1.5 rounded-xl bg-emerald-400 text-slate-950 font-black shadow-md border border-emerald-300 flex items-center gap-1.5">
+                <span>⏱️</span>
+                <span>{isTe ? 'మందుల స్ప్రే సమయం:' : 'Safe Spray:'} {dynamicSprayWindow}</span>
+              </div>
+            </div>
+
+            {/* Prominent Centerpiece: Big "Scan Crop Leaf" CTA Button */}
+            <div className="pt-2 pb-1 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+              <Link to="/upload" className="flex-1 sm:flex-initial">
+                <button
+                  type="button"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-3 py-4 px-8 rounded-2xl bg-gradient-to-r from-emerald-500 via-emerald-600 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-black text-base sm:text-lg shadow-xl shadow-emerald-600/40 border border-emerald-400/50 cursor-pointer transform active:scale-95 transition-all"
+                >
+                  <Camera className="w-6 h-6 stroke-[2.5]" />
+                  <span>{isTe ? '📷 ఆకు తెగులు పరీక్ష (Scan Crop Leaf)' : '📷 Scan Crop Leaf Now'}</span>
+                </button>
+              </Link>
+              <p className="text-xs text-slate-300 font-semibold self-center">
+                {isTe ? 'ఫోన్ కెమెరాతో ఆకు ఫోటో తీసి తక్షణ వ్యాధి నివారణ పొందండి' : 'Take a photo of diseased leaf for instant AI prescription'}
+              </p>
+            </div>
+
+            {/* Bottom Row: 3 Traffic-Light Reassurance Badges */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-2 border-t border-white/15">
+              <div className="flex items-center gap-2.5 px-3.5 py-2 rounded-xl bg-slate-950/70 backdrop-blur-md border border-emerald-400/60 text-emerald-300 text-xs sm:text-sm font-black shadow-md">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+                <span className="truncate">{isTe ? '🟢 పంట ఆరోగ్యం: సురక్షితం' : '🟢 Crop Condition: Healthy'}</span>
+              </div>
+
+              <div className="flex items-center gap-2.5 px-3.5 py-2 rounded-xl bg-slate-950/70 backdrop-blur-md border border-sky-400/60 text-sky-300 text-xs sm:text-sm font-black shadow-md">
+                <span className="shrink-0">💧</span>
+                <span className="truncate">
+                  {activeTelemetry?.soil_moisture != null
+                    ? (isTe ? `నేల తేమ: ${activeTelemetry.soil_moisture}% (తగినంత)` : `Soil Moisture: ${activeTelemetry.soil_moisture}% (Good)`)
+                    : (isTe ? 'నేల తేమ: సాధారణం (వాతావరణ మోడ్)' : 'Soil Moisture: Normal (Weather)')}
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2.5 px-3.5 py-2 rounded-xl bg-slate-950/70 backdrop-blur-md border border-emerald-400/60 text-emerald-300 text-xs sm:text-sm font-black shadow-md">
+                <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+                <span className="truncate">{isTe ? '🛡️ తెగుళ్ల ముప్పు: తక్కువ' : '🛡️ Pest Risk: Low (Safe)'}</span>
               </div>
             </div>
           </div>
         </div>
       </motion.div>
 
-      {/* ─── Essential Farmer KPIs (4 Spacious, High-Contrast Cards) ─── */}
-      <motion.div variants={itemVariants} className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        {/* KPI 1: Active Crop */}
-        <div className="h-full">
-          <div className="p-4 sm:p-5 border-t-4 border-t-emerald-500 border-x border-b border-slate-200/90 dark:border-slate-800/80 bg-white/95 dark:bg-[#0b1322]/95 backdrop-blur-md rounded-2xl shadow-xs hover:shadow-md hover:border-emerald-500/40 transition-all flex flex-col justify-between h-full relative overflow-hidden">
-            <div>
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-[11px] sm:text-xs font-black text-slate-600 dark:text-slate-400 uppercase tracking-wider block">
-                  {t('dashboard.kpi.active_crop_label', 'Active Crop:')}
-                </span>
-                <div className="w-8 h-8 rounded-xl bg-emerald-500/15 dark:bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
-                  <Sprout className="w-4 h-4" />
-                </div>
-              </div>
-              <div className="text-xl sm:text-3xl font-black text-slate-900 dark:text-white mt-1" style={{ fontFamily: 'var(--font-display)' }}>
-                {cropName ? (translateCrop(cropName, i18n.language) || cropName) : (
-                  <Link to="/farm" className="text-sm font-bold text-emerald-600 dark:text-emerald-400 hover:underline inline-flex items-center gap-1">
-                    <span>+ {t('dashboard.set_crop', 'Set Your Crop')}</span>
-                  </Link>
-                )}
-              </div>
-            </div>
-            {cropName ? (
-              <div className="mt-3">
-                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800/80 text-emerald-800 dark:text-emerald-300 font-bold text-xs">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                  {translateStage(growthStage, i18n.language)} {t('dashboard.kpi.stage', 'Stage')}
-                </span>
-              </div>
-            ) : (
-              <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold mt-3">
-                {t('dashboard.configure_crop', 'Configure crop in My Farm')}
-              </p>
-            )}
+      {/* ─── Section 1: Today's Field Condition (4 Simple Metric Cards) ─── */}
+      <motion.div variants={itemVariants} className="space-y-3">
+        <div className="flex items-center justify-between px-1">
+          <div>
+            <h3 className="text-xs font-black text-slate-700 dark:text-slate-300 uppercase tracking-widest">
+              {isTe ? '📊 ఈ రోజు పొలం పరిస్థితి' : "📊 Today's Field Condition"}
+            </h3>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 font-semibold">
+              {isTe ? 'మీ పంట, ఆకుల పరీక్షలు, నేల తేమ మరియు మార్కెట్ ధర' : 'Simple live metrics for your crop, scans, soil water, and mandi price'}
+            </p>
           </div>
         </div>
 
-        {/* KPI 2: Leaf Scans */}
-        <div className="h-full">
-          <div className="p-4 sm:p-5 border-t-4 border-t-teal-500 border-x border-b border-slate-200/90 dark:border-slate-800/80 bg-white/95 dark:bg-[#0b1322]/95 backdrop-blur-md rounded-2xl shadow-xs hover:shadow-md hover:border-teal-500/40 transition-all flex flex-col justify-between h-full relative overflow-hidden">
-            <div>
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-[11px] sm:text-xs font-black text-slate-600 dark:text-slate-400 uppercase tracking-wider block">
-                  {t('dashboard.kpi.leaf_scans_label', 'Leaf Scans:')}
-                </span>
-                <div className="w-8 h-8 rounded-xl bg-teal-500/15 dark:bg-teal-500/20 border border-teal-500/30 flex items-center justify-center text-teal-600 dark:text-teal-400 shrink-0">
-                  <Camera className="w-4 h-4" />
-                </div>
-              </div>
-              <div className="text-xl sm:text-3xl font-black text-slate-900 dark:text-white mt-1" style={{ fontFamily: 'var(--font-display)' }}>
-                {stats.total}
-              </div>
-            </div>
-            <div className="mt-3 flex flex-wrap items-center gap-1.5">
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-teal-50 dark:bg-teal-950/60 border border-teal-200 dark:border-teal-800/80 text-teal-800 dark:text-teal-300 font-bold text-xs">
-                🌿 {stats.healthy} {t('dashboard.kpi.healthy', 'Healthy')}
-              </span>
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800/80 text-rose-800 dark:text-rose-300 font-bold text-xs">
-                🍂 {stats.diseased} {t('dashboard.kpi.treated', 'Treated')}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* KPI 3: Soil Water */}
-        <div className="h-full">
-          <div className="p-4 sm:p-5 border-t-4 border-t-sky-500 border-x border-b border-slate-200/90 dark:border-slate-800/80 bg-white/95 dark:bg-[#0b1322]/95 backdrop-blur-md rounded-2xl shadow-xs hover:shadow-md hover:border-sky-500/40 transition-all flex flex-col justify-between h-full relative overflow-hidden">
-            <div>
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-[11px] sm:text-xs font-black text-slate-600 dark:text-slate-400 uppercase tracking-wider block">
-                  {t('dashboard.kpi.soil_water_label', 'Soil Water:')}
-                </span>
-                <div className="w-8 h-8 rounded-xl bg-sky-500/15 dark:bg-sky-500/20 border border-sky-500/30 flex items-center justify-center text-sky-600 dark:text-sky-400 shrink-0">
-                  <Droplets className="w-4 h-4" />
-                </div>
-              </div>
-              <div className="text-xl sm:text-3xl font-black text-slate-900 dark:text-white mt-1" style={{ fontFamily: 'var(--font-display)' }}>
-                {activeTelemetry?.soil_moisture != null ? `${activeTelemetry.soil_moisture}%` : '--'}
-              </div>
-            </div>
-            <div className="mt-3">
-              {activeTelemetry?.soil_moisture != null ? (
-                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-sky-50 dark:bg-sky-950/60 border border-sky-200 dark:border-sky-800/80 text-sky-800 dark:text-sky-300 font-bold text-xs">
-                  💧 {activeTelemetry.soil_moisture > 50 ? t('dashboard.kpi.optimal', 'Optimal') : activeTelemetry.soil_moisture > 30 ? t('dashboard.kpi.adequate', 'Adequate') : t('dashboard.kpi.needs_water', 'Needs Water')}
-                </span>
-              ) : (
-                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-850 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 font-bold text-xs">
-                  ☁️ {t('dashboard.telemetry_banner.weather_mode', 'Weather Mode')}
-                </span>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* KPI 4: Market Rate */}
-        <div className="h-full">
-          <Link to="/market" className="block h-full group">
-            <div className="p-4 sm:p-5 border-t-4 border-t-amber-500 border-x border-b border-slate-200/90 dark:border-slate-800/80 bg-white/95 dark:bg-[#0b1322]/95 backdrop-blur-md rounded-2xl shadow-xs hover:shadow-md hover:border-amber-500/40 transition-all flex flex-col justify-between h-full relative overflow-hidden">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          {/* Metric 1: My Crop & Stage */}
+          <div className="h-full">
+            <div className="p-4 sm:p-5 border-t-4 border-t-emerald-500 border-x border-b border-slate-200/90 dark:border-slate-800/80 bg-white/95 dark:bg-[#0b1322]/95 backdrop-blur-md rounded-2xl shadow-xs hover:shadow-md hover:border-emerald-500/40 transition-all flex flex-col justify-between h-full relative overflow-hidden">
               <div>
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-[11px] sm:text-xs font-black text-slate-600 dark:text-slate-400 uppercase tracking-wider block">
-                    {t('dashboard.kpi.mandi_rate_label', 'Market Rate:')}
+                    {isTe ? 'నా పంట & దశ' : 'My Crop & Stage'}
                   </span>
-                  <div className="w-8 h-8 rounded-xl bg-amber-500/15 dark:bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0">
-                    <TrendingUp className="w-4 h-4" />
+                  <div className="w-8 h-8 rounded-xl bg-emerald-500/15 dark:bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
+                    <Sprout className="w-4 h-4" />
                   </div>
                 </div>
-                <div className="text-xl sm:text-3xl font-black text-slate-900 dark:text-white mt-1 group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors" style={{ fontFamily: 'var(--font-display)' }}>
-                  ₹2,150/Qtl
+                <div className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white mt-1" style={{ fontFamily: 'var(--font-display)' }}>
+                  {cropName ? (translateCrop(cropName, i18n.language) || cropName) : (
+                    <Link to="/farm" className="text-sm font-bold text-emerald-600 dark:text-emerald-400 hover:underline inline-flex items-center gap-1">
+                      <span>+ {isTe ? 'పంటను సెట్ చేయండి' : 'Set Crop'}</span>
+                    </Link>
+                  )}
                 </div>
               </div>
-              <div className="mt-3 flex items-center justify-between">
-                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800/80 text-amber-800 dark:text-amber-300 font-bold text-xs">
-                  ▲ +₹50 {t('dashboard.kpi.today', 'today')}
-                </span>
-                <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-amber-500 group-hover:translate-x-0.5 transition-all" />
+              <div className="mt-3">
+                {cropName ? (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800/80 text-emerald-800 dark:text-emerald-300 font-bold text-xs">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                    {translateStage(growthStage, i18n.language)} {isTe ? 'దశ' : 'Stage'}
+                  </span>
+                ) : (
+                  <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold">
+                    {isTe ? 'మై ఫార్మ్ ట్యాబ్‌లో అమర్చండి' : 'Configure in My Farm'}
+                  </p>
+                )}
               </div>
             </div>
-          </Link>
+          </div>
+
+          {/* Metric 2: Leaf Health Checks */}
+          <div className="h-full">
+            <div className="p-4 sm:p-5 border-t-4 border-t-teal-500 border-x border-b border-slate-200/90 dark:border-slate-800/80 bg-white/95 dark:bg-[#0b1322]/95 backdrop-blur-md rounded-2xl shadow-xs hover:shadow-md hover:border-teal-500/40 transition-all flex flex-col justify-between h-full relative overflow-hidden">
+              <div>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[11px] sm:text-xs font-black text-slate-600 dark:text-slate-400 uppercase tracking-wider block">
+                    {isTe ? 'ఆకు పరీక్షల సంఖ్య' : 'Leaf Health Checks'}
+                  </span>
+                  <div className="w-8 h-8 rounded-xl bg-teal-500/15 dark:bg-teal-500/20 border border-teal-500/30 flex items-center justify-center text-teal-600 dark:text-teal-400 shrink-0">
+                    <Camera className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white mt-1" style={{ fontFamily: 'var(--font-display)' }}>
+                  {stats.total} {isTe ? 'పరీక్షలు' : 'Scans'}
+                </div>
+              </div>
+              <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-teal-50 dark:bg-teal-950/60 border border-teal-200 dark:border-teal-800/80 text-teal-800 dark:text-teal-300 font-bold text-xs">
+                  🌿 {stats.healthy} {isTe ? 'ఆరోగ్యం' : 'Healthy'}
+                </span>
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800/80 text-rose-800 dark:text-rose-300 font-bold text-xs">
+                  🍂 {stats.diseased} {isTe ? 'నివారణ' : 'Treated'}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Metric 3: Soil Moisture */}
+          <div className="h-full">
+            <div className="p-4 sm:p-5 border-t-4 border-t-sky-500 border-x border-b border-slate-200/90 dark:border-slate-800/80 bg-white/95 dark:bg-[#0b1322]/95 backdrop-blur-md rounded-2xl shadow-xs hover:shadow-md hover:border-sky-500/40 transition-all flex flex-col justify-between h-full relative overflow-hidden">
+              <div>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[11px] sm:text-xs font-black text-slate-600 dark:text-slate-400 uppercase tracking-wider block">
+                    {isTe ? 'నేల తేమ శాతం' : 'Soil Moisture (Water)'}
+                  </span>
+                  <div className="w-8 h-8 rounded-xl bg-sky-500/15 dark:bg-sky-500/20 border border-sky-500/30 flex items-center justify-center text-sky-600 dark:text-sky-400 shrink-0">
+                    <Droplets className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white mt-1" style={{ fontFamily: 'var(--font-display)' }}>
+                  {activeTelemetry?.soil_moisture != null ? `${activeTelemetry.soil_moisture}%` : '35%'}
+                </div>
+              </div>
+              <div className="mt-3">
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-sky-50 dark:bg-sky-950/60 border border-sky-200 dark:border-sky-800/80 text-sky-800 dark:text-sky-300 font-bold text-xs">
+                  💧 {activeTelemetry?.soil_moisture != null
+                    ? (activeTelemetry.soil_moisture > 50 ? (isTe ? 'సరైన తేమ' : 'Optimal') : activeTelemetry.soil_moisture > 30 ? (isTe ? 'తగినంత నీరు' : 'Adequate') : (isTe ? 'నీరు అవసరం' : 'Needs Water'))
+                    : (isTe ? 'తగినంత తేమ (సహజం)' : 'Adequate (Good)')}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Metric 4: Mandi Rate */}
+          <div className="h-full">
+            <Link to="/market" className="block h-full group">
+              <div className="p-4 sm:p-5 border-t-4 border-t-amber-500 border-x border-b border-slate-200/90 dark:border-slate-800/80 bg-white/95 dark:bg-[#0b1322]/95 backdrop-blur-md rounded-2xl shadow-xs hover:shadow-md hover:border-amber-500/40 transition-all flex flex-col justify-between h-full relative overflow-hidden">
+                <div>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[11px] sm:text-xs font-black text-slate-600 dark:text-slate-400 uppercase tracking-wider block">
+                      {isTe ? 'నేటి మార్కెట్ ధర' : "Today's Mandi Price"}
+                    </span>
+                    <div className="w-8 h-8 rounded-xl bg-amber-500/15 dark:bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0">
+                      <TrendingUp className="w-4 h-4" />
+                    </div>
+                  </div>
+                  <div className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white mt-1 group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors" style={{ fontFamily: 'var(--font-display)' }}>
+                    ₹2,150 / Qtl
+                  </div>
+                </div>
+                <div className="mt-3 flex items-center justify-between">
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800/80 text-amber-800 dark:text-amber-300 font-bold text-xs">
+                    ▲ +₹50 {isTe ? 'ఈ రోజు' : 'today'}
+                  </span>
+                  <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-amber-500 group-hover:translate-x-0.5 transition-all" />
+                </div>
+              </div>
+            </Link>
+          </div>
         </div>
       </motion.div>
 
-      {/* ─── Field Operations & Action Tasks Banner (Clean Link to Polished Field Actions) ─── */}
-      <motion.div variants={itemVariants} className="col-span-12">
-        <Link 
-          to="/farm?tab=smart-actions" 
-          className="group block p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-emerald-500/5 dark:from-emerald-950/40 dark:via-teal-950/30 dark:to-slate-900/40 border border-emerald-500/30 hover:border-emerald-500/60 shadow-xs hover:shadow-md transition-all"
-        >
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-lg sm:text-xl shrink-0">
-                ⚡
-              </div>
-              <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <h4 className="text-xs sm:text-sm font-black text-slate-900 dark:text-white truncate">
-                    {t('dashboard.action_hub_title', 'Field Tasks & Daily Operations')}
-                  </h4>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 shrink-0">
-                    {t('dashboard.action_hub_badge', 'Active Schedule')}
-                  </span>
-                </div>
-                <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 font-semibold truncate mt-0.5">
-                  {t('dashboard.action_hub_desc', 'View prioritized daily crop routines, weather alerts & task timeline in My Field')}
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-1 text-xs font-black text-emerald-600 dark:text-emerald-400 shrink-0 group-hover:translate-x-1 transition-transform">
-              <span className="hidden sm:inline">{t('dashboard.action_hub_cta', 'Open Field Actions')}</span>
-              <ChevronRight className="w-4 h-4" />
-            </div>
-          </div>
-        </Link>
-      </motion.div>
-
-      {/* ─── Full Suite: Today's 3-Task Quick Field Routine Checklist (Interactive Micro-Tasks) ─── */}
+      {/* ─── Section 2: Today's Field Work (Interactive 3-Task Routine Checklist) ─── */}
       <motion.div variants={itemVariants} className="col-span-12">
         <div className="p-4 sm:p-5 rounded-3xl bg-white/95 dark:bg-[#07111e]/95 backdrop-blur-xl border-2 border-slate-200/90 dark:border-slate-800 shadow-md space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-2">
               <span className="text-base sm:text-lg">📋</span>
-              <h3 className="text-xs sm:text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider">
-                {i18n.language === 'te' ? 'నేటి వ్యవసాయ దినచర్య పనులు' : "Today's Field Routine Checklist"}
-              </h3>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
-                {completedTasksCount} / {dailyTasks.length} {i18n.language === 'te' ? 'పూర్తయింది' : 'Completed'}
+              <div>
+                <h3 className="text-xs sm:text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider">
+                  {isTe ? 'నేటి పొలం పనులు (దినచర్య)' : "Today's Field Work (Daily Checklist)"}
+                </h3>
+              </div>
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+                {completedTasksCount} / {dailyTasks.length} {isTe ? 'పూర్తయింది' : 'Done'}
               </span>
             </div>
 
-            {/* Visual Micro Progress Bar */}
+            {/* Micro Progress Bar */}
             <div className="flex items-center gap-2 w-full sm:w-48">
               <div className="flex-1 h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
                 <div 
@@ -772,7 +759,7 @@ const DashboardPage = () => {
                 <div className="flex items-center gap-2.5 min-w-0">
                   <span className="text-base shrink-0">{task.icon}</span>
                   <span className={`text-xs font-bold leading-tight ${task.completed ? 'line-through opacity-75' : ''}`}>
-                    {i18n.language === 'te' ? task.titleTe : task.titleEn}
+                    {isTe ? task.titleTe : task.titleEn}
                   </span>
                 </div>
                 <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 border transition-all ${
@@ -785,143 +772,162 @@ const DashboardPage = () => {
               </button>
             ))}
           </div>
+
+          <div className="pt-1 flex justify-end">
+            <Link 
+              to="/farm?tab=smart-actions" 
+              className="text-xs font-black text-emerald-600 dark:text-emerald-400 hover:underline inline-flex items-center gap-1"
+            >
+              <span>{isTe ? 'అన్ని పొలం పనులను చూడండి →' : 'View all field tasks & schedules →'}</span>
+            </Link>
+          </div>
         </div>
       </motion.div>
 
-      {/* ─── Quick Touch-Friendly Farming Tools (6 Balanced Cards) ─── */}
+      {/* ─── Section 3: Rythu Services (Farming Tools - 2x3 Squircle Grid) ─── */}
       <motion.div variants={itemVariants} className="space-y-3">
         <div className="flex items-center justify-between px-1">
-          <h3 className="text-xs font-black text-slate-700 dark:text-slate-300 uppercase tracking-widest">
-            {t('dashboard.quick_tools.title', 'Quick Farming Tools')}
-          </h3>
+          <div>
+            <h3 className="text-xs font-black text-slate-700 dark:text-slate-300 uppercase tracking-widest">
+              {isTe ? '🌾 రైతు సేవలు & సాధనాలు' : '🌾 Rythu Services (Farming Tools)'}
+            </h3>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 font-semibold">
+              {isTe ? 'ఆకు పరీక్ష, వ్యవసాయ సలహా, యంత్రాల బుకింగ్ & కిసాన్ కాల్ సెంటర్' : 'Leaf scanner, expert advice, machinery booking & toll-free helpline'}
+            </p>
+          </div>
           <Link to="/more" className="text-xs font-extrabold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1">
-            {t('dashboard.quick_tools.see_all', 'See all tools')}
+            <span>{isTe ? 'మరిన్ని సేవలు' : 'See all tools'}</span>
             <ChevronRight className="w-3.5 h-3.5" />
           </Link>
         </div>
+
         <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4">
+          {/* Tool 1: Leaf Doctor */}
           <div className="h-full">
             <Link to="/upload" className="block group h-full">
               <Card hover className="p-4 sm:p-5 border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-[#0a1424] rounded-2xl shadow-xs hover:border-emerald-500/50 hover:shadow-md transition-all h-full flex flex-col justify-between overflow-hidden relative">
                 <div>
                   <div className="flex items-center justify-between mb-3">
                     <div className="w-10 h-10 rounded-xl overflow-hidden shadow-xs border border-slate-200 dark:border-slate-700">
-                      <img src={CURATED_FARM_PHOTOS.leafDoctor} alt="Crop Leaf Diagnosis" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
+                      <img src={CURATED_FARM_PHOTOS.leafDoctor} alt="Scan Leaf Disease" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
                     </div>
                     <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-emerald-500 group-hover:translate-x-0.5 transition-all" />
                   </div>
                   <h4 className="text-sm sm:text-base font-black text-slate-900 dark:text-white">
-                    {t('dashboard.quick_tools.leaf_doctor', 'Leaf Doctor')}
+                    {isTe ? 'ఆకు తెగులు పరీక్ష' : 'Scan Leaf Disease'}
                   </h4>
                   <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-snug">
-                    {t('dashboard.quick_tools.leaf_doctor_desc', 'Scan crop leaf for instant disease detection.')}
+                    {isTe ? 'ఫోటో తీసి తక్షణ తెగులు నివారణ' : 'Scan leaf for instant AI disease detection.'}
                   </p>
                 </div>
               </Card>
             </Link>
           </div>
 
+          {/* Tool 2: Ask Farm Doctor */}
           <div className="h-full">
             <Link to="/assistant" className="block group h-full">
               <Card hover className="p-4 sm:p-5 border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-[#0a1424] rounded-2xl shadow-xs hover:border-emerald-500/50 hover:shadow-md transition-all h-full flex flex-col justify-between overflow-hidden relative">
                 <div>
                   <div className="flex items-center justify-between mb-3">
                     <div className="w-10 h-10 rounded-xl overflow-hidden shadow-xs border border-slate-200 dark:border-slate-700">
-                      <img src={CURATED_FARM_PHOTOS.agronomist} alt="Human Agronomist Advisory" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
+                      <img src={CURATED_FARM_PHOTOS.agronomist} alt="Ask Farm Doctor" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
                     </div>
                     <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-emerald-500 group-hover:translate-x-0.5 transition-all" />
                   </div>
                   <h4 className="text-sm sm:text-base font-black text-slate-900 dark:text-white">
-                    {t('dashboard.quick_tools.agronomist', 'AI Agronomist')}
+                    {isTe ? 'వ్యవసాయ సలహాదారు' : 'Ask Farm Doctor'}
                   </h4>
                   <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-snug">
-                    {t('dashboard.quick_tools.agronomist_desc', 'Ask farming advice in your voice or language.')}
+                    {isTe ? 'వాయిస్ లేదా చాట్ ద్వారా అడగండి' : 'Ask farming advice in voice or chat.'}
                   </p>
                 </div>
               </Card>
             </Link>
           </div>
 
-          <div className="h-full">
-            <Link to="/market" className="block group h-full">
-              <Card hover className="p-4 sm:p-5 border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-[#0a1424] rounded-2xl shadow-xs hover:border-emerald-500/50 hover:shadow-md transition-all h-full flex flex-col justify-between overflow-hidden relative">
-                <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="w-10 h-10 rounded-xl overflow-hidden shadow-xs border border-slate-200 dark:border-slate-700">
-                      <img src={CURATED_FARM_PHOTOS.rice} alt="Agricultural Market Produce" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
-                    </div>
-                    <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-emerald-500 group-hover:translate-x-0.5 transition-all" />
-                  </div>
-                  <h4 className="text-sm sm:text-base font-black text-slate-900 dark:text-white">
-                    {t('dashboard.quick_tools.mandi_prices', 'Market')}
-                  </h4>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-snug">
-                    {t('dashboard.quick_tools.mandi_prices_desc', 'Track daily live agricultural market rates.')}
-                  </p>
-                </div>
-              </Card>
-            </Link>
-          </div>
-
-          <div className="h-full">
-            <Link to="/farm" className="block group h-full">
-              <Card hover className="p-4 sm:p-5 border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-[#0a1424] rounded-2xl shadow-xs hover:border-emerald-500/50 hover:shadow-md transition-all h-full flex flex-col justify-between overflow-hidden relative">
-                <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="w-10 h-10 rounded-xl overflow-hidden shadow-xs border border-slate-200 dark:border-slate-700">
-                      <img src={CURATED_FARM_PHOTOS.farmField} alt="GPS Farm Boundary" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
-                    </div>
-                    <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-emerald-500 group-hover:translate-x-0.5 transition-all" />
-                  </div>
-                  <h4 className="text-sm sm:text-base font-black text-slate-900 dark:text-white">
-                    {t('dashboard.quick_tools.my_farm', 'My Farm')}
-                  </h4>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-snug">
-                    {t('dashboard.quick_tools.my_farm_desc', 'View field GPS boundaries & crop setup.')}
-                  </p>
-                </div>
-              </Card>
-            </Link>
-          </div>
-
-          {/* 🚜 Farm Machinery, Drone & Pump Rental */}
+          {/* Tool 3: Rent Machinery */}
           <div className="h-full">
             <Link to="/equipment-booking" className="block group h-full">
               <Card hover className="p-4 sm:p-5 border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-[#0a1424] rounded-2xl shadow-xs hover:border-amber-500/50 hover:shadow-md transition-all h-full flex flex-col justify-between overflow-hidden relative">
                 <div>
                   <div className="flex items-center justify-between mb-3">
                     <div className="w-10 h-10 rounded-xl overflow-hidden shadow-xs border border-slate-200 dark:border-slate-700">
-                      <img src={CURATED_FARM_PHOTOS.tractorField} alt="Farm Machinery, Drone & Pump Rental" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
+                      <img src={CURATED_FARM_PHOTOS.tractorField} alt="Rent Machinery" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
                     </div>
                     <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-amber-500 group-hover:translate-x-0.5 transition-all" />
                   </div>
                   <h4 className="text-sm sm:text-base font-black text-slate-900 dark:text-white">
-                    {t('dashboard.quick_tools.machinery', 'Equipment Rental')}
+                    {isTe ? 'ట్రాక్టర్లు & డ్రోన్లు' : 'Rent Machinery'}
                   </h4>
                   <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-snug">
-                    {t('dashboard.quick_tools.machinery_desc', 'Book tractors, spraying drones & pumps nearby.')}
+                    {isTe ? 'సమీపంలోని ట్రాక్టర్లు, డ్రోన్ల బుకింగ్' : 'Book tractors, drones & harvesters nearby.'}
                   </p>
                 </div>
               </Card>
             </Link>
           </div>
 
-          {/* 🎧 Help & Support Team */}
+          {/* Tool 4: Mandi Prices */}
+          <div className="h-full">
+            <Link to="/market" className="block group h-full">
+              <Card hover className="p-4 sm:p-5 border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-[#0a1424] rounded-2xl shadow-xs hover:border-emerald-500/50 hover:shadow-md transition-all h-full flex flex-col justify-between overflow-hidden relative">
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="w-10 h-10 rounded-xl overflow-hidden shadow-xs border border-slate-200 dark:border-slate-700">
+                      <img src={CURATED_FARM_PHOTOS.rice} alt="Market Mandi Prices" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-emerald-500 group-hover:translate-x-0.5 transition-all" />
+                  </div>
+                  <h4 className="text-sm sm:text-base font-black text-slate-900 dark:text-white">
+                    {isTe ? 'నేటి మార్కెట్ ధరలు' : 'Mandi Prices'}
+                  </h4>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-snug">
+                    {isTe ? 'రోజువారీ మార్కెట్ ధరల పరిశీలన' : 'Track daily live agricultural mandi rates.'}
+                  </p>
+                </div>
+              </Card>
+            </Link>
+          </div>
+
+          {/* Tool 5: Farm GPS Map */}
+          <div className="h-full">
+            <Link to="/farm" className="block group h-full">
+              <Card hover className="p-4 sm:p-5 border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-[#0a1424] rounded-2xl shadow-xs hover:border-emerald-500/50 hover:shadow-md transition-all h-full flex flex-col justify-between overflow-hidden relative">
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="w-10 h-10 rounded-xl overflow-hidden shadow-xs border border-slate-200 dark:border-slate-700">
+                      <img src={CURATED_FARM_PHOTOS.farmField} alt="Farm GPS Map" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-emerald-500 group-hover:translate-x-0.5 transition-all" />
+                  </div>
+                  <h4 className="text-sm sm:text-base font-black text-slate-900 dark:text-white">
+                    {isTe ? 'పొలం మ్యాప్ & వివరాలు' : 'Farm GPS Map'}
+                  </h4>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-snug">
+                    {isTe ? 'పొలం సరిహద్దులు & పంట సెటప్' : 'View field GPS boundary & crop setup.'}
+                  </p>
+                </div>
+              </Card>
+            </Link>
+          </div>
+
+          {/* Tool 6: 24x7 Kisan Call Center */}
           <div className="h-full">
             <Link to="/support" className="block group h-full">
               <Card hover className="p-4 sm:p-5 border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-[#0a1424] rounded-2xl shadow-xs hover:border-indigo-500/50 hover:shadow-md transition-all h-full flex flex-col justify-between overflow-hidden relative">
                 <div>
                   <div className="flex items-center justify-between mb-3">
                     <div className="w-10 h-10 rounded-xl overflow-hidden shadow-xs border border-slate-200 dark:border-slate-700">
-                      <img src={CURATED_FARM_PHOTOS.supportTeam} alt="Help & Support Team" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
+                      <img src={CURATED_FARM_PHOTOS.supportTeam} alt="24x7 Support Team" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
                     </div>
                     <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-indigo-500 group-hover:translate-x-0.5 transition-all" />
                   </div>
                   <h4 className="text-sm sm:text-base font-black text-slate-900 dark:text-white">
-                    {t('dashboard.quick_tools.support', '24×7 Support')}
+                    {isTe ? 'ఉచిత కిసాన్ కాల్' : '24×7 Kisan Helpline'}
                   </h4>
                   <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-snug">
-                    {t('dashboard.quick_tools.support_desc', 'Direct WhatsApp desk & phone callbacks.')}
+                    {isTe ? 'ప్రభుత్వ ఉచిత వ్యవసాయ హెల్ప్‌లైన్' : 'Official government toll-free helpline.'}
                   </p>
                   <a
                     href="tel:18001801551"
@@ -930,7 +936,7 @@ const DashboardPage = () => {
                     title="National Toll-Free Kisan Call Center"
                   >
                     <Phone className="w-3 h-3 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                    <span className="truncate">1800-180-1551 (Kisan Call)</span>
+                    <span className="truncate">1800-180-1551 (ఉచిత కాల్)</span>
                   </a>
                 </div>
               </Card>
@@ -939,25 +945,33 @@ const DashboardPage = () => {
         </div>
       </motion.div>
 
-      {/* ─── Unified Field Intelligence (Weather, Safe Spray Window, Foliar Safety) ─── */}
-      <motion.div variants={itemVariants} className="w-full max-w-full min-w-0">
+      {/* ─── Section 4: Unified Field Intelligence (Weather, Rain & Safe Spray Window) ─── */}
+      <motion.div variants={itemVariants} className="w-full max-w-full min-w-0 space-y-2">
+        <div className="px-1">
+          <h3 className="text-xs font-black text-slate-700 dark:text-slate-300 uppercase tracking-widest">
+            {isTe ? '🌦️ వాతావరణం & సురక్షిత స్ప్రే సమయం' : '🌦️ Weather & Safe Spray Times'}
+          </h3>
+          <p className="text-[11px] text-slate-500 dark:text-slate-400 font-semibold">
+            {isTe ? 'వర్ష సూచన, గాలి వేగం మరియు సురక్షిత పిచికారీ గంటల విశ్లేషణ' : 'Live temperature, rain radar, wind speed and optimal spray conditions'}
+          </p>
+        </div>
         <WidgetErrorBoundary name="Field Intelligence">
           <FieldIntelligenceWidget farmId={farmId} lat={coordinates?.lat || 16.5062} lon={coordinates?.lon || 80.6480} />
         </WidgetErrorBoundary>
       </motion.div>
 
-      {/* ─── Recent Crop Diagnoses History (Fills mobile layout with immediate value) ─── */}
+      {/* ─── Section 5: Recent Leaf Scan Results (Cards with Photos & Diagnosis) ─── */}
       {stats.recent && stats.recent.length > 0 && (
         <motion.div variants={itemVariants} className="space-y-3">
           <div className="flex items-center justify-between px-1">
             <div className="flex items-center gap-2">
               <Clock className="w-4 h-4 text-emerald-500" />
               <h3 className="text-xs font-black text-slate-700 dark:text-slate-300 uppercase tracking-widest">
-                {t('dashboard.recent_diagnoses.title', 'Recent Crop Diagnoses')}
+                {isTe ? '📜 ఇటీవల స్కాన్ చేసిన ఆకుల ఫలితాలు' : '📜 Recent Leaf Scan Results'}
               </h3>
             </div>
             <Link to="/history" className="text-xs font-extrabold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1">
-              {t('dashboard.recent_diagnoses.view_all', 'View all ({{total}})', { total: stats.total })}
+              <span>{isTe ? `అన్ని ఫలితాలు (${stats.total})` : `View all (${stats.total})`}</span>
               <ChevronRight className="w-3.5 h-3.5" />
             </Link>
           </div>
@@ -975,22 +989,22 @@ const DashboardPage = () => {
                     </div>
                     <div className="min-w-0">
                       <p className="text-xs font-extrabold text-slate-900 dark:text-white truncate">
-                        {translateCrop(scan.crop_name, i18n.language) || 'Crop'} • {translateDisease(scan.predicted_class || scan.disease_name, i18n.language) || (isHealthy ? t('dashboard.recent_diagnoses.healthy', 'Healthy Leaf') : t('dashboard.recent_diagnoses.diseased', 'Infection Detected'))}
+                        {translateCrop(scan.crop_name, i18n.language) || (isTe ? 'పంట' : 'Crop')} • {translateDisease(scan.predicted_class || scan.disease_name, i18n.language) || (isHealthy ? (isTe ? 'ఆరోగ్యకరమైన ఆకు' : 'Healthy Leaf') : (isTe ? 'వ్యాధి సోకిన ఆకు' : 'Infection Detected'))}
                       </p>
                       <div className="flex items-center gap-2 mt-0.5">
                         <span className={`text-[10px] font-bold ${isHealthy ? 'text-emerald-500' : 'text-rose-400'}`}>
-                          {isHealthy ? `100% ${t('dashboard.recent_diagnoses.healthy', 'Healthy')}` : `${Math.round((scan.confidence || scan.confidence_score || 0.95) * 100)}% ${t('dashboard.recent_diagnoses.confidence', 'Match')}`}
+                          {isHealthy ? `100% ${isTe ? 'ఆరోగ్యం' : 'Healthy'}` : `${Math.round((scan.confidence || scan.confidence_score || 0.95) * 100)}% ${isTe ? 'మ్యాచ్' : 'Match'}`}
                         </span>
                         <span className="text-[10px] text-slate-400 dark:text-slate-500">•</span>
                         <span className="text-[10px] text-slate-500 dark:text-slate-400 truncate">
                           {scan.created_at ? (() => {
                             try {
                               const d = new Date(scan.created_at);
-                              return isNaN(d.getTime()) ? 'Recent' : d.toLocaleDateString();
+                              return isNaN(d.getTime()) ? (isTe ? 'ఇటీవల' : 'Recent') : d.toLocaleDateString();
                             } catch (e) {
-                              return 'Recent';
+                              return isTe ? 'ఇటీవల' : 'Recent';
                             }
-                          })() : 'Recent'}
+                          })() : (isTe ? 'ఇటీవల' : 'Recent')}
                         </span>
                       </div>
                     </div>
