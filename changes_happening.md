@@ -10763,3 +10763,13 @@ otif-, 	hread-, BK-) in _build_id_query and NotificationsPage.jsx.
   - **100% Feature & Data Preservation:** Zero features removed; simplified into intuitive farmer terms with Telugu bilingual labels.
 - **Production Build:**
   - Vite production build: 0 errors in 21.54s (dist/assets/DashboardPage-b96a48be.js cleanly generated).
+
+## [2026-11-14 22:35:00] Highlighted All Main Headings on Farmer Home Tab Dashboard
+- **Highlighted Section Headings (DashboardPage.jsx):**
+  - **Section 1 (Today's Field Condition / ఈ రోజు పొలం పరిస్థితి):** Gradient squircle icon box (emerald-to-teal), bold h2 display title, and 'Live Telemetry' (ప్రత్యక్ష నివేదిక) pill badge.
+  - **Section 2 (Today's Field Work / నేటి పొలం పనులు):** Gradient squircle icon box (sky-to-blue), bold h2 title, and task completion counter badge ('Completed' / 'పూర్తయింది').
+  - **Section 3 (Rythu Services & Tools / రైతు సేవలు & సాధనాలు):** Gradient squircle icon box (amber-to-orange), bold h2 title, and '6 Core Services' (6 ముఖ్యమైన సేవలు) badge pill with 'See all tools' action button.
+  - **Section 4 (Weather & Safe Spray Times / వాతావరణం & సురక్షిత స్ప్రే సమయం):** Gradient squircle icon box (indigo-to-purple), bold h2 title, and 'Live Radar' (ప్రత్యక్ష రాడార్) badge pill.
+  - **Section 5 (Recent Leaf Scan Results / ఇటీవల స్కాన్ చేసిన ఆకుల ఫలితాలు):** Gradient squircle icon box (teal-to-emerald), bold h2 title, and 'Total Records' (మొత్తం రికార్డులు) count badge with history navigation shortcut.
+- **Production Build:**
+  - Vite production build: 0 errors in 20.76s.

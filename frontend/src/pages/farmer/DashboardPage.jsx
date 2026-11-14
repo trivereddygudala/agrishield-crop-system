@@ -582,16 +582,26 @@ const DashboardPage = () => {
         </div>
       </motion.div>
 
-      {/* ─── Section 1: Today's Field Condition (4 Simple Metric Cards) ─── */}
+      {/* ─── Section 1: Today's Field Condition (Highlighted Heading) ─── */}
       <motion.div variants={itemVariants} className="space-y-3">
-        <div className="flex items-center justify-between px-1">
-          <div>
-            <h3 className="text-xs font-black text-slate-700 dark:text-slate-300 uppercase tracking-widest">
-              {isTe ? '📊 ఈ రోజు పొలం పరిస్థితి' : "📊 Today's Field Condition"}
-            </h3>
-            <p className="text-[11px] text-slate-500 dark:text-slate-400 font-semibold">
-              {isTe ? 'మీ పంట, ఆకుల పరీక్షలు, నేల తేమ మరియు మార్కెట్ ధర' : 'Simple live metrics for your crop, scans, soil water, and mandi price'}
-            </p>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-1 pb-1">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white flex items-center justify-center text-xl shadow-md shadow-emerald-500/25 shrink-0 border border-emerald-400/40">
+              📊
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="text-base sm:text-lg lg:text-xl font-black text-slate-900 dark:text-white tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>
+                  {isTe ? 'ఈ రోజు పొలం పరిస్థితి' : "Today's Field Condition"}
+                </h2>
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-black bg-emerald-100 text-emerald-800 dark:bg-emerald-950/90 dark:text-emerald-300 border border-emerald-300/80 dark:border-emerald-700 shadow-xs">
+                  {isTe ? 'ప్రత్యక్ష నివేదిక' : 'Live Telemetry'}
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold mt-0.5">
+                {isTe ? 'పంట దశ, ఆకుల పరీక్షలు, నేల తేమ & మార్కెట్ ధర' : 'Live metrics for crop stage, leaf tests, soil water & mandi rate'}
+              </p>
+            </div>
           </div>
         </div>
 
@@ -713,20 +723,27 @@ const DashboardPage = () => {
         </div>
       </motion.div>
 
-      {/* ─── Section 2: Today's Field Work (Interactive 3-Task Routine Checklist) ─── */}
+      {/* ─── Section 2: Today's Field Work (Highlighted Heading) ─── */}
       <motion.div variants={itemVariants} className="col-span-12">
-        <div className="p-4 sm:p-5 rounded-3xl bg-white/95 dark:bg-[#07111e]/95 backdrop-blur-xl border-2 border-slate-200/90 dark:border-slate-800 shadow-md space-y-3">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <span className="text-base sm:text-lg">📋</span>
-              <div>
-                <h3 className="text-xs sm:text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider">
-                  {isTe ? 'నేటి పొలం పనులు (దినచర్య)' : "Today's Field Work (Daily Checklist)"}
-                </h3>
+        <div className="p-4 sm:p-5 rounded-3xl bg-white/95 dark:bg-[#07111e]/95 backdrop-blur-xl border-2 border-slate-200/90 dark:border-slate-800 shadow-md space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-slate-100 dark:border-slate-800">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-sky-500 to-blue-600 text-white flex items-center justify-center text-xl shadow-md shadow-sky-500/25 shrink-0 border border-sky-400/40">
+                📋
               </div>
-              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
-                {completedTasksCount} / {dailyTasks.length} {isTe ? 'పూర్తయింది' : 'Done'}
-              </span>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-base sm:text-lg lg:text-xl font-black text-slate-900 dark:text-white tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>
+                    {isTe ? 'నేటి పొలం పనులు' : "Today's Field Work"}
+                  </h2>
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-black bg-sky-100 text-sky-800 dark:bg-sky-950/90 dark:text-sky-300 border border-sky-300/80 dark:border-sky-700 shadow-xs">
+                    {completedTasksCount} / {dailyTasks.length} {isTe ? 'పూర్తయింది' : 'Completed'}
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold mt-0.5">
+                  {isTe ? 'ఈ రోజు మీ పొలంలో పూర్తి చేయవలసిన 3 ముఖ్యమైన పనులు' : 'Daily 3-task agronomic action checklist for your farm'}
+                </p>
+              </div>
             </div>
 
             {/* Micro Progress Bar */}
@@ -784,19 +801,29 @@ const DashboardPage = () => {
         </div>
       </motion.div>
 
-      {/* ─── Section 3: Rythu Services (Farming Tools - 2x3 Squircle Grid) ─── */}
+      {/* ─── Section 3: Rythu Services (Highlighted Heading) ─── */}
       <motion.div variants={itemVariants} className="space-y-3">
-        <div className="flex items-center justify-between px-1">
-          <div>
-            <h3 className="text-xs font-black text-slate-700 dark:text-slate-300 uppercase tracking-widest">
-              {isTe ? '🌾 రైతు సేవలు & సాధనాలు' : '🌾 Rythu Services (Farming Tools)'}
-            </h3>
-            <p className="text-[11px] text-slate-500 dark:text-slate-400 font-semibold">
-              {isTe ? 'ఆకు పరీక్ష, వ్యవసాయ సలహా, యంత్రాల బుకింగ్ & కిసాన్ కాల్ సెంటర్' : 'Leaf scanner, expert advice, machinery booking & toll-free helpline'}
-            </p>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-1 pb-1">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 text-white flex items-center justify-center text-xl shadow-md shadow-amber-500/25 shrink-0 border border-amber-400/40">
+              🌾
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="text-base sm:text-lg lg:text-xl font-black text-slate-900 dark:text-white tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>
+                  {isTe ? 'రైతు సేవలు & సాధనాలు' : 'Rythu Services & Tools'}
+                </h2>
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-black bg-amber-100 text-amber-900 dark:bg-amber-950/90 dark:text-amber-300 border border-amber-300/80 dark:border-amber-700 shadow-xs">
+                  {isTe ? '6 ముఖ్యమైన సేవలు' : '6 Core Services'}
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold mt-0.5">
+                {isTe ? 'ఆకు స్కానర్, వ్యవసాయ సలహా, ట్రాక్టర్ల బుకింగ్ & కిసాన్ కాల్ సెంటర్' : 'Instant AI leaf doctor, voice agronomist, equipment booking & toll-free helpline'}
+              </p>
+            </div>
           </div>
-          <Link to="/more" className="text-xs font-extrabold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1">
-            <span>{isTe ? 'మరిన్ని సేవలు' : 'See all tools'}</span>
+          <Link to="/more" className="self-start sm:self-auto inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-300/70 dark:border-emerald-700 text-emerald-700 dark:text-emerald-300 text-xs font-black hover:bg-emerald-100 dark:hover:bg-emerald-900/60 shadow-xs transition-all">
+            <span>{isTe ? 'అన్ని సేవలు చూడండి' : 'See all tools'}</span>
             <ChevronRight className="w-3.5 h-3.5" />
           </Link>
         </div>
@@ -945,33 +972,57 @@ const DashboardPage = () => {
         </div>
       </motion.div>
 
-      {/* ─── Section 4: Unified Field Intelligence (Weather, Rain & Safe Spray Window) ─── */}
-      <motion.div variants={itemVariants} className="w-full max-w-full min-w-0 space-y-2">
-        <div className="px-1">
-          <h3 className="text-xs font-black text-slate-700 dark:text-slate-300 uppercase tracking-widest">
-            {isTe ? '🌦️ వాతావరణం & సురక్షిత స్ప్రే సమయం' : '🌦️ Weather & Safe Spray Times'}
-          </h3>
-          <p className="text-[11px] text-slate-500 dark:text-slate-400 font-semibold">
-            {isTe ? 'వర్ష సూచన, గాలి వేగం మరియు సురక్షిత పిచికారీ గంటల విశ్లేషణ' : 'Live temperature, rain radar, wind speed and optimal spray conditions'}
-          </p>
+      {/* ─── Section 4: Unified Field Intelligence (Highlighted Heading) ─── */}
+      <motion.div variants={itemVariants} className="w-full max-w-full min-w-0 space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-1 pb-1">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white flex items-center justify-center text-xl shadow-md shadow-indigo-500/25 shrink-0 border border-indigo-400/40">
+              🌦️
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="text-base sm:text-lg lg:text-xl font-black text-slate-900 dark:text-white tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>
+                  {isTe ? 'వాతావరణం & సురక్షిత స్ప్రే సమయం' : 'Weather & Safe Spray Times'}
+                </h2>
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-black bg-indigo-100 text-indigo-900 dark:bg-indigo-950/90 dark:text-indigo-300 border border-indigo-300/80 dark:border-indigo-700 shadow-xs">
+                  {isTe ? 'ప్రత్యక్ష రాడార్' : 'Live Radar'}
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold mt-0.5">
+                {isTe ? 'వర్ష సూచన, గాలి వేగం, తేమ మరియు సురక్షిత పిచికారీ గంటల విశ్లేషణ' : 'Real-time temperature, rain probability, wind speed & optimal spray window'}
+              </p>
+            </div>
+          </div>
         </div>
         <WidgetErrorBoundary name="Field Intelligence">
           <FieldIntelligenceWidget farmId={farmId} lat={coordinates?.lat || 16.5062} lon={coordinates?.lon || 80.6480} />
         </WidgetErrorBoundary>
       </motion.div>
 
-      {/* ─── Section 5: Recent Leaf Scan Results (Cards with Photos & Diagnosis) ─── */}
+      {/* ─── Section 5: Recent Leaf Scan Results (Highlighted Heading) ─── */}
       {stats.recent && stats.recent.length > 0 && (
         <motion.div variants={itemVariants} className="space-y-3">
-          <div className="flex items-center justify-between px-1">
-            <div className="flex items-center gap-2">
-              <Clock className="w-4 h-4 text-emerald-500" />
-              <h3 className="text-xs font-black text-slate-700 dark:text-slate-300 uppercase tracking-widest">
-                {isTe ? '📜 ఇటీవల స్కాన్ చేసిన ఆకుల ఫలితాలు' : '📜 Recent Leaf Scan Results'}
-              </h3>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-1 pb-1">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-teal-500 to-emerald-600 text-white flex items-center justify-center text-xl shadow-md shadow-teal-500/25 shrink-0 border border-teal-400/40">
+                📜
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-base sm:text-lg lg:text-xl font-black text-slate-900 dark:text-white tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>
+                    {isTe ? 'ఇటీవల స్కాన్ చేసిన ఆకుల ఫలితాలు' : 'Recent Leaf Scan Results'}
+                  </h2>
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-black bg-teal-100 text-teal-900 dark:bg-teal-950/90 dark:text-teal-300 border border-teal-300/80 dark:border-teal-700 shadow-xs">
+                    {stats.total} {isTe ? 'మొత్తం రికార్డులు' : 'Total Records'}
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold mt-0.5">
+                  {isTe ? 'మీ పొలంలో ఆకుల తాజా ఆరోగ్య చరిత్ర & నివారణ సూచనలు' : 'Recent diagnostic history, health percentage & treatment recommendations'}
+                </p>
+              </div>
             </div>
-            <Link to="/history" className="text-xs font-extrabold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1">
-              <span>{isTe ? `అన్ని ఫలితాలు (${stats.total})` : `View all (${stats.total})`}</span>
+            <Link to="/history" className="self-start sm:self-auto inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-300/70 dark:border-emerald-700 text-emerald-700 dark:text-emerald-300 text-xs font-black hover:bg-emerald-100 dark:hover:bg-emerald-900/60 shadow-xs transition-all">
+              <span>{isTe ? `అన్ని రికార్డులు (${stats.total})` : `View all history (${stats.total})`}</span>
               <ChevronRight className="w-3.5 h-3.5" />
             </Link>
           </div>
