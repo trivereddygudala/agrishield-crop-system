@@ -10784,3 +10784,19 @@ otif-, 	hread-, BK-) in _build_id_query and NotificationsPage.jsx.
   - **Time-Aware Spray Window Badge:** Night mode adopts deep dark-emerald styling ('bg-emerald-950/80 text-emerald-300') with pulsing timer icon.
 - **Production Build:**
   - Vite build: 0 errors in 21.00s.
+
+## [2026-11-15 00:15:00] Upgraded Weather & Safe Spray Times with Real-Time Diurnal Intelligence & Micro-Animations
+- **Field Intelligence Modernization (FieldIntelligenceWidget.jsx & DashboardPage.jsx):**
+  - **Box 1 (Farm Weather & Rain Forecast):**
+    - Real-time diurnal state detection (Night, Dawn, Day, Dusk, Rain).
+    - Night Mode: Deep nocturnal indigo/purple palette, animated rocking crescent moon ('🌙') with framer-motion rotation [-10, 10] degrees, shimmering star ('✨'), and starlit sky conditions.
+    - Day Mode: Solar rotation for sun ('☀️') with photosynthesis weather descriptions.
+    - Time-aware indicators: Night dew humidity, rain probability, wind speed, and starlit night sky index.
+  - **Box 2 (Crop Spraying Safety Window):**
+    - Night Repose Mode: Intelligently switches from daytime spraying to '🌙 NIGHT REPOSE — NEXT SAFE SPRAY: TOMORROW 7:30 AM' (రాత్రి విశ్రాంతి — రేపు ఉదయం 7:30 AM తర్వాత స్ప్రే చేయండి).
+    - Practical farmer agronomy reasons: Night stomata closure prevents foliar chemical uptake, condensing nocturnal dew dilutes medicine and causes runoff, advises preparing tank tonight for 7:30 AM dawn application.
+    - Day Mode: Dynamically guides between morning safe window (8:00-11:30 AM), midday heat pause (11:30 AM-4:00 PM), and cool evening window (4:00-6:30 PM).
+  - **Section 4 Heading Animation (DashboardPage.jsx):**
+    - Time-aware animated header icon ('🌙' at night, '🌦️' by day) with 'Night Radar' (రాత్రి రాడార్) badge and descriptive nocturnal subtitle.
+- **Production Build:**
+  - Vite build: 0 errors in 25.29s.

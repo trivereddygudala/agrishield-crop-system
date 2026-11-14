@@ -1100,24 +1100,36 @@ const DashboardPage = () => {
         </div>
       </motion.div>
 
-      {/* ─── Section 4: Unified Field Intelligence (Highlighted Heading) ─── */}
+      {/* ─── Section 4: Unified Field Intelligence (Time-Aware Highlighted Heading) ─── */}
       <motion.div variants={itemVariants} className="w-full max-w-full min-w-0 space-y-3">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-1 pb-1">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white flex items-center justify-center text-xl shadow-md shadow-indigo-500/25 shrink-0 border border-indigo-400/40">
-              🌦️
+            <div className={`w-10 h-10 rounded-2xl ${isNightTime ? 'bg-gradient-to-br from-indigo-900 to-purple-900 text-indigo-200 border-indigo-500/40' : 'bg-gradient-to-br from-indigo-500 to-purple-600 text-white border-indigo-400/40'} flex items-center justify-center text-xl shadow-md shadow-indigo-500/25 shrink-0 border`}>
+              <motion.span
+                animate={isNightTime ? { rotate: [0, -10, 10, 0] } : { scale: [1, 1.1, 1] }}
+                transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                className="inline-block"
+              >
+                {isNightTime ? '🌙' : '🌦️'}
+              </motion.span>
             </div>
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-base sm:text-lg lg:text-xl font-black text-slate-900 dark:text-white tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>
                   {isTe ? 'వాతావరణం & సురక్షిత స్ప్రే సమయం' : 'Weather & Safe Spray Times'}
                 </h2>
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-black bg-indigo-100 text-indigo-900 dark:bg-indigo-950/90 dark:text-indigo-300 border border-indigo-300/80 dark:border-indigo-700 shadow-xs">
-                  {isTe ? 'ప్రత్యక్ష రాడార్' : 'Live Radar'}
+                <span className={`px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-black border shadow-xs ${
+                  isNightTime
+                    ? 'bg-indigo-950 text-indigo-300 border-indigo-700'
+                    : 'bg-indigo-100 text-indigo-900 dark:bg-indigo-950/90 dark:text-indigo-300 border-indigo-300/80 dark:border-indigo-700'
+                }`}>
+                  {isNightTime ? (isTe ? 'రాత్రి రాడార్' : 'Night Radar') : (isTe ? 'ప్రత్యక్ష రాడార్' : 'Live Radar')}
                 </span>
               </div>
               <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold mt-0.5">
-                {isTe ? 'వర్ష సూచన, గాలి వేగం, తేమ మరియు సురక్షిత పిచికారీ గంటల విశ్లేషణ' : 'Real-time temperature, rain probability, wind speed & optimal spray window'}
+                {isNightTime
+                  ? (isTe ? 'రాత్రి ఉష్ణోగ్రత, తేమ, రేపటి వర్ష సూచన మరియు ఉదయపు స్ప్రే సమయం' : 'Nocturnal temperature, dew moisture, tomorrow rain radar & morning spray window')
+                  : (isTe ? 'వర్ష సూచన, గాలి వేగం, తేమ మరియు సురక్షిత పిచికారీ గంటల విశ్లేషణ' : 'Real-time temperature, rain probability, wind speed & optimal spray window')}
               </p>
             </div>
           </div>
