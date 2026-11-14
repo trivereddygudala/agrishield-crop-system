@@ -10800,3 +10800,19 @@ otif-, 	hread-, BK-) in _build_id_query and NotificationsPage.jsx.
     - Time-aware animated header icon ('🌙' at night, '🌦️' by day) with 'Night Radar' (రాత్రి రాడార్) badge and descriptive nocturnal subtitle.
 - **Production Build:**
   - Vite build: 0 errors in 25.29s.
+
+## [2026-11-15 00:22:00] Replaced Unsuitable Purple with Natural Agriculture Palette & Simplified Technical Vocabulary
+- **Color Palette Overhaul (FieldIntelligenceWidget.jsx & DashboardPage.jsx):**
+  - Completely purged synthetic purple/violet classes ('purple-950', 'purple-800', 'indigo-950').
+  - Adopted organic agricultural color scheme: Deep Forest Green ('emerald-950'), Vibrant Emerald ('emerald-500/400'), Deep Earth Slate ('slate-900/950'), and Warm Amber ('amber-400/500').
+  - Box 2 status banner transformed into high-contrast Forest Green & Deep Slate ('bg-gradient-to-r from-emerald-950 via-slate-900 to-emerald-950 border-2 border-emerald-500/50 text-white').
+  - Transformed washed-out tip footer into a crisp, high-contrast emerald leaf card ('bg-emerald-50 dark:bg-emerald-950/40 border-2 border-emerald-300 dark:border-emerald-700/80 text-emerald-950 dark:text-emerald-200').
+- **Simplified Technical Text into Intuitive Farmer Language:**
+  - Replaced academic jargon ('NIGHT REPOSE', 'Stomata Closed', 'Nocturnal Farm Advisory', 'Liquid Runoff') with everyday farmer phrases:
+    - Main Banner: '🌙 Do Not Spray at Night • Next Safe Spray: Tomorrow 7:30 AM' (రాత్రి వేళ స్ప్రే చేయవద్దు • రేపు ఉదయం 7:30 AM కి స్ప్రే చేయండి).
+    - Reason 1: '🌿 Leaves Rest at Night: No Absorption' (మొక్కల ఆకులు రాత్రి నిద్రిస్తాయి: మందు లోపలికి ఇంకదు).
+    - Reason 2: '💧 Heavy Night Dew: Washes Off' (రాత్రి పడే దట్టమైన మంచు: మందు కారిపోతుంది).
+    - Reason 3: '🌅 Best Time: Tomorrow Morning (7:30 AM – 10:30 AM)' (ఉదయం ఉత్తమ స్ప్రే సమయం).
+    - Farmer Tip: '💡 Farmer Advice: Rest well tonight. Morning spraying between 7:30 AM and 10:30 AM saves your medicine cost and keeps your crop 100% healthy.'
+- **Production Build:**
+  - Vite build: 0 errors in 22.81s.

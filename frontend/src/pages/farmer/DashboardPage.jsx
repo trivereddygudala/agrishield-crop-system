@@ -67,7 +67,7 @@ const getTimeOfDayWeather = (hour, liveWeather, language) => {
       voiceText: isCloudy
         ? (isTe ? 'మేఘావృత రాత్రిగా ఉంది' : isHi ? 'बादल वाली रात है' : 'cloudy night')
         : (isTe ? 'చల్లని మరియు శాంతమైన రాత్రిగా ఉంది' : isHi ? 'शांत और सुहावनी रात है' : 'pleasant clear night'),
-      bgClasses: 'bg-gradient-to-r from-indigo-950 via-slate-900 to-purple-950 text-indigo-100 border-2 border-indigo-400/70 shadow-lg shadow-indigo-950/70',
+      bgClasses: 'bg-gradient-to-r from-emerald-950 via-slate-900 to-teal-950 text-emerald-100 border-2 border-emerald-400/70 shadow-lg shadow-emerald-950/70',
       tempVal
     };
   }
@@ -93,7 +93,7 @@ const getTimeOfDayWeather = (hour, liveWeather, language) => {
       hasPulseGlow: true,
       text: isTe ? 'చల్లని సాయంత్రం' : isHi ? 'सुहावनी शाम' : 'Cool Evening',
       voiceText: isTe ? 'ఆహ్లాదకరమైన సాయంత్రం' : isHi ? 'सुहावनी शाम' : 'pleasant cool evening',
-      bgClasses: 'bg-gradient-to-r from-orange-600 via-rose-600 to-purple-800 text-white border-2 border-orange-300 shadow-lg shadow-rose-500/30',
+      bgClasses: 'bg-gradient-to-r from-amber-600 via-orange-600 to-emerald-800 text-white border-2 border-amber-300 shadow-lg shadow-orange-500/30',
       tempVal
     };
   }
@@ -372,7 +372,7 @@ const DashboardPage = () => {
     ? 'from-sky-500/20 via-emerald-500/15 to-transparent'
     : currentHour >= 17 && currentHour < 20
     ? 'from-orange-600/30 via-rose-600/20 to-indigo-950/30'
-    : 'from-indigo-950/80 via-purple-950/50 to-slate-950/85';
+    : 'from-slate-950/90 via-emerald-950/60 to-slate-950/90';
 
   // ─── Today's 3-Task Quick Field Routine Checklist ───
   const todayDateKey = new Date().toISOString().slice(0, 10);
@@ -1104,7 +1104,7 @@ const DashboardPage = () => {
       <motion.div variants={itemVariants} className="w-full max-w-full min-w-0 space-y-3">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-1 pb-1">
           <div className="flex items-center gap-3">
-            <div className={`w-10 h-10 rounded-2xl ${isNightTime ? 'bg-gradient-to-br from-indigo-900 to-purple-900 text-indigo-200 border-indigo-500/40' : 'bg-gradient-to-br from-indigo-500 to-purple-600 text-white border-indigo-400/40'} flex items-center justify-center text-xl shadow-md shadow-indigo-500/25 shrink-0 border`}>
+            <div className={`w-10 h-10 rounded-2xl ${isNightTime ? 'bg-gradient-to-br from-emerald-800 to-teal-900 text-emerald-100 border-emerald-400/50' : 'bg-gradient-to-br from-emerald-500 to-teal-600 text-white border-emerald-400/40'} flex items-center justify-center text-xl shadow-md shadow-indigo-500/25 shrink-0 border`}>
               <motion.span
                 animate={isNightTime ? { rotate: [0, -10, 10, 0] } : { scale: [1, 1.1, 1] }}
                 transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
@@ -1120,8 +1120,8 @@ const DashboardPage = () => {
                 </h2>
                 <span className={`px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-black border shadow-xs ${
                   isNightTime
-                    ? 'bg-indigo-950 text-indigo-300 border-indigo-700'
-                    : 'bg-indigo-100 text-indigo-900 dark:bg-indigo-950/90 dark:text-indigo-300 border-indigo-300/80 dark:border-indigo-700'
+                    ? 'bg-emerald-950 text-emerald-300 border-emerald-700'
+                    : 'bg-emerald-100 text-emerald-900 dark:bg-emerald-950/90 dark:text-emerald-300 border-emerald-300/80 dark:border-emerald-700'
                 }`}>
                   {isNightTime ? (isTe ? 'రాత్రి రాడార్' : 'Night Radar') : (isTe ? 'ప్రత్యక్ష రాడార్' : 'Live Radar')}
                 </span>
