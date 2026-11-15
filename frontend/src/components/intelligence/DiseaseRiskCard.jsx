@@ -38,9 +38,9 @@ export const RiskGauge = ({ percentage, level, color }) => {
 // In-memory module cache for instant hydration
 const _riskCacheMap = new Map();
 
-export const DiseaseRiskCard = React.memo(({ farmId, cropName = "Tomato" }) => {
+export const DiseaseRiskCard = React.memo(({ farmId, cropName = "" }) => {
   const { t } = useTranslation();
-  const safeCrop = (cropName && String(cropName).trim()) ? String(cropName).trim() : "Tomato";
+  const safeCrop = (cropName && String(cropName).trim()) ? String(cropName).trim() : "";
   const cacheKey = `${farmId || 'default'}_${safeCrop}`;
   const initialCached = _riskCacheMap.get(cacheKey) || _riskCacheMap.get('latest');
 

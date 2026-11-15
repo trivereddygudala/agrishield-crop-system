@@ -21,21 +21,22 @@ const CROP_BENCHMARKS = {
   "Potato": { name: "Potato", icon: "🥔", avgYield: 120, minYield: 90, maxYield: 160, unit: "Quintals", pricePerQtl: 1650, costPerAcre: 48000, durationDays: 100, bestMonths: "Jan - March" }
 };
 
-export default function YieldProfitEstimator({ initialCrop = "Tomato", initialAcres = 2.0, mandiPriceOverride = null }) {
+export default function YieldProfitEstimator({ initialCrop = "", initialAcres = 2.0, mandiPriceOverride = null }) {
   const { t, i18n } = useTranslation();
   const isTe = i18n.language === 'te';
 
+  const defaultCropKey = Object.keys(CROP_BENCHMARKS)[0] || "Rice";
   const [selectedCropKey, setSelectedCropKey] = useState(
-    CROP_BENCHMARKS[initialCrop] ? initialCrop : "Tomato"
+    (initialCrop && CROP_BENCHMARKS[initialCrop]) ? initialCrop : defaultCropKey
   );
   const [acreage, setAcreage] = useState(initialAcres || 2.0);
   const [managementQuality, setManagementQuality] = useState('high'); // 'standard', 'high', 'expert'
   const [irrigationType, setIrrigationType] = useState('drip'); // 'rainfed', 'flood', 'drip', 'sprinkler'
   const [customCostPerAcre, setCustomCostPerAcre] = useState(
-    CROP_BENCHMARKS[initialCrop]?.costPerAcre || 45000
+    (initialCrop && CROP_BENCHMARKS[initialCrop]?.costPerAcre) || CROP_BENCHMARKS[defaultCropKey]?.costPerAcre || 45000
   );
 
-  const crop = CROP_BENCHMARKS[selectedCropKey] || CROP_BENCHMARKS["Tomato"];
+  const crop = CROP_BENCHMARKS[selectedCropKey] || CROP_BENCHMARKS[defaultCropKey];
   const currentMandiPrice = mandiPriceOverride || crop.pricePerQtl;
 
   // Management & Irrigation Multipliers

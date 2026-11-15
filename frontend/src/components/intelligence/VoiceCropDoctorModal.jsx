@@ -51,7 +51,7 @@ export const VoiceCropDoctorModal = ({
   const silenceTimerRef = useRef(null);
   const shouldListenRef = useRef(false);
 
-  const currentCrop = initialCrop || activeFarm?.crop_name || activeFarm?.crop_type || 'Tomato';
+  const currentCrop = initialCrop || activeFarm?.crop_name || activeFarm?.crop_type || (isTe ? 'పంట' : 'Field Crop');
   const farmLocation = activeFarm?.village || activeFarm?.district || activeFarm?.location || 'Pasupugallu';
 
   // Topic prompt pills for quick farmer questions across all 6 languages

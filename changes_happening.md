@@ -11033,3 +11033,48 @@ otif-, 	hread-, BK-) in _build_id_query and NotificationsPage.jsx.
 - Commit Hash: `0c0fafb`
 - Commit Title: `feat(ai-assistant): implement AgriShield Chat Assistant with portal-specific hybrid architecture and extensive commands suite`
 - Working tree clean. Ahead of origin/main by 1 commit.
+
+## [2026-11-15 13:38:00] - Eradication of Hardcoded 'Tomato' Fallbacks Across Platform & Toolkit
+
+### Objectives & Summary
+- Removed hardcoded 'Tomato' defaults and mock fallbacks across the Farmer Portal Toolkit and the entire codebase:
+  1. **Farmer Toolkit (`AIAssistantPage.jsx`):**
+     - Replaced hardcoded 'Tomato' with dynamic crop state `activeFarmerCrop` resolved from `activeFarm?.crop_type || activeFarm?.crop_name || user?.crop`.
+     - Added an interactive **Cultivated Crop Selector** dropdown inside the Active Farm Profile module so farmers can dynamically choose or switch their crop (Paddy/Rice, Chilli, Cotton, Maize, Groundnut, Tomato, Potato, Wheat, Sugarcane, Soybean, Onion, Banana) directly from the toolkit.
+     - Updated 1-Click Prescription Slip PDF downloader and WhatsApp store share button to dynamically reference the chosen crop rather than forcing 'Tomato'.
+     - Updated Voice Crop Doctor modal to bind dynamically to `activeFarmerCrop`.
+     - Replaced hardcoded `outbreakCrop` initial state from 'Tomato Early Blight' to 'Early Blight'.
+  2. **Farm Management & Sowing Calendar (`FarmPage.jsx`):**
+     - Replaced hardcoded 'Tomato' fallback across child components (`CropGrowthTimeline`, `HarvestSeasonManager`, `DigitalFarmKhata`, `FarmInventoryManager`, `GovernmentSchemeNavigator`, `WhatsAppDiagnosisHub`, `SoilNPKCalculatorModal`, `SmartIrrigationScheduler`) with `cropName || activeFarm?.crop_name || activeFarm?.crop_type || ''`.
+  3. **Shared Crop Modals & Widgets:**
+     - `VoiceCropDoctorModal.jsx`: Removed `'Tomato'` fallback; dynamically resolves active crop.
+     - `HarvestSeasonManager.jsx`: Replaced default `'Tomato'` with empty string / active farm crop.
+     - `SoilNPKCalculatorModal.jsx`: Default crop key dynamically resolves to `initialCrop` or the first available benchmark crop rather than hardcoding 'Tomato'.
+     - `YieldProfitEstimator.jsx`: Default crop key dynamically resolves to `initialCrop` or the first available benchmark crop rather than hardcoding 'Tomato'.
+     - `DailyRecommendations.jsx` & `DiseaseRiskCard.jsx`: Default `cropName = ""` instead of `"Tomato"`.
+     - `MarketPricesPage.jsx`: Dynamic resolution of `activeFarm?.crop_type || activeFarm?.crop_name` without `'Tomato'` fallback.
+     - `AdminPage.jsx` & `AnalyticsPage.jsx`: Replaced `'Tomato'` fallbacks with `'Field Crop'` / `'General Crop'`.
+     - `offlineDiagnosticEngine.js`: Replaced default `'Tomato'` with `'Crop'`.
+  4. **Backend Services & Routers:**
+     - `backend/app/routers/common/ai.py`: Replaced `'Tomato'` scan crop fallback with `'Crop'`.
+     - `backend/app/routers/common/intelligence.py`: Replaced `safe_crop` default with `'General Crop'`.
+     - `backend/app/routers/farmer/farm_profiles.py`: Replaced default with `'Field Crop'`.
+     - `backend/app/services/action_center/service.py`: Replaced default with `'Field Crop'`.
+     - `backend/app/routers/admin/admin.py`: Replaced detected crop default with `'Field Crop'`.
+
+### Verification
+- Production build compiled with zero errors (`npm run build` completed in 20.31s).
+- Verified that all hardcoded 'Tomato' fallbacks are eliminated and all components now dynamically adapt to the user's actual cultivated crop.
+- Live servers remain active on `http://localhost:3000` and `http://localhost:8000`.
+
+## [2026-11-15 13:50:27] - Rebrand App Header & Fix AgriShield Toolkit Mobile Cutoff
+- **Rebrand Top App Header (`translations.js` & `AppLayout.jsx`):**
+  - Replaced legacy `"AI Expert Assistant"` under `nav.assistant` across all 12 supported languages in `translations.js` with `"AgriShield Chat Assistant"` (and localized translations: Telugu `అగ్రిషీల్డ్ చాట్ అసిస్టెంట్`, Hindi `एग्रीशील्ड चैट सहायक`, etc.).
+  - Updated fallback in `AppLayout.jsx` line 727 to `AgriShield Chat Assistant`.
+- **Hybrid Workspace Layout & Mobile Cutoff Fix (`AIAssistantPage.jsx`):**
+  - Wrapped Chat Column and Toolkit Tray inside a dedicated flex container (`flex-1 min-h-0 flex flex-col lg:flex-row overflow-hidden relative`), ensuring desktop displays a side-by-side row and mobile switches cleanly between tabs.
+  - Eliminated the flex height overflow bug where `shrink-0 h-full` pushed the bottom 56px outside the viewport.
+  - Added bottom padding `pb-32 sm:pb-24 lg:pb-6` so the bottom cards (`📍 Nearby Agriculture Hubs` including `🏢 MAO Mandal Office`) sit completely above the mobile `BottomNav` bar with zero cutoff.
+  - Attached `toolkitContainerRef` and auto-scrolled to top (`scrollTop = 0`) on mobile tab switch so the Active Farm Profile and Crop Selector are immediately visible at the top.
+- **Verification:**
+  - `npm run build` compiled with 0 errors in 26.71s.

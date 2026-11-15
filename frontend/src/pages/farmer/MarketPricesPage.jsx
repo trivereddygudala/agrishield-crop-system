@@ -413,7 +413,7 @@ const MarketPricesPage = () => {
 
       {/* ── Enterprise Crop Yield & Harvest Profit Estimator ── */}
       <YieldProfitEstimator 
-        initialCrop={selectedCrop !== 'All' ? selectedCrop : (activeFarm?.crop_type || "Tomato")}
+        initialCrop={selectedCrop !== 'All' ? selectedCrop : (activeFarm?.crop_type || activeFarm?.crop_name || "")}
         initialAcres={activeFarm?.farm_size || 2.0}
       />
 

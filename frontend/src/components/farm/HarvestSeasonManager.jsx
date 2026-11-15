@@ -69,7 +69,7 @@ export default function HarvestSeasonManager({ farmId, farmName, cropName, farmS
 
   // New Season Form
   const [newSeasonForm, setNewSeasonForm] = useState({
-    crop_name: cropName || 'Tomato',
+    crop_name: cropName || '',
     variety: '',
     area: farmSize || '',
     area_unit: 'acres',

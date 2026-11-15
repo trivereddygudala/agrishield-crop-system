@@ -82,13 +82,14 @@ function formatBagAndKg(totalKg, bagWeight, isTe = false) {
   return { primary, secondary, bags: fullBags, looseKg, totalKg };
 }
 
-export default function SoilNPKCalculatorModal({ isOpen, onClose, initialCrop = "Tomato", initialAcres = 2.0, embedded = false }) {
+export default function SoilNPKCalculatorModal({ isOpen, onClose, initialCrop = "", initialAcres = 2.0, embedded = false }) {
   const { t, i18n } = useTranslation();
   const isTe = i18n.language === 'te';
 
+  const defaultCropKey = Object.keys(NPK_BENCHMARKS)[0] || "Rice";
   const [selectedSoilKey, setSelectedSoilKey] = useState("red_loamy");
   const [selectedCropKey, setSelectedCropKey] = useState(
-    NPK_BENCHMARKS[initialCrop] ? initialCrop : "Tomato"
+    (initialCrop && NPK_BENCHMARKS[initialCrop]) ? initialCrop : defaultCropKey
   );
   const [acres, setAcres] = useState(initialAcres || 2.0);
   const [useDAP, setUseDAP] = useState(true);
@@ -96,7 +97,7 @@ export default function SoilNPKCalculatorModal({ isOpen, onClose, initialCrop = 
   const scrollRef = useRef(null);
 
   const soil = SOIL_TYPES[selectedSoilKey] || SOIL_TYPES["red_loamy"];
-  const crop = NPK_BENCHMARKS[selectedCropKey] || NPK_BENCHMARKS["Tomato"];
+  const crop = NPK_BENCHMARKS[selectedCropKey] || NPK_BENCHMARKS[defaultCropKey];
 
   // Fertilizer Bag Calculation with Farmer-Friendly Whole Bags + Loose Kg Units
   const schedule = useMemo(() => {

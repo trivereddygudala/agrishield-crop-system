@@ -4,7 +4,7 @@ import { Sparkles, CheckCircle2, AlertTriangle, ArrowRight, ShieldCheck, Wind, C
 import { Card, Badge, Skeleton } from '../ui/index';
 import API from '../../services/api';
 
-export const DailyRecommendations = React.memo(({ farmId, cropName = "Tomato", growthStage = "Vegetative" }) => {
+export const DailyRecommendations = React.memo(({ farmId, cropName = "", growthStage = "Vegetative" }) => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
 

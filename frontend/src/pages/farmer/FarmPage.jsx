@@ -1920,7 +1920,7 @@ const FarmPage = () => {
           <CropGrowthTimeline
             farmId={activeFarm?.id || activeFarm?._id || farms?.[0]?.id || farms?.[0]?._id}
             farmName={farmName || activeFarm?.farm_name || 'My Farm'}
-            cropName={cropName || 'Tomato'}
+            cropName={cropName || activeFarm?.crop_name || activeFarm?.crop_type || ''}
             plantingDate={plantingDate || '2026-08-15'}
             acreage={parseFloat(farmSize) || 2.0}
             village={village || activeFarm?.village || 'Pasupugallu'}
@@ -1931,7 +1931,7 @@ const FarmPage = () => {
             <HarvestSeasonManager
               farmId={activeFarm?.id || activeFarm?._id || farms?.[0]?.id || farms?.[0]?._id}
               farmName={farmName || activeFarm?.farm_name || 'My Farm'}
-              cropName={cropName || activeFarm?.crop_name || 'Tomato'}
+              cropName={cropName || activeFarm?.crop_name || activeFarm?.crop_type || ''}
               farmSize={parseFloat(farmSize) || parseFloat(activeFarm?.farm_size) || 1.0}
               onSeasonChanged={fetchFarmData}
             />
@@ -2023,7 +2023,7 @@ const FarmPage = () => {
           <HarvestSeasonManager
             farmId={activeFarm?.id || activeFarm?._id || farms?.[0]?.id || farms?.[0]?._id}
             farmName={farmName || activeFarm?.farm_name || 'My Farm'}
-            cropName={cropName || activeFarm?.crop_name || 'Tomato'}
+            cropName={cropName || activeFarm?.crop_name || activeFarm?.crop_type || ''}
             farmSize={parseFloat(farmSize) || parseFloat(activeFarm?.farm_size) || 1.0}
             onSeasonChanged={fetchFarmData}
           />
@@ -2037,7 +2037,7 @@ const FarmPage = () => {
             farmId={activeFarm?.id || activeFarm?._id || farms?.[0]?.id || farms?.[0]?._id}
             farmName={farmName || activeFarm?.farm_name || 'My Farm'}
             acreage={parseFloat(farmSize) || 2.0}
-            cropName={cropName || 'Tomato'}
+            cropName={cropName || activeFarm?.crop_name || activeFarm?.crop_type || ''}
             village={village || activeFarm?.village || 'Pasupugallu'}
             onClose={() => setActiveTab('modules')}
           />
@@ -2050,7 +2050,7 @@ const FarmPage = () => {
           <FarmInventoryManager
             farmId={activeFarm?.id || activeFarm?._id || farms?.[0]?.id || farms?.[0]?._id}
             farmName={farmName || activeFarm?.farm_name || 'My Farm'}
-            cropName={cropName || activeFarm?.crop_name || 'Tomato'}
+            cropName={cropName || activeFarm?.crop_name || activeFarm?.crop_type || ''}
             onClose={() => setActiveTab('modules')}
             onNavigateKhata={() => setActiveTab('farm-khata')}
           />
@@ -2063,7 +2063,7 @@ const FarmPage = () => {
           <GovernmentSchemeNavigator
             farmName={farmName || activeFarm?.farm_name || 'My Farm'}
             acreage={parseFloat(farmSize) || 2.0}
-            cropName={cropName || 'Tomato'}
+            cropName={cropName || activeFarm?.crop_name || activeFarm?.crop_type || ''}
             district={district || activeFarm?.district || 'Prakasam'}
             village={village || activeFarm?.village || 'Pasupugallu'}
             onClose={() => setActiveTab('modules')}
@@ -2077,7 +2077,7 @@ const FarmPage = () => {
           <WhatsAppDiagnosisHub
             farmName={farmName || activeFarm?.farm_name || 'My Farm'}
             village={village || activeFarm?.village || 'Pasupugallu'}
-            cropName={cropName || 'Tomato'}
+            cropName={cropName || activeFarm?.crop_name || activeFarm?.crop_type || ''}
             onClose={() => setActiveTab('modules')}
           />
         </motion.div>
@@ -2090,7 +2090,7 @@ const FarmPage = () => {
             isOpen={true}
             embedded={true}
             onClose={() => setActiveTab('modules')}
-            initialCrop={cropName || 'Tomato'}
+            initialCrop={cropName || activeFarm?.crop_name || activeFarm?.crop_type || ''}
             initialAcres={parseFloat(farmSize) || 2.0}
           />
         </motion.div>
@@ -2103,7 +2103,7 @@ const FarmPage = () => {
             farmId={activeFarm?.id || activeFarm?._id || farms?.[0]?.id || farms?.[0]?._id}
             farmName={farmName || activeFarm?.farm_name || 'My Farm'}
             acreage={parseFloat(farmSize) || 2.0}
-            cropName={cropName || activeFarm?.crop_name || 'Tomato'}
+            cropName={cropName || activeFarm?.crop_name || activeFarm?.crop_type || ''}
             growthStage={growthStage || activeFarm?.growth_stage || 'Vegetative'}
             latitude={latitude || activeFarm?.latitude || 15.8020}
             longitude={longitude || activeFarm?.longitude || 79.8050}

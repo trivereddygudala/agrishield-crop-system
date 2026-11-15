@@ -163,7 +163,7 @@ export const diagnoseOfflineLeaf = async ({
 
   const effectiveCrop = (cropFilter && cropFilter !== 'all' && cropFilter !== 'Auto-Detect')
     ? cropFilter
-    : 'Tomato'; // Sensible default for solanaceous field diagnostics
+    : 'Crop';
 
   const cropLower = String(effectiveCrop).toLowerCase();
   const isRice = cropLower.includes('rice') || cropLower.includes('paddy') || cropLower.includes('వరి') || cropLower.includes('धान');

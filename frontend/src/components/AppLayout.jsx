@@ -724,7 +724,7 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
                     if (path === '/devices') return t('nav.devices', 'Devices');
                     if (path === '/node-control') return t('nav.node_control', 'Node Control');
                     if (path === '/sdcard') return t('nav.sd_card', 'MicroSD Storage');
-                    if (path === '/assistant') return t('nav.assistant', 'AI Assistant');
+                    if (path === '/assistant') return t('nav.assistant', 'AgriShield Chat Assistant');
                     if (path === '/crop-advisory') return t('nav.crop_advisory', 'Crop Advisory');
                     if (path === '/more') return t('nav.more_short', 'More');
                     return 'AgriShield';

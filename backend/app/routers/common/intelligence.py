@@ -126,7 +126,7 @@ async def get_disease_risk(
     current_user: Optional[dict] = Depends(get_optional_current_user)
 ):
     await _verify_farm_access(farm_id, current_user)
-    safe_crop = (crop_name or "").strip() or "Tomato"
+    safe_crop = (crop_name or "").strip() or "General Crop"
     safe_lat = float(lat) if lat is not None else 16.5062
     safe_lon = float(lon) if lon is not None else 80.6480
     hardware_telemetry = None

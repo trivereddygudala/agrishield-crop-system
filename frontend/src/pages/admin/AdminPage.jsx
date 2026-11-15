@@ -786,7 +786,7 @@ export default function AdminPage() {
       const res = await API.post('/api/admin/support/ai-triage', {
         ticket_id: String(tId),
         farmer_name: ticket.farmer_name || ticket.user_name || 'Farmer',
-        crop: ticket.crop || 'Tomato',
+        crop: ticket.crop || 'Field Crop',
         issue_description: ticket.description || ticket.message || ticket.subject || 'Crop disease assistance needed',
         language: ticket.language || 'te'
       });

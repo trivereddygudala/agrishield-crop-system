@@ -99,7 +99,7 @@ const AnalyticsPage = () => {
       const dRaw = (p.disease_name || 'Healthy').split('___').pop().replace(/_/g, ' ');
       diseaseMap[dRaw] = (diseaseMap[dRaw] || 0) + 1;
 
-      const cName = p.crop_name || (p.disease_name || '').split('___')[0].replace(/_/g, ' ') || 'Tomato';
+      const cName = p.crop_name || (p.disease_name || '').split('___')[0].replace(/_/g, ' ') || 'General Crop';
       if (!cropMap[cName]) cropMap[cName] = { total: 0, healthy: 0 };
       cropMap[cName].total++;
       if (p.prediction_status === 'healthy' || p.disease_name?.toLowerCase().includes('healthy')) {

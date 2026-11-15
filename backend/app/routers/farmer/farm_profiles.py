@@ -186,7 +186,7 @@ async def get_nearby_farm_radar(
 
     c_lat = lat if lat is not None else (farm.get("latitude") or 14.6819)
     c_lng = lng if lng is not None else (farm.get("longitude") or 77.6006)
-    crop = farm.get("crop_name", "Tomato")
+    crop = farm.get("crop_name") or farm.get("crop_type") or "Field Crop"
 
     nearby = []
     try:

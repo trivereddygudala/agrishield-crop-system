@@ -199,7 +199,7 @@ class ActionCenterService:
             try:
                 return await self.risk_service.calculate_disease_risk(
                     farm_id=resolved_farm_id,
-                    crop_name=crop_name or "Tomato",
+                    crop_name=crop_name or "Field Crop",
                     lat=lat,
                     lon=lon
                 )

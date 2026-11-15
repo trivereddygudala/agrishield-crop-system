@@ -254,10 +254,22 @@ const AIAssistantPage = () => {
   });
 
   // Admin Tool States
-  const [outbreakCrop, setOutbreakCrop] = useState('Tomato Early Blight');
+  const [outbreakCrop, setOutbreakCrop] = useState('Early Blight');
   const [outbreakDistrict, setOutbreakDistrict] = useState('Guntur');
 
   // Farmer Tool States
+  const [farmerSelectedCrop, setFarmerSelectedCrop] = useState(() => {
+    return activeFarm?.crop_name || activeFarm?.crop_type || user?.crop || '';
+  });
+
+  useEffect(() => {
+    if (activeFarm?.crop_name || activeFarm?.crop_type) {
+      setFarmerSelectedCrop(activeFarm.crop_name || activeFarm.crop_type);
+    }
+  }, [activeFarm]);
+
+  const activeFarmerCrop = farmerSelectedCrop || activeFarm?.crop_name || activeFarm?.crop_type || '';
+
   const [selectedAcres, setSelectedAcres] = useState(1.0);
   const [locationLoading, setLocationLoading] = useState(false);
   const [showVoiceDoctor, setShowVoiceDoctor] = useState(false);
@@ -411,6 +423,7 @@ const AIAssistantPage = () => {
   // References
   const chatContainerRef = useRef(null);
   const chatBottomRef = useRef(null);
+  const toolkitContainerRef = useRef(null);
   const recognitionRef = useRef(null);
   const fileInputRef = useRef(null);
   const cameraInputRef = useRef(null);
@@ -451,6 +464,13 @@ const AIAssistantPage = () => {
     }, 100);
     return () => clearTimeout(timer);
   }, [currentSession?.messages, isTyping]);
+
+  // Reset scroll to top when opening toolkit on mobile
+  useEffect(() => {
+    if (mobileTab === 'toolkit' && toolkitContainerRef.current) {
+      toolkitContainerRef.current.scrollTop = 0;
+    }
+  }, [mobileTab]);
 
   const handleScroll = () => {
     if (!chatContainerRef.current) return;
@@ -596,7 +616,7 @@ const AIAssistantPage = () => {
 
   // Farmer Prescription Generator
   const handleDownloadPrescription = (content) => {
-    const crop = activeFarm?.crop_type || 'Tomato';
+    const crop = activeFarmerCrop || 'Field Crop';
     let disease = 'Early Blight';
     if (/powdery mildew/i.test(content)) disease = 'Powdery Mildew';
     else if (/late blight/i.test(content)) disease = 'Late Blight';
@@ -992,8 +1012,11 @@ const AIAssistantPage = () => {
           </div>
         </div>
 
-        {/* ── CHAT COLUMN BODY ── */}
-        <div className={`flex-1 min-h-0 flex flex-col relative overflow-hidden ${mobileTab === 'toolkit' ? 'hidden lg:flex' : 'flex'}`}>
+        {/* ── HYBRID WORKSPACE SPLIT (ROW ON DESKTOP, TABBED ON MOBILE) ── */}
+        <div className="flex-1 min-h-0 flex flex-col lg:flex-row overflow-hidden relative">
+
+          {/* ── CHAT COLUMN BODY ── */}
+          <div className={`flex-1 min-h-0 flex flex-col relative overflow-hidden ${mobileTab === 'toolkit' ? 'hidden lg:flex' : 'flex'}`}>
           
           {/* Scrollable Conversation Stream */}
           <div
@@ -1360,10 +1383,13 @@ const AIAssistantPage = () => {
         </div>
 
         {/* ── 4. PORTAL-SPECIFIC RIGHT TOOLKIT TRAY ── */}
-        <div className={`
-          w-full lg:w-80 xl:w-[360px] shrink-0 h-full border-l border-slate-200/80 dark:border-slate-800/80 bg-white dark:bg-[#111215] flex flex-col overflow-y-auto p-4 space-y-4 shadow-xs
-          ${mobileTab === 'toolkit' ? 'flex' : 'hidden lg:flex'}
-        `}>
+        <div 
+          ref={toolkitContainerRef}
+          className={`
+            w-full lg:w-80 xl:w-[360px] shrink-0 flex-1 lg:flex-initial h-full lg:h-auto border-t lg:border-t-0 lg:border-l border-slate-200/80 dark:border-slate-800/80 bg-white dark:bg-[#111215] flex flex-col overflow-y-auto p-4 pb-32 sm:pb-24 lg:pb-6 space-y-4 shadow-xs
+            ${mobileTab === 'toolkit' ? 'flex' : 'hidden lg:flex'}
+          `}
+        >
           
           {/* Toolkit Header */}
           <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-800">
@@ -1393,23 +1419,50 @@ const AIAssistantPage = () => {
              ══════════════════════════════════════════ */}
           {selectedPortal === 'farmer' && (
             <>
-              {/* Module 1: Active Farm Profile */}
-              <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-[#18191d] border border-slate-200/70 dark:border-slate-800/80 space-y-2">
+              {/* Module 1: Active Farm Profile & Crop Context */}
+              <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-[#18191d] border border-slate-200/70 dark:border-slate-800/80 space-y-2.5">
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] font-black uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
                     🌱 Active Farm Profile
                   </span>
                   <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300">
-                    {activeFarm?.crop_type || 'Tomato'}
+                    {activeFarmerCrop || (isTe ? 'పంట ఎంచుకోండి' : 'Active Farm')}
                   </span>
                 </div>
                 <div className="text-xs font-bold text-slate-800 dark:text-slate-100">
-                  {activeFarm?.farm_name || 'Green Valley Farm'}
+                  {activeFarm?.farm_name || user?.farm_name || (isTe ? 'నా వ్యవసాయ క్షేత్రం' : 'My Farm Field')}
                 </div>
-                <div className="text-[11px] text-slate-500 dark:text-slate-400 space-y-0.5">
-                  <div>📍 Location: {activeFarm?.location || 'Andhra Pradesh'}</div>
-                  <div>🌾 Sown Crop: {activeFarm?.crop_type || 'Tomato (Early Stage)'}</div>
-                  <div>🌱 Soil Type: {activeFarm?.soil_type || 'Black Sandy Loam'}</div>
+                
+                {/* Dynamic Crop Selector */}
+                <div>
+                  <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 block mb-1">
+                    {isTe ? 'సాగు చేస్తున్న పంట:' : 'Select Cultivated Crop:'}
+                  </span>
+                  <select
+                    value={activeFarmerCrop}
+                    onChange={(e) => setFarmerSelectedCrop(e.target.value)}
+                    className="w-full bg-white dark:bg-[#202126] text-xs font-semibold rounded-xl px-2.5 py-1.5 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 focus:outline-none focus:border-emerald-500"
+                  >
+                    <option value="">{isTe ? '-- పంటను ఎంచుకోండి --' : '-- Choose Cultivated Crop --'}</option>
+                    <option value="Paddy / Rice">🌾 {isTe ? 'వరి (Paddy / Rice)' : 'Paddy / Rice'}</option>
+                    <option value="Chilli">🌶️ {isTe ? 'మిరప (Chilli)' : 'Chilli'}</option>
+                    <option value="Cotton">🧶 {isTe ? 'పత్తి (Cotton)' : 'Cotton'}</option>
+                    <option value="Maize">🌽 {isTe ? 'మొక్కజొన్న (Maize / Corn)' : 'Maize / Corn'}</option>
+                    <option value="Groundnut">🥜 {isTe ? 'వేరుశనగ (Groundnut)' : 'Groundnut'}</option>
+                    <option value="Tomato">🍅 {isTe ? 'టమోటా (Tomato)' : 'Tomato'}</option>
+                    <option value="Potato">🥔 {isTe ? 'బంగాళాదుంప (Potato)' : 'Potato'}</option>
+                    <option value="Wheat">🌾 {isTe ? 'గోధుమ (Wheat)' : 'Wheat'}</option>
+                    <option value="Sugarcane">🎋 {isTe ? 'చెరకు (Sugarcane)' : 'Sugarcane'}</option>
+                    <option value="Soybean">🫘 {isTe ? 'సోయాబీన్ (Soybean)' : 'Soybean'}</option>
+                    <option value="Onion">🧅 {isTe ? 'ఉల్లి (Onion)' : 'Onion'}</option>
+                    <option value="Banana">🍌 {isTe ? 'అరటి (Banana)' : 'Banana'}</option>
+                  </select>
+                </div>
+
+                <div className="text-[11px] text-slate-500 dark:text-slate-400 space-y-0.5 pt-1 border-t border-slate-100 dark:border-slate-800/80">
+                  <div>📍 Location: {activeFarm?.location || activeFarm?.village || user?.district || (isTe ? 'మీ ప్రాంతం' : 'Local Region')}</div>
+                  <div>🌱 Soil Type: {activeFarm?.soil_type || (isTe ? 'సారవంతమైన నేల' : 'Fertile Farm Soil')}</div>
+                  <div>📅 Growth Stage: {activeFarm?.growth_stage || (isTe ? 'ప్రస్తుత పంట దశ' : 'Active Growth Phase')}</div>
                 </div>
               </div>
 
@@ -1477,7 +1530,7 @@ const AIAssistantPage = () => {
                   </button>
                   <button
                     type="button"
-                    onClick={() => handleWhatsAppShare("Prescription for " + (activeFarm?.crop_type || "Tomato"))}
+                    onClick={() => handleWhatsAppShare("Prescription for " + (activeFarmerCrop || "Field Crop"))}
                     className="w-full flex items-center justify-center gap-2 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-xs transition-transform active:scale-98"
                   >
                     <Share2 className="w-3.5 h-3.5" />
@@ -1884,13 +1937,14 @@ const AIAssistantPage = () => {
           )}
 
         </div>
+        </div>
       </div>
 
       {/* Multimodal Voice Crop Doctor Modal */}
       <VoiceCropDoctorModal 
         isOpen={showVoiceDoctor} 
         onClose={() => setShowVoiceDoctor(false)} 
-        initialCrop={activeFarm?.crop_type || 'Tomato'} 
+        initialCrop={activeFarmerCrop || 'Field Crop'} 
       />
     </div>
   );

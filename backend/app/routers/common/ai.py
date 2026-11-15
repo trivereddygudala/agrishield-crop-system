@@ -355,7 +355,7 @@ async def chat_with_farming_assistant(
                     conf_str = "98.5%"
 
                 chat_context["latest_scan_result"] = {
-                    "crop": latest_s.get("crop_name") or latest_s.get("crop") or "Tomato",
+                    "crop": latest_s.get("crop_name") or latest_s.get("crop") or "Crop",
                     "disease": latest_s.get("disease_name") or latest_s.get("disease") or "Early Blight",
                     "confidence": conf_str,
                     "severity": latest_s.get("disease_severity") or latest_s.get("severity") or "Moderate",

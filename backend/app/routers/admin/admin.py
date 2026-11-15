@@ -1473,7 +1473,7 @@ async def simulate_traffic_packet(
             "total_latency_ms": 141.0,
             "http_status": 200,
             "details": {
-                "detected_crop": req.crop or "Tomato",
+                "detected_crop": req.crop or "Field Crop",
                 "diagnosis": "Tomato Early Blight (Alternaria solani)",
                 "confidence": "98.4%",
                 "tank_math": "40g Mancozeb 75% WP per 20L tank"
@@ -2692,7 +2692,7 @@ async def deploy_firmware_canary(req: CanaryDeployRequest):
 @router.post("/support/ai-triage", dependencies=[Depends(require_role("admin"))])
 async def generate_support_ai_triage(req: SupportAiTriageRequest):
     """Admin Endpoint: AI Copilot analysis and vernacular advisory draft generation for support tickets."""
-    crop = req.crop or "Tomato"
+    crop = req.crop or "Field Crop"
     issue = req.issue_description
     lang = req.language or "te"
 
