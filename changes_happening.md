@@ -11157,3 +11157,19 @@ otif-, 	hread-, BK-) in _build_id_query and NotificationsPage.jsx.
 - **Verification:**
   - 
 pm run build compiled with 0 errors in 26.14s.
+## [2026-11-15 21:14:00] - Day-Wise Chronological Grouping & Stream Date Dividers for Alerts Tab
+- **Robust Multi-Format Timestamp Extractor (NotificationsPage.jsx):**
+  - Implemented getNotificationTimestamp(item) to reliably parse timestamps across MongoDB UTC strings, ISO timestamps, SQLite datetime strings (YYYY-MM-DD HH:MM:SS), numeric epoch offsets, and embedded ID epochs.
+  - Eliminated the isNaN(d) || d >= todayStart bug that was forcibly dumping older notifications with unparseable timestamps directly into the "Today" group.
+- **Calendar Day-by-Day Grouping Engine (NotificationsPage.jsx):**
+  - Completely rewrote groupNotificationsByDate to group notifications by discrete local calendar dates (YYYY-MM-DD).
+  - Added dynamic date badges: ⚡ Today / ⚡ ఈ రోజు for today, 📅 Yesterday / 📅 నిన్న for yesterday, and localized full date badges (e.g. 🗓️ Sat, 14 Nov 2026 / 🗓️ 14 నవంబర్ 2026) for prior days.
+  - Sorted day buckets strictly in descending chronological order (.dayKey.localeCompare(a.dayKey)).
+  - Sorted alerts within each day strictly from newest to oldest.
+  - Upgraded ormatGoogleMessagesTime to format time in native Google Messages style (showing exact time  4:15 PM for today, Yesterday, and localized dates for older alerts).
+- **Google Messages Chat Stream Day Dividers (GoogleMessageReader.jsx):**
+  - Implemented sortedChatMessages to ensure all conversation messages are rendered in strict ascending chronological order.
+  - Added ormatChatDayDivider(dateInput, isTelugu) and integrated centered Google Messages / WhatsApp-style date pill dividers between chat bubbles whenever messages cross over into a different calendar day.
+- **Verification:**
+  - 
+pm run build compiled cleanly in 18.40s with 0 errors.

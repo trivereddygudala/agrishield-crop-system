@@ -364,68 +364,151 @@ function shareAlertToWhatsApp(item, isTe = false) {
   window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
 }
 
-// ── Smart Date & Urgency Grouping (Phase 2) ──
+// ── Robust Notification Timestamp & Day-Wise Grouping ──
+export function getNotificationTimestamp(item) {
+  if (!item) return 0;
+  const raw = item.lifecycle?.created_at || item.created_at || item.timestamp || item.createdAt || item.date || item.time;
+  if (raw) {
+    const parsed = parseServerDate(raw);
+    if (parsed && !isNaN(parsed.getTime())) return parsed.getTime();
+    const fallback = new Date(raw);
+    if (!isNaN(fallback.getTime())) return fallback.getTime();
+  }
+  const idStr = String(item.notification_id || item.id || item._id || '');
+  const idMatch = idStr.match(/\b(17\d{11}|16\d{11})\b/);
+  if (idMatch) {
+    const num = Number(idMatch[1]);
+    if (!isNaN(num)) return num;
+  }
+  return 0;
+}
+
 function groupNotificationsByDate(items, isTe = false) {
-  const groups = {
-    today: [],
-    yesterday: [],
-    thisWeek: [],
-    older: []
-  };
+  if (!Array.isArray(items) || items.length === 0) return [];
 
   const now = new Date();
-  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-  const yesterdayStart = todayStart - 86400000;
-  const weekStart = todayStart - 6 * 86400000;
+  const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  
+  const yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
+  const yesterdayKey = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, '0')}-${String(yesterday.getDate()).padStart(2, '0')}`;
+
+  const dayBuckets = new Map();
 
   items.forEach(item => {
-    const d = new Date(item.lifecycle?.created_at || item.created_at || item.timestamp || 0).getTime();
-    if (isNaN(d) || d >= todayStart) {
-      groups.today.push(item);
-    } else if (d >= yesterdayStart) {
-      groups.yesterday.push(item);
-    } else if (d >= weekStart) {
-      groups.thisWeek.push(item);
+    const ts = getNotificationTimestamp(item);
+    let dayKey;
+    let itemDate;
+
+    if (ts > 0) {
+      itemDate = new Date(ts);
+      dayKey = `${itemDate.getFullYear()}-${String(itemDate.getMonth() + 1).padStart(2, '0')}-${String(itemDate.getDate()).padStart(2, '0')}`;
     } else {
-      groups.older.push(item);
+      dayKey = '0000-00-00';
     }
+
+    if (!dayBuckets.has(dayKey)) {
+      dayBuckets.set(dayKey, {
+        dayKey,
+        date: itemDate || null,
+        timestamp: ts,
+        items: []
+      });
+    }
+
+    dayBuckets.get(dayKey).items.push(item);
   });
 
-  return [
-    { id: 'today', title: isTe ? 'ఈ రోజు' : 'Today', icon: '⚡', items: groups.today },
-    { id: 'yesterday', title: isTe ? 'నిన్న' : 'Yesterday', icon: '📅', items: groups.yesterday },
-    { id: 'thisWeek', title: isTe ? 'గత వారం' : 'Earlier This Week', icon: '🗓️', items: groups.thisWeek },
-    { id: 'older', title: isTe ? 'గతంలో' : 'Older Messages', icon: '📁', items: groups.older }
-  ].filter(g => g.items.length > 0);
+  // Sort day groups strictly descending (newest calendar day first)
+  const sortedDayKeys = Array.from(dayBuckets.keys()).sort((a, b) => b.localeCompare(a));
+
+  const result = [];
+
+  for (const dayKey of sortedDayKeys) {
+    const bucket = dayBuckets.get(dayKey);
+    // Sort items within each day group strictly descending by time (newest alert first)
+    bucket.items.sort((a, b) => getNotificationTimestamp(b) - getNotificationTimestamp(a));
+
+    let title;
+    let icon;
+
+    if (dayKey === todayKey) {
+      title = isTe ? 'ఈ రోజు' : 'Today';
+      icon = '⚡';
+    } else if (dayKey === yesterdayKey) {
+      title = isTe ? 'నిన్న' : 'Yesterday';
+      icon = '📅';
+    } else if (dayKey === '0000-00-00') {
+      title = isTe ? 'గత సందేశాలు' : 'Earlier Messages';
+      icon = '📁';
+    } else {
+      const d = bucket.date;
+      if (d) {
+        const isCurrentYear = d.getFullYear() === now.getFullYear();
+        if (isTe) {
+          title = d.toLocaleDateString('te-IN', {
+            weekday: 'short',
+            day: 'numeric',
+            month: 'short',
+            year: isCurrentYear ? undefined : 'numeric'
+          });
+        } else {
+          title = d.toLocaleDateString('en-IN', {
+            weekday: 'short',
+            day: 'numeric',
+            month: 'short',
+            year: isCurrentYear ? undefined : 'numeric'
+          });
+        }
+      } else {
+        title = dayKey;
+      }
+      icon = '🗓️';
+    }
+
+    result.push({
+      id: dayKey,
+      title,
+      icon,
+      items: bucket.items
+    });
+  }
+
+  return result;
 }
 
 /**
  * Format timestamp in Google Messages native style:
- * "Just now", "10 min", "15 min", "1 hr", "Yesterday", "Oct 12"
+ * "Just now", "10 min", "04:15 PM", "Yesterday", "Sat, 14 Nov"
  */
-function formatGoogleMessagesTime(dateInput) {
+function formatGoogleMessagesTime(dateInput, isTe = false) {
   if (!dateInput) return '';
-  const d = parseServerDate(dateInput) || new Date(dateInput);
-  if (isNaN(d.getTime())) return '';
+  const d = (dateInput instanceof Date) ? dateInput : (parseServerDate(dateInput) || new Date(dateInput));
+  if (!d || isNaN(d.getTime())) return '';
   const now = new Date();
   const diffMs = now.getTime() - d.getTime();
   const diffSec = Math.max(0, Math.floor(diffMs / 1000));
   const diffMin = Math.floor(diffSec / 60);
-  const diffHours = Math.floor(diffMin / 60);
-  const diffDays = Math.floor(diffHours / 24);
 
-  if (diffSec < 60) return 'Just now';
-  if (diffMin < 60) return `${diffMin} min`;
-  if (diffHours < 24 && d.getDate() === now.getDate()) {
-    return `${diffHours} hr`;
+  if (diffSec < 60) return isTe ? 'ఇప్పుడే' : 'Just now';
+  if (diffMin < 60) return `${diffMin} ${isTe ? 'నిమి' : 'min'}`;
+
+  if (d.toDateString() === now.toDateString()) {
+    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   }
-  if (diffDays === 1 || (diffHours < 48 && d.getDate() === now.getDate() - 1)) {
-    return 'Yesterday';
+
+  const yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
+  if (d.toDateString() === yesterday.toDateString()) {
+    return isTe ? 'నిన్న' : 'Yesterday';
   }
-  if (diffDays < 7) {
-    return d.toLocaleDateString('en-IN', { weekday: 'short' });
-  }
-  return d.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' });
+
+  const isCurrentYear = d.getFullYear() === now.getFullYear();
+  return d.toLocaleDateString(isTe ? 'te-IN' : 'en-IN', {
+    month: 'short',
+    day: 'numeric',
+    year: isCurrentYear ? undefined : 'numeric'
+  });
 }
 
 export default function NotificationsPage() {
@@ -1125,7 +1208,7 @@ export default function NotificationsPage() {
       });
 
       const finalMerged = [...consolidatedThreads, ...standaloneNotifs];
-      finalMerged.sort((a, b) => new Date(b.created_at || b.timestamp || 0) - new Date(a.created_at || a.timestamp || 0));
+      finalMerged.sort((a, b) => getNotificationTimestamp(b) - getNotificationTimestamp(a));
 
       // Real-time detection of newly arrived notifications without manual refresh
       if (hasLoadedOnceRef.current) {
@@ -2524,7 +2607,7 @@ export default function NotificationsPage() {
                               </div>
 
                               <div className="flex items-center gap-1.5 font-semibold shrink-0">
-                                <span>{formatGoogleMessagesTime(item.lifecycle?.created_at || item.created_at || item.timestamp)}</span>
+                                <span>{formatGoogleMessagesTime(item.lifecycle?.created_at || item.created_at || item.timestamp, isTe)}</span>
                                 <span className={!isUnread ? 'text-emerald-500 font-black text-xs' : 'text-slate-400 text-xs'} title={!isUnread ? 'Delivered & Read' : 'Delivered'}>
                                   {!isUnread ? '✓✓' : '✓'}
                                 </span>
@@ -2588,7 +2671,7 @@ export default function NotificationsPage() {
                                 <CheckCircle2 className="w-3.5 h-3.5 fill-emerald-500 text-white shrink-0" />
                               </div>
                               <span className="text-[11px] font-semibold text-slate-400 shrink-0">
-                                {formatGoogleMessagesTime(item.lifecycle?.created_at || item.created_at || item.timestamp)}
+                                {formatGoogleMessagesTime(item.lifecycle?.created_at || item.created_at || item.timestamp, isTe)}
                               </span>
                             </div>
 

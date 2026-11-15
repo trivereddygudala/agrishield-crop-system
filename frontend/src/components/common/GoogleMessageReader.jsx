@@ -13,7 +13,7 @@ import {
   BatteryWarning, CloudRain, WifiOff, AlertOctagon, HelpCircle,
   Globe, Square, StopCircle, Edit2, ArrowDown, Languages, RotateCcw
 } from 'lucide-react';
-import { formatDateTime, timeAgo } from '../../utils/dateUtils';
+import { formatDateTime, timeAgo, parseServerDate } from '../../utils/dateUtils';
 import { useSpeechReader } from '../../hooks/useSpeechReader';
 import {
   getDiseaseDetails,
@@ -39,6 +39,33 @@ export const READER_LANGUAGES = [
   { code: 'hi', name: 'हिंदी', flag: '🇮🇳', label: 'हिंदी (Hindi)' },
   { code: 'en', name: 'English', flag: '🌐', label: 'English' }
 ];
+
+/**
+ * Format chat stream day dividers in native Google Messages style:
+ * "Today", "Yesterday", "Sat, 14 Nov 2026"
+ */
+function formatChatDayDivider(dateInput, isTelugu = false) {
+  if (!dateInput) return isTelugu ? 'ఈ రోజు (Today)' : 'Today';
+  const d = (dateInput instanceof Date) ? dateInput : (parseServerDate(dateInput) || new Date(dateInput));
+  if (!d || isNaN(d.getTime())) return isTelugu ? 'ఈ రోజు (Today)' : 'Today';
+
+  const now = new Date();
+  if (d.toDateString() === now.toDateString()) {
+    return isTelugu ? 'ఈ రోజు (Today)' : 'Today';
+  }
+  const yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
+  if (d.toDateString() === yesterday.toDateString()) {
+    return isTelugu ? 'నిన్న (Yesterday)' : 'Yesterday';
+  }
+  const isCurrentYear = d.getFullYear() === now.getFullYear();
+  return d.toLocaleDateString(isTelugu ? 'te-IN' : 'en-IN', {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    year: isCurrentYear ? undefined : 'numeric'
+  });
+}
 
 /**
  * Intelligent crop & disease extractor supporting all 7 regional languages
@@ -908,6 +935,23 @@ export default function GoogleMessageReader({
       } catch (_) {}
     }
   }, [chatMessages, chatStorageKey, isBooking]);
+
+  // Chronologically sorted chat messages strictly ordered by timestamp
+  const sortedChatMessages = useMemo(() => {
+    if (!Array.isArray(chatMessages)) return [];
+    return [...chatMessages].sort((a, b) => {
+      const getTs = (m) => {
+        if (!m) return 0;
+        const raw = m.timestamp || m.created_at;
+        if (!raw) return 0;
+        const p = parseServerDate(raw);
+        if (p && !isNaN(p.getTime())) return p.getTime();
+        const f = new Date(raw);
+        return !isNaN(f.getTime()) ? f.getTime() : 0;
+      };
+      return getTs(a) - getTs(b);
+    });
+  }, [chatMessages]);
 
   // Real-time live synchronization across tabs, browsers, and mobile devices
   useEffect(() => {
@@ -2096,23 +2140,47 @@ export default function GoogleMessageReader({
               );
             })()}
 
-            {/* 2-Way Chat Stream Bubbles */}
+            {/* 2-Way Chat Stream Bubbles with Day-Wise Dividers */}
             <div className="space-y-3 pt-2">
-              {chatMessages.map((msg) => {
+              {sortedChatMessages.map((msg, index) => {
+                const getMsgDate = (m) => {
+                  if (!m) return null;
+                  const raw = m.timestamp || m.created_at;
+                  if (!raw) return null;
+                  const p = parseServerDate(raw);
+                  if (p && !isNaN(p.getTime())) return p;
+                  const f = new Date(raw);
+                  return !isNaN(f.getTime()) ? f : null;
+                };
+                const currentDate = getMsgDate(msg);
+                const prevMsg = index > 0 ? sortedChatMessages[index - 1] : null;
+                const prevDate = getMsgDate(prevMsg);
+
+                const showDayDivider = !prevDate || (currentDate && currentDate.toDateString() !== prevDate.toDateString());
+
                 if (msg.type === 'system_notice') {
                   return (
-                    <motion.div
-                      key={msg.id}
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      className="flex justify-center my-2"
-                    >
-                      <div className="px-3.5 py-1.5 rounded-full bg-slate-200/80 dark:bg-slate-800 text-[11px] font-bold text-slate-700 dark:text-slate-300 border border-slate-300/80 dark:border-slate-700 shadow-xs flex items-center gap-1.5 max-w-[90%] text-center">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                        <span>{msg.text}</span>
-                        <span className="text-[9px] text-slate-400 font-mono ml-1">{msg.time}</span>
-                      </div>
-                    </motion.div>
+                    <React.Fragment key={msg.id || `notice_${index}`}>
+                      {showDayDivider && (
+                        <div className="flex justify-center my-3.5">
+                          <span className="px-3.5 py-1 rounded-full bg-slate-200/90 dark:bg-slate-800 text-[10px] font-black uppercase tracking-wider text-slate-600 dark:text-slate-300 border border-slate-300/60 dark:border-slate-700 shadow-2xs flex items-center gap-1.5">
+                            <span>📅</span>
+                            <span>{formatChatDayDivider(msg.timestamp || msg.created_at, isTelugu)}</span>
+                          </span>
+                        </div>
+                      )}
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="flex justify-center my-2"
+                      >
+                        <div className="px-3.5 py-1.5 rounded-full bg-slate-200/80 dark:bg-slate-800 text-[11px] font-bold text-slate-700 dark:text-slate-300 border border-slate-300/80 dark:border-slate-700 shadow-xs flex items-center gap-1.5 max-w-[90%] text-center">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                          <span>{msg.text}</span>
+                          <span className="text-[9px] text-slate-400 font-mono ml-1">{msg.time}</span>
+                        </div>
+                      </motion.div>
+                    </React.Fragment>
                   );
                 }
 
@@ -2124,7 +2192,16 @@ export default function GoogleMessageReader({
                 const displayMsgText = (hasTranslation && !showOriginal) ? translatedText : msg.text;
 
                 return (
-                  <motion.div
+                  <React.Fragment key={msg.id || `msg_${index}`}>
+                    {showDayDivider && (
+                      <div className="flex justify-center my-3.5">
+                        <span className="px-3.5 py-1 rounded-full bg-slate-200/90 dark:bg-slate-800 text-[10px] font-black uppercase tracking-wider text-slate-600 dark:text-slate-300 border border-slate-300/60 dark:border-slate-700 shadow-2xs flex items-center gap-1.5">
+                          <span>📅</span>
+                          <span>{formatChatDayDivider(msg.timestamp || msg.created_at, isTelugu)}</span>
+                        </span>
+                      </div>
+                    )}
+                    <motion.div
                     key={msg.id}
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -2323,8 +2400,9 @@ export default function GoogleMessageReader({
                       </div>
                     </div>
                   </motion.div>
-                );
-              })}
+                </React.Fragment>
+              );
+            })}
 
               <div ref={messagesEndRef} />
 
