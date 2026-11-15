@@ -12,12 +12,30 @@ export const SPEECH_LANG_MAP = {
   kn: 'kn-IN',
   ml: 'ml-IN',
   mr: 'mr-IN',
+  bn: 'bn-IN',
   gu: 'gu-IN',
   pa: 'pa-IN',
   ur: 'ur-IN',
   or: 'or-IN',
+  od: 'or-IN',
   as: 'as-IN',
   en: 'en-IN'
+};
+
+export const LANGUAGE_NATIVE_NAMES = {
+  te: 'తెలుగు (Telugu)',
+  hi: 'हिंदी (Hindi)',
+  ta: 'தமிழ் (Tamil)',
+  kn: 'ಕನ್ನಡ (Kannada)',
+  ml: 'മലയാളം (Malayalam)',
+  mr: 'मराठी (Marathi)',
+  bn: 'বাংলা (Bengali)',
+  gu: 'ગુજરાતી (Gujarati)',
+  pa: 'ਪੰਜਾਬੀ (Punjabi)',
+  ur: 'اردو (Urdu)',
+  or: 'ଓଡ଼ିଆ (Odia)',
+  as: 'অসমীয়া (Assamese)',
+  en: 'English'
 };
 
 export function getSpeechLocale(lang = 'en') {

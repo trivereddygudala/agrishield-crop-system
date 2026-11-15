@@ -11093,3 +11093,22 @@ otif-, 	hread-, BK-) in _build_id_query and NotificationsPage.jsx.
   - Updated Toolkit buttons to dynamically extract the latest consultation prescription from the current chat session.
 - **Verification:**
   - `npm run build` compiled with 0 errors in 20.09s.
+
+## [2026-11-15 14:13:05] - Enable Universal Multi-Language Speech Recognition Across All 13 Supported Languages
+- **Universal Speech Recognition Mapping (`regionalLocale.js`):**
+  - Updated `SPEECH_LANG_MAP` to include all 13 supported languages on the platform:
+    Telugu (`te-IN`), Hindi (`hi-IN`), Tamil (`ta-IN`), Kannada (`kn-IN`), Malayalam (`ml-IN`), Marathi (`mr-IN`), Bengali (`bn-IN`), Gujarati (`gu-IN`), Punjabi (`pa-IN`), Urdu (`ur-IN`), Odia (`or-IN` / `od-IN`), Assamese (`as-IN`), and English (`en-IN`).
+  - Added `LANGUAGE_NATIVE_NAMES` mapping for real-time display and live language switching.
+- **Voice Crop Doctor Expansion (`VoiceCropDoctorModal.jsx`):**
+  - Expanded `SUPPORTED_LANGUAGES` from 7 to all 13 official languages with native labels and regional flags.
+  - Eliminated the fallback locking that previously forced Marathi, Bengali, Gujarati, Punjabi, Urdu, and Assamese users to English.
+  - Added dynamic i18n synchronization when switching language in the modal or app.
+- **AgriShield Chat Assistant Speech Listener (`AIAssistantPage.jsx`):**
+  - Upgraded `toggleSpeechRecognition` to dynamically resolve the listener language from `SPEECH_LANG_MAP`.
+  - Added live listening banner displaying the native language name (e.g. `తెలుగు (te-IN)`, `ગુજરાતી (gu-IN)`, `ਪੰਜਾਬੀ (pa-IN)`).
+  - Added an interactive on-the-fly language dropdown in the Voice Wave Banner, allowing farmers to switch speaking language in real-time.
+  - Added robust microphone error handling (permission denied alerts, network resilience, graceful reset).
+- **Google Message Reader Listener (`GoogleMessageReader.jsx`):**
+  - Expanded `READER_LANGUAGES` and `langMap` to support all 13 languages.
+- **Verification:**
+  - `npm run build` compiled with 0 errors in 18.70s.

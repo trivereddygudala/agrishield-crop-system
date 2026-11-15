@@ -20,6 +20,7 @@ import { compressImageForUpload } from '../../utils/imageCompression';
 import { printPrescriptionSlip, isPrescriptionEligible, parsePrescriptionFromMessage } from '../../utils/prescriptionShare';
 import { generateAndDownloadPrescriptionPDF } from '../../utils/pdfPrescriptionGenerator';
 import { processSpeechRecognitionEvent } from '../../utils/speechSanitizer';
+import { SPEECH_LANG_MAP, LANGUAGE_NATIVE_NAMES } from '../../utils/regionalLocale';
 import VoiceCropDoctorModal from '../../components/intelligence/VoiceCropDoctorModal';
 
 /* ───────────────────────────────────────
@@ -419,6 +420,11 @@ const AIAssistantPage = () => {
   });
   const [attachedPhoto, setAttachedPhoto] = useState(null);
   const [inspectionMode, setInspectionMode] = useState('leaf'); // 'leaf' | 'pest' | 'bottle'
+  const [listeningLang, setListeningLang] = useState(() => (i18n.language || 'en').split('-')[0].toLowerCase());
+
+  useEffect(() => {
+    setListeningLang((i18n.language || 'en').split('-')[0].toLowerCase());
+  }, [i18n.language]);
 
   // References
   const chatContainerRef = useRef(null);
@@ -585,32 +591,43 @@ const AIAssistantPage = () => {
     e.target.value = '';
   };
 
-  // Speech Recognition
+  // Speech Recognition supporting all 13 official website languages
   const toggleSpeechRecognition = () => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
-      alert("Voice input is not supported in this browser. Please use Google Chrome.");
+      alert("Voice input is not supported in this browser. Please use Google Chrome or Microsoft Edge.");
       return;
     }
     if (isListening) {
-      recognitionRef.current?.stop();
+      try { recognitionRef.current?.stop(); } catch {}
       setIsListening(false);
     } else {
       const rec = new SpeechRecognition();
       rec.continuous = true;
       rec.interimResults = true;
-      const bcpMap = { te: 'te-IN', hi: 'hi-IN', ta: 'ta-IN', kn: 'kn-IN', ml: 'ml-IN', mr: 'mr-IN', bn: 'bn-IN', en: 'en-IN' };
-      const langKey = (i18n.language || 'en').split('-')[0];
-      rec.lang = bcpMap[langKey] || 'en-IN';
+      const langKey = (listeningLang || i18n.language || 'en').split('-')[0].toLowerCase();
+      rec.lang = SPEECH_LANG_MAP[langKey] || 'en-IN';
+      
       rec.onstart = () => setIsListening(true);
       rec.onresult = (e) => {
         const transcript = processSpeechRecognitionEvent(e);
         if (transcript) setInputQuery(transcript);
       };
-      rec.onerror = () => setIsListening(false);
+      rec.onerror = (event) => {
+        console.warn("Speech recognition notice:", event?.error);
+        if (event?.error === 'not-allowed') {
+          alert("Microphone permission denied. Please allow microphone access in your browser settings to use voice input.");
+        }
+        setIsListening(false);
+      };
       rec.onend = () => setIsListening(false);
       recognitionRef.current = rec;
-      try { rec.start(); } catch (err) { console.warn(err); }
+      try { 
+        rec.start(); 
+      } catch (err) { 
+        console.warn("Speech recognition error:", err); 
+        setIsListening(false);
+      }
     }
   };
 
@@ -1329,13 +1346,34 @@ ${formattedBody}
                   initial={{ opacity: 0, y: 6 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 6 }}
-                  className="mb-1.5 px-3 py-1 rounded-xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-700 dark:text-emerald-300 text-xs font-bold flex items-center justify-between"
+                  className="mb-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-700 dark:text-emerald-300 text-xs font-bold flex flex-wrap items-center justify-between gap-2"
                 >
-                  <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
-                    <span className="text-[11px]">Listening in {isTe ? 'తెలుగు' : 'your language'}... Speak now</span>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping" />
+                    <span className="text-[11px] font-bold">Listening in:</span>
+                    <select
+                      value={listeningLang}
+                      onChange={(e) => {
+                        const nextLang = e.target.value;
+                        setListeningLang(nextLang);
+                        if (recognitionRef.current) {
+                          recognitionRef.current.lang = SPEECH_LANG_MAP[nextLang] || 'en-IN';
+                        }
+                      }}
+                      className="bg-white dark:bg-[#1a1b1f] text-emerald-800 dark:text-emerald-200 border border-emerald-400/50 rounded-lg px-2 py-0.5 text-[11px] font-bold outline-none cursor-pointer"
+                    >
+                      {Object.entries(LANGUAGE_NATIVE_NAMES).map(([code, name]) => (
+                        <option key={code} value={code}>
+                          {name} ({SPEECH_LANG_MAP[code]})
+                        </option>
+                      ))}
+                    </select>
+                    <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold animate-pulse">Speak clearly now...</span>
                   </div>
-                  <button onClick={toggleSpeechRecognition} className="text-[10px] font-black uppercase text-rose-500">
+                  <button 
+                    onClick={toggleSpeechRecognition} 
+                    className="px-2.5 py-1 rounded-lg bg-rose-500 text-white text-[10px] font-black uppercase hover:bg-rose-600 transition-colors shadow-2xs"
+                  >
                     Done
                   </button>
                 </motion.div>

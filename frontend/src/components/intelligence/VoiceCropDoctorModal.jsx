@@ -10,15 +10,21 @@ import { useFarm } from '../../context/FarmContext';
 import { sanitizeTextForSpeech, cleanChatBubbleText, processSpeechRecognitionEvent } from '../../utils/speechSanitizer';
 import API from '../../services/api';
 
-// 7 Official Supported Regional Languages for AgriShield Live
+// 13 Official Supported Languages for AgriShield Live
 const SUPPORTED_LANGUAGES = [
-  { code: 'en', bcp: 'en-IN', label: 'English' },
-  { code: 'te', bcp: 'te-IN', label: 'తెలుగు' },
-  { code: 'ta', bcp: 'ta-IN', label: 'தமிழ்' },
-  { code: 'kn', bcp: 'kn-IN', label: 'ಕನ್ನಡ' },
-  { code: 'hi', bcp: 'hi-IN', label: 'हिन्दी' },
-  { code: 'ml', bcp: 'ml-IN', label: 'മലയാളം' },
-  { code: 'or', bcp: 'or-IN', label: 'ଓଡ଼ିଆ' }
+  { code: 'en', bcp: 'en-IN', label: 'English', flag: '🌐' },
+  { code: 'te', bcp: 'te-IN', label: 'తెలుగు', flag: '🌾' },
+  { code: 'hi', bcp: 'hi-IN', label: 'हिन्दी', flag: '🇮🇳' },
+  { code: 'ta', bcp: 'ta-IN', label: 'தமிழ்', flag: '🌾' },
+  { code: 'kn', bcp: 'kn-IN', label: 'ಕನ್ನಡ', flag: '🌾' },
+  { code: 'ml', bcp: 'ml-IN', label: 'മലയാളം', flag: '🌴' },
+  { code: 'mr', bcp: 'mr-IN', label: 'मराठी', flag: '🌿' },
+  { code: 'bn', bcp: 'bn-IN', label: 'বাংলা', flag: '🍃' },
+  { code: 'gu', bcp: 'gu-IN', label: 'ગુજરાતી', flag: '🚜' },
+  { code: 'pa', bcp: 'pa-IN', label: 'ਪੰਜਾਬੀ', flag: '🌾' },
+  { code: 'or', bcp: 'or-IN', label: 'ଓଡ଼ିଆ', flag: '🌾' },
+  { code: 'ur', bcp: 'ur-IN', label: 'اردو', flag: '✨' },
+  { code: 'as', bcp: 'as-IN', label: 'অসমীয়া', flag: '🍵' }
 ];
 
 export const VoiceCropDoctorModal = ({ 
@@ -31,11 +37,19 @@ export const VoiceCropDoctorModal = ({
   const { t, i18n } = useTranslation();
   const { activeFarm } = useFarm();
 
-  // Active language state
+  // Active language state across all 13 supported website languages
   const [selectedLang, setSelectedLang] = useState(() => {
     const l = (i18n.language || 'en').split('-')[0].toLowerCase();
-    return ['en', 'te', 'ta', 'kn', 'hi', 'ml', 'or'].includes(l) ? l : 'en';
+    return SUPPORTED_LANGUAGES.some(s => s.code === l) ? l : 'en';
   });
+
+  // Sync selected language when global i18n language changes
+  useEffect(() => {
+    const l = (i18n.language || 'en').split('-')[0].toLowerCase();
+    if (SUPPORTED_LANGUAGES.some(s => s.code === l)) {
+      setSelectedLang(l);
+    }
+  }, [i18n.language]);
 
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
