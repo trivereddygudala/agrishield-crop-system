@@ -10909,3 +10909,48 @@ otif-, 	hread-, BK-) in _build_id_query and NotificationsPage.jsx.
   - Replaced 'Farm Sector & Agronomic Setup' with 'పొలం వివరాలు & జీపీఎస్ మ్యాప్' ('Farm Details & GPS Setup').
   - Replaced 'Farm Sector Name' with 'పొలం పేరు' ('Farm / Field Name').
 - **Strictly No Commit & No Push:** Preserved locally in working tree per user directive.
+
+## [2026-11-15 01:25:00] Git Commit Created for Field Tab Simplification
+- **Commit Hash:** `0ed7debb861d2729fdc62ad93fd1ee78cb7d2d28`
+- **Commit Message:** `feat(farm): streamline field tab hybrid model, simplify farmer terms & remove duplicate widgets`
+- **Files Committed (9 files, +425/-166):**
+  - `frontend/src/pages/farmer/FarmPage.jsx`
+  - `frontend/src/components/intelligence/FarmRoutineWidget.jsx`
+  - `frontend/src/components/farm/SmartIrrigationScheduler.jsx`
+  - `frontend/src/components/farm/CropGrowthTimeline.jsx`
+  - `frontend/src/components/farm/HarvestSeasonManager.jsx`
+  - `frontend/src/components/farm/SoilNPKCalculatorModal.jsx`
+  - `frontend/src/components/farm/DigitalFarmKhata.jsx`
+  - `frontend/src/components/farm/SmartFarmerActionCenter.jsx`
+  - `changes_happening.md`
+
+## [2026-11-15 07:31:00] - AI Assistant Model Restoration & Portal Multi-Role Integration
+
+### Objectives & Summary
+- Resolved persistent chat assistant failures and restored live cloud AI generation across all portal roles (Farmer, Admin, Equipment Provider).
+- Replaced decommissioned NVIDIA NIM model with active, high-performance reasoning model nvidia/nemotron-3.5-lightning-30b-a3b.
+- Removed artificial 2.0s timeout and 3-minute circuit breaker lockouts that forced users into dumb offline regex templates.
+- Fixed AdminAIChatbot.jsx routing to point to /api/ai/chat instead of invalid /api/crop-advisor.
+
+### Modifications
+1. .env & backend/.env:
+   - Updated NVIDIA_MODEL_NAME=nvidia/nemotron-3.5-lightning-30b-a3b (replacing expired meta/llama-3.2-11b-vision-instruct which suffered HTTP 410 End-of-Life).
+2. backend/app/services/nvidia_service.py:
+   - self.vision_model: Updated default vision fallback to meta/llama-3.2-90b-vision-instruct.
+   - _execute_completion:
+     - Increased token allowance (safe_tokens = max(min(max_tokens, 3072), 1200)) to support thinking/reasoning model outputs without mid-sentence truncation.
+     - Increased timeout from 2.0s to adaptive 8.0s-35.0s (safe_timeout = min(max(timeout, 8.0), 35.0)).
+     - Enhanced message parsing to extract raw_msg.content and fallback gracefully to reasoning_content if needed.
+     - Reduced circuit breaker delay to 10.0s cooldown instead of 180s (3m) complete lockout.
+     - Updated fallback vision model list.
+3. backend/app/routers/common/ai.py:
+   - Added flexible role normalization so authenticated users and admin/tester consoles can test or utilize specific personas (admin, equipment_provider, farmer).
+4. frontend/src/components/admin/AdminAIChatbot.jsx:
+   - Fixed endpoint call from /api/crop-advisor (which threw 422 Unprocessable Entity) to /api/ai/chat with context { user_role: 'admin', mode: 'admin_intelligence' }.
+
+### Verification
+- Tested live with all 3 distinct user roles:
+  1. Farmer: Correctly identified Tomato Early Blight with target spots, 16L spray pump dilution (Mancozeb 40g/16L), and 3-step field instructions.
+  2. Admin: Correctly delivered Enterprise Admin Security & OWASP Compliance Report for crop_disease_db.
+  3. Equipment Provider: Correctly inspected registered fleet (Mahindra 575 DI (45 HP)), provided 4.5-5.5 L/acre diesel consumption with 6-foot rotavator, and oil change hours.
+  4. Telugu: Correctly gave fluent, natural spray safety evaluation without English bracket clutter.

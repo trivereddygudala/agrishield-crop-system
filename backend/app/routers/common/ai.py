@@ -73,6 +73,13 @@ async def chat_with_farming_assistant(
         # Inject user_role directly into chatbot context with authoritative role normalization
         chat_context = req.context or {}
         raw_role = str(current_user.get("role", "farmer")).lower().strip()
+
+        # Check if caller explicitly requested a role (e.g. from Admin Intelligence Panel or role-specific consoles)
+        client_role = str(getattr(req, "role", None) or chat_context.get("user_role") or "").lower().strip()
+        if client_role in ["farmer", "equipment_provider", "provider", "admin", "tester", "researcher"]:
+            if raw_role in ["admin", "tester"] or raw_role == client_role:
+                raw_role = client_role
+
         if raw_role in ["equipment_provider", "provider"]:
             canonical_role = "equipment_provider"
         elif raw_role == "admin":

@@ -179,7 +179,7 @@ class NVIDIAService:
         self.nvidia_api_key_2 = getattr(settings, "NVIDIA_API_KEY_2", "") or os.getenv("NVIDIA_API_KEY_2", "")
         self.nvidia_base_url = getattr(settings, "NVIDIA_API_BASE_URL", "https://integrate.api.nvidia.com/v1") or os.getenv("NVIDIA_API_BASE_URL", "https://integrate.api.nvidia.com/v1")
         self.nvidia_model = getattr(settings, "NVIDIA_MODEL_NAME", "nvidia/nemotron-3.5-lightning-30b-a3b") or os.getenv("NVIDIA_MODEL_NAME", "nvidia/nemotron-3.5-lightning-30b-a3b")
-        self.vision_model = "meta/llama-3.2-11b-vision-instruct"
+        self.vision_model = "meta/llama-3.2-90b-vision-instruct"
 
         # Compatibility properties
         self.api_key = self.nvidia_api_key
@@ -310,15 +310,15 @@ class NVIDIAService:
         self,
         messages: list,
         temperature: float = 0.2,
-        max_tokens: int = 1200,
-        timeout: float = 2.0
+        max_tokens: int = 1500,
+        timeout: float = 25.0
     ) -> tuple[Optional[str], Optional[str]]:
         """
         Executes a single fast chat completion attempt.
-        Fails fast to Google Gemini Flash (1.5s, 1,000,000 TPM) -> NVIDIA NIM -> local ICAR knowledge base.
+        Fails fast to Google Gemini Flash -> NVIDIA NIM -> local ICAR knowledge base.
         """
-        safe_tokens = min(max_tokens, 1000)
-        safe_timeout = min(max(timeout, 1.2), 2.0)
+        safe_tokens = max(min(max_tokens, 3072), 1200)
+        safe_timeout = min(max(timeout, 8.0), 35.0)
 
         # 1. Primary Engine: Google Gemini Flash (ultra-low 1.5s latency, 1,000,000 TPM limit)
         gemini_text = await self._call_gemini_flash(messages, max_tokens=safe_tokens, temperature=temperature)
@@ -338,11 +338,15 @@ class NVIDIAService:
                         max_tokens=safe_tokens,
                         timeout=safe_timeout
                     ),
-                    timeout=safe_timeout + 0.3
+                    timeout=safe_timeout + 1.0
                 )
                 choice = response.choices[0]
                 raw_msg = choice.message
-                content = (raw_msg.content or getattr(raw_msg, "reasoning_content", None) or getattr(raw_msg, "text", None) or "").strip()
+                content = (raw_msg.content or "").strip()
+                if not content and getattr(raw_msg, "reasoning_content", None):
+                    content = (raw_msg.reasoning_content or "").strip()
+                if not content and getattr(raw_msg, "text", None):
+                    content = (raw_msg.text or "").strip()
                 if not content:
                     raise ValueError(f"Empty content returned from {name}")
                 
@@ -364,12 +368,12 @@ class NVIDIAService:
             except Exception as ex:
                 ex_str = str(ex).lower()
                 import time
-                self._circuit_broken_until = time.time() + 180.0
+                self._circuit_broken_until = time.time() + 10.0
                 if "401" in ex_str or "invalid_api_key" in ex_str or "invalid api key" in ex_str:
                     logger.warning(f"Provider {name} returned 401 Invalid API Key. Disabling provider.")
                     self.nvidia_client = None
                 else:
-                    logger.warning(f"Provider {name} fast-timeout ({ex}); tripping circuit breaker for 3m.")
+                    logger.warning(f"Provider {name} temporary issue ({ex}); cooling down for 10s.")
                 break
 
         return None, None
@@ -3005,7 +3009,7 @@ STRICT RULES:
                 return None
 
             models_to_try = [
-                getattr(self, "vision_model", "meta/llama-3.2-11b-vision-instruct"),
+                getattr(self, "vision_model", "meta/llama-3.2-90b-vision-instruct"),
                 self.nvidia_model
             ]
 

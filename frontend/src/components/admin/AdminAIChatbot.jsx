@@ -164,21 +164,25 @@ export default function AdminAIChatbot() {
 
     try {
       // Build conversation history for context continuity
-      const conversationHistory = messages.slice(-10).map(m => ({
-        role: m.role,
-        parts: [{ text: m.content }]
-      }));
-      conversationHistory.push({ role: 'user', parts: [{ text: content }] });
+      const conversationHistory = messages
+        .filter(m => m.id !== 'welcome')
+        .slice(-10)
+        .map(m => ({
+          role: m.role === 'assistant' ? 'assistant' : 'user',
+          content: m.content
+        }));
 
-      // Call the AgriShield AI crop-advisor endpoint (admin-context augmented)
-      const res = await API.post('/api/crop-advisor', {
+      // Call the AgriShield AI chat endpoint (admin intelligence role)
+      const res = await API.post('/api/ai/chat', {
         message: content,
-        system_context: SYSTEM_PROMPT,
-        conversation_history: conversationHistory,
-        mode: 'admin_intelligence'
+        history: conversationHistory,
+        context: {
+          user_role: 'admin',
+          mode: 'admin_intelligence'
+        }
       });
 
-      const reply = res.data?.response || res.data?.message || res.data?.answer || 'I encountered an issue processing your request. Please try again.';
+      const reply = res.data?.reply || res.data?.response || res.data?.message || res.data?.answer || 'I encountered an issue processing your request. Please try again.';
       setMessages(prev => [...prev, {
         role: 'assistant',
         content: reply,
