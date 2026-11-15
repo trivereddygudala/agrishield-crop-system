@@ -367,7 +367,7 @@ const AIDemo = ({ onClose }) => {
               <span>Google Gemini Flash & NVIDIA NIM · 1,000,000 TPM Bandwidth</span>
             </div>
             <h3 className="text-xl font-black text-white">Multilingual AI Crop Doctor</h3>
-            <p className="text-xs text-white/60">Zero chat rate limits · 13 Indian regional languages + Voice Doctor playback</p>
+            <p className="text-xs text-white/60">Zero chat rate limits · 8 Indian regional languages + Voice Doctor playback</p>
           </div>
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-purple-500/15 border border-purple-500/30 text-purple-300 text-xs font-bold">
             <Volume2 className="w-4 h-4" />
@@ -489,7 +489,7 @@ const MODULES = [
     icon: Bot,
     badge: 'AgriShield Chat Assistant Deep-Dive',
     title: 'Multilingual Smart Chat Advisor',
-    subtitle: '24/7 personal agronomic advisory across 13 Indian languages with Voice Doctor playback',
+    subtitle: '24/7 personal agronomic advisory across 8 Indian languages with Voice Doctor playback',
     color: 'bg-purple-500/20 text-purple-300 border-purple-500/30',
     component: AIDemo,
   },

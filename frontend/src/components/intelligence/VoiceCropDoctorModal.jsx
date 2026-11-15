@@ -10,7 +10,7 @@ import { useFarm } from '../../context/FarmContext';
 import { sanitizeTextForSpeech, cleanChatBubbleText, processSpeechRecognitionEvent } from '../../utils/speechSanitizer';
 import API from '../../services/api';
 
-// 13 Official Supported Languages for AgriShield Live
+// 8 Official Supported Languages for AgriShield Live
 const SUPPORTED_LANGUAGES = [
   { code: 'en', bcp: 'en-IN', label: 'English', flag: '🌐' },
   { code: 'te', bcp: 'te-IN', label: 'తెలుగు', flag: '🌾' },
@@ -32,7 +32,7 @@ export const VoiceCropDoctorModal = ({
   const { t, i18n } = useTranslation();
   const { activeFarm } = useFarm();
 
-  // Active language state across all 13 supported website languages
+  // Active language state across all 8 supported website languages
   const [selectedLang, setSelectedLang] = useState(() => {
     const l = (i18n.language || 'en').split('-')[0].toLowerCase();
     return SUPPORTED_LANGUAGES.some(s => s.code === l) ? l : 'en';

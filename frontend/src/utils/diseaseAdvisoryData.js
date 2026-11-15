@@ -2446,7 +2446,7 @@ export function normalizeDiseaseKey(rawName = '', statusHint = '') {
   // Fast exact match in COMMON_DISEASES
   if (COMMON_DISEASES[str]) return str;
 
-  // Fast reverse dictionary check across all 13 languages
+  // Fast reverse dictionary check across all 8 languages
   const revMap = getReverseDiseasesMap();
   if (revMap[str]) return revMap[str];
 

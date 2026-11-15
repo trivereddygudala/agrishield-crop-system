@@ -591,7 +591,7 @@ const AIAssistantPage = () => {
     e.target.value = '';
   };
 
-  // Speech Recognition supporting all 13 official website languages
+  // Speech Recognition supporting all 8 official website languages
   const toggleSpeechRecognition = () => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
@@ -1357,7 +1357,18 @@ ${formattedBody}
                         const nextLang = e.target.value;
                         setListeningLang(nextLang);
                         if (recognitionRef.current) {
-                          recognitionRef.current.lang = SPEECH_LANG_MAP[nextLang] || 'en-IN';
+                          try {
+                            recognitionRef.current.lang = SPEECH_LANG_MAP[nextLang] || 'en-IN';
+                            // Immediate hot-swap: Restart recognition so Chromium switches acoustic language models instantly
+                            if (isListening) {
+                              recognitionRef.current.stop();
+                              setTimeout(() => {
+                                try { recognitionRef.current?.start(); } catch {}
+                              }, 120);
+                            }
+                          } catch (err) {
+                            console.warn("Speech listener switch notice:", err);
+                          }
                         }
                       }}
                       className="bg-white dark:bg-[#1a1b1f] text-emerald-800 dark:text-emerald-200 border border-emerald-400/50 rounded-lg px-2 py-0.5 text-[11px] font-bold outline-none cursor-pointer"

@@ -319,10 +319,10 @@ const PreLoginFeatureShowcase = () => {
                 </div>
                 <div>
                   <h4 className="text-sm sm:text-base font-black text-white">
-                    {isTe ? '13 భారతీయ భాషలలో వాయిస్ పంట డాక్టర్ & వాట్సాప్ స్లిప్' : '13-Language AI Voice Doctor & WhatsApp Agronomist Slip'}
+                    {isTe ? '8 భారతీయ భాషలలో వాయిస్ పంట డాక్టర్ & వాట్సాప్ స్లిప్' : '8-Language AI Voice Doctor & WhatsApp Agronomist Slip'}
                   </h4>
                   <span className="text-[11px] text-purple-400 font-semibold">
-                    {isTe ? 'తెలుగు, హిందీ, తమిళం, కన్నడ సహా 13 భాషలలో స్వరం' : 'Native audio synthesizers across Telugu, Hindi, Tamil, Kannada, Marathi & English'}
+                    {isTe ? 'తెలుగు, హిందీ, తమిళం, కన్నడ సహా 8 భాషలలో స్వరం' : 'Native audio synthesizers across Telugu, Hindi, Tamil, Kannada, Marathi & English'}
                   </span>
                 </div>
               </div>

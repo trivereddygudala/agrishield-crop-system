@@ -17,7 +17,7 @@ export const SPEECH_LANG_MAP = {
 };
 
 /**
- * Normalizes language string to one of the 7 supported languages.
+ * Normalizes language string to one of the 8 supported languages.
  * Default is 'en'.
  */
 export function normalizeLanguage(lang = 'en') {

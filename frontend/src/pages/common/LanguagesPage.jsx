@@ -346,13 +346,13 @@ export default function LanguagesPage() {
       </Card>
 
       {/* ========================================================
-          CARD 2: ALL 13 REGIONAL LANGUAGES SELECTION GRID
+          CARD 2: ALL 8 REGIONAL LANGUAGES SELECTION GRID
          ======================================================== */}
       <div className="space-y-3">
         <div className="flex items-center justify-between px-1">
           <div>
             <h2 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-white/40">
-              {activeCode === 'te' ? 'అందుబాటులో ఉన్న భాషలు (13 ప్రాంతీయ భాషలు)' : 'Available Languages (13 Regional Locales)'}
+              {activeCode === 'te' ? 'అందుబాటులో ఉన్న భాషలు (8 ప్రాంతీయ భాషలు)' : 'Available Languages (8 Regional Locales)'}
             </h2>
             <p className="text-[11px] text-slate-400 dark:text-white/30 mt-0.5">
               {activeCode === 'te' ? 'ఏదైనా కార్డుపై ట్యాప్ చేసి ఎంచుకోండి లేదా తొలగించండి' : 'Tap any card to add or remove from your 1-tap quick buttons'}

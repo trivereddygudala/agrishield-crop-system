@@ -11144,3 +11144,16 @@ otif-, 	hread-, BK-) in _build_id_query and NotificationsPage.jsx.
 - **Build Verification & Dev Servers:**
   - Ran `npm run build`: Compiled cleanly in 25.77s with 0 errors.
   - FastAPI backend and Vite frontend dev servers verified running and responsive.
+
+## [2026-11-15 19:58:00] - Speech Listener Hot-Swap Upgrade & 8-Language UI Label Alignment
+- **Acoustic Model Hot-Swap Upgrade (AIAssistantPage.jsx):**
+  - Enhanced the live speech listener dropdown in the Voice Wave Banner to perform an automatic, instant session restart when switching languages during active speech recognition.
+  - Ensures Chromium/Edge speech engines immediately switch to the selected regional language model (	e-IN, 	a-IN, kn-IN, ml-IN, mr-IN, or-IN, hi-IN, en-IN) without requiring the farmer to manually stop and restart recording.
+- **UI Label & Comment Alignment:**
+  - LanguagesPage.jsx: Aligned secondary language header and Telugu translations to "8 ప్రాంతీయ భాషలు" / "8 Regional Locales".
+  - PreLoginFeatureShowcase.jsx: Updated showcase heading to "8 భారతీయ భాషలలో వాయిస్ పంట డాక్టర్ & వాట్సాప్ స్లిప్" / "8-Language AI Voice Doctor & WhatsApp Agronomist Slip".
+  - DemoModal.jsx: Updated agronomic advisor badge and subtitle to strictly reference the 8 official languages.
+  - Cleaned developer comments across VoiceCropDoctorModal.jsx, AIAssistantPage.jsx, localizationHelper.js, and diseaseAdvisoryData.js to reference the 8 official languages.
+- **Verification:**
+  - 
+pm run build compiled with 0 errors in 26.14s.
