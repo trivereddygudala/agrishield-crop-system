@@ -17,7 +17,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useFarm } from '../../context/FarmContext';
 import { useSpeechReader } from '../../hooks/useSpeechReader';
 import { compressImageForUpload } from '../../utils/imageCompression';
-import { printPrescriptionSlip } from '../../utils/prescriptionShare';
+import { printPrescriptionSlip, isPrescriptionEligible, parsePrescriptionFromMessage } from '../../utils/prescriptionShare';
 import { generateAndDownloadPrescriptionPDF } from '../../utils/pdfPrescriptionGenerator';
 import { processSpeechRecognitionEvent } from '../../utils/speechSanitizer';
 import VoiceCropDoctorModal from '../../components/intelligence/VoiceCropDoctorModal';
@@ -614,51 +614,84 @@ const AIAssistantPage = () => {
     }
   };
 
-  // Farmer Prescription Generator
+  // Dynamic Farmer Prescription Generator
   const handleDownloadPrescription = (content) => {
-    const crop = activeFarmerCrop || 'Field Crop';
-    let disease = 'Early Blight';
-    if (/powdery mildew/i.test(content)) disease = 'Powdery Mildew';
-    else if (/late blight/i.test(content)) disease = 'Late Blight';
-    else if (/blast/i.test(content)) disease = 'Blast';
+    const parsed = parsePrescriptionFromMessage(content, activeFarmerCrop);
+    const crop = parsed.cropName || activeFarmerCrop || 'Field Crop';
+    const disease = parsed.diseaseName || 'Crop Health Advisory';
 
-    const chemicals = [
-      'Mancozeb 75% WP @ 2.5g/L (40g per 16L pump)',
-      'Azoxystrobin 18.2% + Difenoconazole 11.4% SC @ 1ml/L'
-    ];
+    const rxPayload = {
+      cropName: crop.toUpperCase(),
+      diseaseName: disease.toUpperCase(),
+      confidence: 98,
+      severity: 'Moderate',
+      chemicals: parsed.chemicals,
+      organic: parsed.organic,
+      prevention: parsed.prevention,
+      doctorNote: parsed.doctorNote,
+      acres: selectedAcres,
+      farmerName: user?.name || 'Farmer',
+      farmLocation: user?.district || activeFarm?.location || 'Andhra Pradesh',
+      language: currentLang
+    };
+
+    // If non-Latin text (Telugu, Hindi, Tamil, etc.), use the browser print engine which supports full UTF-8 Indic typography
+    const hasNonLatin = /[^\u0000-\u007F]/.test(disease) || /[^\u0000-\u007F]/.test(crop) || (currentLang && currentLang !== 'en');
+
+    if (hasNonLatin) {
+      printPrescriptionSlip(rxPayload);
+      return;
+    }
 
     try {
-      generateAndDownloadPrescriptionPDF({
-        cropName: crop.toUpperCase(),
-        diseaseName: disease.toUpperCase(),
-        confidence: 96,
-        severity: 'Moderate',
-        chemicals: chemicals,
-        organic: ['Neem Oil (10,000 PPM) @ 3ml/L (50ml / 16L pump)'],
-        prevention: 'Apply early morning (6-9 AM). Maintain 4-hour rain-free window.',
-        acres: selectedAcres,
-        farmerName: user?.name || 'Farmer',
-        farmLocation: user?.district || activeFarm?.location || 'Andhra Pradesh',
-        language: currentLang
-      });
-    } catch {
-      printPrescriptionSlip({
-        cropName: crop.toUpperCase(),
-        diseaseName: disease.toUpperCase(),
-        confidence: 96,
-        severity: 'Moderate',
-        chemicals: chemicals,
-        organic: ['Neem Oil (10,000 PPM) @ 3ml/L'],
-        acres: selectedAcres,
-        farmerName: user?.name || 'Farmer'
-      });
+      generateAndDownloadPrescriptionPDF(rxPayload);
+    } catch (err) {
+      console.warn("Direct PDF generation fallback to print engine:", err);
+      printPrescriptionSlip(rxPayload);
     }
   };
 
   const handleWhatsAppShare = (content) => {
-    const clean = (content || '').replace(/[*_#`|]/g, '').slice(0, 300);
-    const text = `🌾 *AgriShield Kisan Prescription*:\n\n${clean}...\n\n(Generated via AgriShield Chat Assistant for local agro store purchase)`;
-    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
+    const parsed = parsePrescriptionFromMessage(content, activeFarmerCrop);
+    const crop = parsed.cropName || activeFarmerCrop || 'Field Crop';
+    const topic = parsed.diseaseName || 'Crop Advisory & Prescription';
+    const farmer = user?.name || 'Farmer';
+    const location = user?.district || activeFarm?.location || 'Local Field';
+    const acres = selectedAcres || 1.0;
+    const pumps = Math.ceil(acres * 3);
+    const waterLiters = Math.round(acres * 150);
+
+    // Format content cleanly for WhatsApp without arbitrary truncation
+    let formattedBody = (content || '')
+      .replace(/^#+\s*(.+)$/gm, '*$1*') // Convert markdown headings to bold
+      .replace(/\*\*(.+?)\*\*/g, '*$1*') // Preserve bold
+      .replace(/`([^`]+)`/g, '$1') // Strip inline code marks
+      .trim();
+
+    // Cap at safe 3200 characters if message is unusually large, avoiding 300-char truncation
+    if (formattedBody.length > 3200) {
+      formattedBody = formattedBody.slice(0, 3200) + '\n\n*(Full details available in AgriShield Platform)*';
+    }
+
+    const message = 
+`🌾 *AgriShield Kisan Prescription & Advisory* 🌾
+━━━━━━━━━━━━━━━━━━━━
+🌱 *Target Crop:* ${crop}
+📋 *Diagnosis / Topic:* ${topic}
+👨‍🌾 *Farmer:* ${farmer} (${acres} Acre Field)
+📍 *Location:* ${location}
+🚜 *Estimated Mix:* ~${waterLiters}L Water (${pumps} × 16L Knapsack Tanks)
+━━━━━━━━━━━━━━━━━━━━
+
+${formattedBody}
+
+━━━━━━━━━━━━━━━━━━━━
+🛡️ *Application Caution:* Spray early morning (6:00 - 9:00 AM) or late evening (4:30 - 6:30 PM). Ensure a 4-hour rain-free window.
+📞 *Kisan Toll-Free Helpline:* 1800-180-1551
+(Generated via AgriShield Chat Assistant for registered agro store purchase / field application)`;
+
+    const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(message)}`;
+    window.open(url, '_blank');
   };
 
   // Google Maps Helper
@@ -1062,7 +1095,7 @@ const AIAssistantPage = () => {
             {/* Conversation Messages */}
             {currentSession?.messages.map((msg) => {
               const isUser = msg.role === 'user';
-              const hasPrescriptionMention = !isUser && /mancozeb|azoxystrobin|dosage|16L|neem oil|pump|మోతాదు|లీటర్ల/i.test(msg.content);
+              const hasPrescriptionMention = !isUser && isPrescriptionEligible(msg);
 
               return (
                 <div key={msg.id} className={`flex w-full ${isUser ? 'justify-end' : 'justify-start'}`}>
@@ -1095,7 +1128,7 @@ const AIAssistantPage = () => {
                             <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800/80 flex flex-wrap items-center justify-between gap-2">
                               <div className="flex items-center gap-1.5 text-[11px] font-bold text-emerald-700 dark:text-emerald-300">
                                 <Sparkles className="w-3.5 h-3.5 text-emerald-500" />
-                                <span>16L Knapsack Sprayer Prescription Available</span>
+                                <span>Official Prescription & Dosage Slip Ready</span>
                               </div>
                               <div className="flex items-center gap-1.5">
                                 <button
@@ -1522,7 +1555,10 @@ const AIAssistantPage = () => {
                 <div className="space-y-1.5 pt-1">
                   <button
                     type="button"
-                    onClick={() => handleDownloadPrescription("Mancozeb 75% WP @ 2.5g/L")}
+                    onClick={() => {
+                      const latestRxMsg = currentSession?.messages?.slice().reverse().find(m => m.role === 'assistant' && isPrescriptionEligible(m));
+                      handleDownloadPrescription(latestRxMsg?.content || `${activeFarmerCrop || 'Field Crop'} preventive protective calibration for ${selectedAcres} acres`);
+                    }}
                     className="w-full flex items-center justify-center gap-2 py-2 rounded-xl bg-teal-700 hover:bg-teal-800 text-white text-xs font-bold shadow-xs transition-transform active:scale-98"
                   >
                     <Download className="w-3.5 h-3.5" />
@@ -1530,7 +1566,10 @@ const AIAssistantPage = () => {
                   </button>
                   <button
                     type="button"
-                    onClick={() => handleWhatsAppShare("Prescription for " + (activeFarmerCrop || "Field Crop"))}
+                    onClick={() => {
+                      const latestRxMsg = currentSession?.messages?.slice().reverse().find(m => m.role === 'assistant' && isPrescriptionEligible(m));
+                      handleWhatsAppShare(latestRxMsg?.content || `${activeFarmerCrop || 'Field Crop'} preventive spray schedule: Maintain 4-hour rain-free window. Recommended spray mix for ${selectedAcres} acres: ${calculatedPumps} pumps.`);
+                    }}
                     className="w-full flex items-center justify-center gap-2 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-xs transition-transform active:scale-98"
                   >
                     <Share2 className="w-3.5 h-3.5" />

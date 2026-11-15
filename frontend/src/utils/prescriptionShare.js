@@ -712,12 +712,12 @@ export const printPrescriptionSlip = ({
       </tr>
     </thead>
     <tbody>
-      ${chemicals.map(c => `
+      ${((chemicals && chemicals.length > 0) ? chemicals : (organic && organic.length > 0 ? ['100% Bio-Organic / Natural Formulation (No Synthetic Chemicals) @ Zero Synthetic PHI'] : ['Standard Protective Foliar Wash @ 2.0 g/L'])).map(c => `
         <tr>
           <td><strong>${c.split('@')[0] || c}</strong></td>
           <td>${c.split('@')[1] ? c.split('@')[1].split('(')[0] : 'As per label'}</td>
           <td>Every 7–10 days</td>
-          <td>14 Days</td>
+          <td>${c.toLowerCase().includes('organic') ? '0 Days' : '14 Days'}</td>
         </tr>
       `).join('')}
     </tbody>
@@ -760,4 +760,132 @@ export const printPrescriptionSlip = ({
   printWindow.document.open();
   printWindow.document.write(htmlContent);
   printWindow.document.close();
+};
+
+/**
+ * Evaluates whether an assistant message is eligible for Prescription Slip (PDF) and WhatsApp sharing.
+ */
+export const isPrescriptionEligible = (msg) => {
+  if (!msg || msg.role === 'user' || !msg.content) return false;
+  const text = msg.content.toLowerCase();
+  if (text.length < 40) return false;
+
+  // 1. Organic preparations & recipes
+  const hasOrganic = /jeevamrutha|neemastra|agneyastra|brahmastra|panchagavya|dashaparni|neem|trichoderma|pseudomonas|bio-fertilizer|organic|cow dung|cow urine|jaggery|pulse flour|జీవామృతం|నీమాస్త్రం|जीवामृत|नीमास्त्र/i.test(text);
+
+  // 2. Chemical treatments & formulations
+  const hasChemical = /mancozeb|azoxystrobin|chlorpyrifos|imidacloprid|carbendazim|copper oxychloride|streptocycline|thiamethoxam|emamectin|hexaconazole|propiconazole|fungicide|pesticide|insecticide|herbicide|urea|dap|potash|npk/i.test(text);
+
+  // 3. Clinical & spray dosage indications
+  const hasDosage = /dosage|dose|dilution|spray|per liter|per litre|g\/l|ml\/l|16l|15l|pump|knapsack|tank mix|foliar|drench|application rate|మోతాదు|లీటర్ల|పిచికారీ|छिड़काव|खुराक/i.test(text);
+
+  // 4. Disease / Pathology / Pest diagnosis & management
+  const hasPathology = /blight|mildew|blast|rust|rot|wilt|spot|canker|smut|curl|mosaic|thrips|borer|armyworm|aphid|whitefly|bollworm|caterpillar|fungal|bacterial|pest|disease|infection|తెగులు|పురుగు|रोग|कीट/i.test(text);
+
+  // 5. Preparation & instructions
+  const hasPrep = /preparation|ingredients|how to prepare|recipe|steps|తయారీ విధానం|కావలసిన పదార్థాలు|बनाने की विधि|सामग्री/i.test(text);
+
+  return (hasDosage && (hasPathology || hasChemical || hasOrganic)) ||
+         (hasOrganic && (hasPrep || hasDosage || hasPathology)) ||
+         (hasChemical && (hasDosage || hasPathology)) ||
+         (hasPrep && (hasOrganic || hasChemical || hasDosage));
+};
+
+/**
+ * Intelligent parser that extracts clinical crop entities from any AI consultation message.
+ */
+export const parsePrescriptionFromMessage = (content, fallbackCrop = 'Field Crop') => {
+  const text = (content || '').trim();
+  const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+
+  // 1. Detect Crop
+  let cropName = fallbackCrop;
+  const cropRegex = /\b(paddy|rice|chilli|cotton|tomato|potato|maize|corn|groundnut|peanut|wheat|sugarcane|soybean|onion|banana|వరి|మిరప|పత్తి|టమోటా|బంగాళాదుంప|మొక్కజొన్న|గోధుమ|చెరకు)\b/i;
+  const cropMatch = text.match(cropRegex);
+  if (cropMatch) {
+    const raw = cropMatch[1].toLowerCase();
+    const map = {
+      rice: 'Paddy / Rice', paddy: 'Paddy / Rice', 'వరి': 'Paddy / Rice',
+      chilli: 'Chilli', 'మిరప': 'Chilli',
+      cotton: 'Cotton', 'పత్తి': 'Cotton',
+      tomato: 'Tomato', 'టమోటా': 'Tomato',
+      potato: 'Potato', 'బంగాళాదుంప': 'Potato',
+      maize: 'Maize / Corn', corn: 'Maize / Corn', 'మొక్కజొన్న': 'Maize / Corn',
+      groundnut: 'Groundnut', peanut: 'Groundnut',
+      wheat: 'Wheat', 'గోధుమ': 'Wheat',
+      sugarcane: 'Sugarcane', 'చెరకు': 'Sugarcane',
+      soybean: 'Soybean', onion: 'Onion', banana: 'Banana'
+    };
+    cropName = map[raw] || cropMatch[1].charAt(0).toUpperCase() + cropMatch[1].slice(1);
+  }
+
+  // 2. Detect Diagnosis / Topic
+  let diseaseName = 'Crop Health Advisory & Prescription';
+  if (/jeevamrutha|జీవామృతం/i.test(text) && /neemastra|నీమాస్త్రం/i.test(text)) {
+    diseaseName = 'Jeevamrutha & Neemastra Organic Protocol';
+  } else if (/jeevamrutha|జీవామృతం/i.test(text)) {
+    diseaseName = 'Jeevamrutha Bio-Fertilizer Protocol';
+  } else if (/neemastra|నీమాస్త్రం/i.test(text)) {
+    diseaseName = 'Neemastra Botanical Pest Formulation';
+  } else if (/agneyastra|ఆగ్నేయాస్త్రం/i.test(text)) {
+    diseaseName = 'Agneyastra Organic Insecticide';
+  } else if (/early blight/i.test(text)) {
+    diseaseName = 'Early Blight (Alternaria solani)';
+  } else if (/late blight/i.test(text)) {
+    diseaseName = 'Late Blight (Phytophthora infestans)';
+  } else if (/powdery mildew/i.test(text)) {
+    diseaseName = 'Powdery Mildew';
+  } else if (/downy mildew/i.test(text)) {
+    diseaseName = 'Downy Mildew';
+  } else if (/blast/i.test(text)) {
+    diseaseName = 'Rice Blast (Pyricularia oryzae)';
+  } else if (/leaf curl/i.test(text)) {
+    diseaseName = 'Leaf Curl Virus';
+  } else if (/thrips|mites/i.test(text)) {
+    diseaseName = 'Thrips & Sucking Mites Infestation';
+  } else if (/stem borer/i.test(text)) {
+    diseaseName = 'Stem Borer';
+  } else if (/fall armyworm/i.test(text)) {
+    diseaseName = 'Fall Armyworm (Spodoptera frugiperda)';
+  } else {
+    for (const l of lines.slice(0, 4)) {
+      const clean = l.replace(/^[*#•\-\d.)\s]+/, '').replace(/[*_#`:]/g, '').trim();
+      if (clean.length > 5 && clean.length < 60) {
+        diseaseName = clean;
+        break;
+      }
+    }
+  }
+
+  // 3. Extract Chemicals and Organic remedies
+  const chemicals = [];
+  const organic = [];
+  const instructions = [];
+
+  const isPureOrganic = /jeevamrutha|neemastra|panchagavya|agneyastra|organic/i.test(text) && !/mancozeb|chlorpyrifos|imidacloprid|azoxystrobin/i.test(text);
+
+  lines.forEach(l => {
+    const clean = l.replace(/^\s*([*#•\-]+|\d+[\.\)])\s*/, '').replace(/[*_`]/g, '').trim();
+    if (!clean || clean.length < 5) return;
+
+    if (/(cow dung|cow urine|jaggery|pulse flour|besan|soil|neem leaves|neem oil|jeevamrutha|neemastra|panchagavya|trichoderma|pseudomonas|garlic|green chilli|dashaparni|gomutra)/i.test(clean)) {
+      if (!organic.includes(clean)) organic.push(clean);
+    } else if (/(mancozeb|azoxystrobin|chlorpyrifos|imidacloprid|carbendazim|copper oxychloride|streptocycline|thiamethoxam|emamectin|hexaconazole|propiconazole|tebuconazole|lambda|urea|dap|potash|\b\d+(\.\d+)?\s*(g|ml|kg|l)\b)/i.test(clean) && /(spray|dose|dosage|tank|pump|water|dilution|wp|ec|sc|sp|sl|fs|gr)/i.test(clean)) {
+      if (!chemicals.includes(clean)) chemicals.push(clean);
+    } else if (/(morning|evening|rain|dew|stir|ferment|shade|hours|spray|drench|filter|strain|cloth|ppe|mask|gloves)/i.test(clean)) {
+      if (!instructions.includes(clean) && clean.length < 120) instructions.push(clean);
+    }
+  });
+
+  return {
+    cropName,
+    diseaseName,
+    isPureOrganic,
+    chemicals: chemicals.slice(0, 6),
+    organic: organic.slice(0, 8),
+    instructions: instructions.slice(0, 5),
+    prevention: instructions.join(' • ') || 'Spray in early morning (6:00 - 9:00 AM) or late evening (4:30 - 6:30 PM). Ensure a 4-hour rain-free window.',
+    doctorNote: instructions[0] || 'Mix recommended dilution thoroughly. Wear protective personal equipment (PPE) while handling agrochemicals.',
+    fullText: text
+  };
 };

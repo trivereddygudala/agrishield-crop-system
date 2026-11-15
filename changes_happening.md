@@ -11078,3 +11078,18 @@ otif-, 	hread-, BK-) in _build_id_query and NotificationsPage.jsx.
   - Attached `toolkitContainerRef` and auto-scrolled to top (`scrollTop = 0`) on mobile tab switch so the Active Farm Profile and Crop Selector are immediately visible at the top.
 - **Verification:**
   - `npm run build` compiled with 0 errors in 26.71s.
+
+## [2026-11-15 14:00:44] - Fix Prescription Slip Extraction, Complete WhatsApp Sharing, and Eligibility Detection
+- **WhatsApp Share Truncation Fix (`AIAssistantPage.jsx`):**
+  - Removed arbitrary `clean.slice(0, 300)` that previously cut off messages mid-sentence (e.g. `2 kg Pulse Flour ...`).
+  - Added clean formatting that preserves bold titles, numbered steps, ingredient lists, safety warnings, and contact lines up to safe messaging limits (3200+ chars).
+- **Dynamic Prescription Slip Parsing (`prescriptionShare.js` & `AIAssistantPage.jsx`):**
+  - Implemented `parsePrescriptionFromMessage(content, fallbackCrop)` to automatically extract active crop name, disease/protocol title (e.g. Jeevamrutha Organic Bio-Fertilizer, Neemastra Botanical Pest Control, Blast, Blight, etc.), chemicals & dosages, organic ingredients, and spray instructions.
+  - Replaced hardcoded "Mancozeb" and "Early Blight" defaults with dynamic extraction so each PDF or printed slip matches the exact AI response.
+  - Added native UTF-8 print engine fallback for Indic scripts (Telugu, Hindi, Tamil, etc.).
+- **Comprehensive Eligibility Detection (`prescriptionShare.js` & `AIAssistantPage.jsx`):**
+  - Implemented `isPrescriptionEligible(msg)` checking for organic preparations (Jeevamrutha, Neemastra, Panchagavya, Cow dung/urine, Jaggery, etc.), agrochemical treatments, spray dilution & dosages, plant pathology terms, and regional language keywords.
+  - Replaced narrow 6-word regex (`/mancozeb|azoxystrobin|dosage|16L|neem oil|pump|మోతాదు|లీటర్ల/i`) with `isPrescriptionEligible(msg)`.
+  - Updated Toolkit buttons to dynamically extract the latest consultation prescription from the current chat session.
+- **Verification:**
+  - `npm run build` compiled with 0 errors in 20.09s.

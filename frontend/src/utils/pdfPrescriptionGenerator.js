@@ -136,15 +136,20 @@ export const generateAndDownloadPrescriptionPDF = ({
     doc.text('PRESCRIBED AGROCHEMICALS & SPRAY SCHEDULE', margin, currentY);
     currentY += 2;
 
-    const chemRows = (chemicals && chemicals.length > 0 ? chemicals : [
+    const isOrganicMode = (chemicals && chemicals.length === 0 && organic && organic.length > 0) || 
+                          (chemicals && chemicals.some(c => c.toLowerCase().includes('organic')));
+
+    const chemRows = (chemicals && chemicals.length > 0 ? chemicals : (isOrganicMode ? [
+      '100% Bio-Organic Protocol (No Synthetic Chemicals) @ Zero Chemical PHI'
+    ] : [
       'Mancozeb 75% WP @ 2.5 g/L of water',
       'Chlorothalonil 75% WP @ 2.0 g/L for broad-spectrum protection'
-    ]).map((c, idx) => {
+    ])).map((c, idx) => {
       const parts = c.split('@');
       const name = parts[0]?.trim() || `Prescription ${idx + 1}`;
-      const dosage = parts[1]?.trim() || '2.0 g/L';
-      const perTank = dosage.includes('ml') ? '30 ml / 15L pump' : '35 - 40 g / 15L pump';
-      const phi = '7 - 14 Days';
+      const dosage = parts[1]?.trim() || 'As advised';
+      const perTank = dosage.includes('ml') ? '30 ml / 15L pump' : dosage.includes('g') ? '35 - 40 g / 15L pump' : 'Safe Bio Tank Mix';
+      const phi = name.toLowerCase().includes('organic') ? '0 Days' : '7 - 14 Days';
       return [name, dosage, perTank, phi];
     });
 
