@@ -2,9 +2,9 @@ from pydantic import BaseModel, EmailStr, Field, ConfigDict, model_validator, fi
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 
-# 7 Whitelisted Supported Languages with English fallback
+# 8 Whitelisted Supported Languages with English fallback
 SUPPORTED_LANGUAGE_CODES = {
-    "en", "te", "ta", "kn", "hi", "ml", "or"
+    "en", "te", "ta", "kn", "hi", "ml", "mr", "or"
 }
 
 class UserBase(BaseModel):

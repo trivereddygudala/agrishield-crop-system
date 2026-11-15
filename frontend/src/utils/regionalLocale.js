@@ -1,40 +1,28 @@
 /**
- * AgriShield Universal Regional Localization Engine
- * Provides comprehensive, unified localization utilities across all 12 Indian regional languages:
- * Telugu (te), Hindi (hi), Tamil (ta), Kannada (kn), Malayalam (ml), Marathi (mr),
- * Gujarati (gu), Punjabi (pa), Urdu (ur), Odia (or), Assamese (as), and English (en).
+ * AgriShield 8-Language Regional Localization Engine
+ * Provides comprehensive, unified localization utilities across the 8 official languages:
+ * Telugu (te), Tamil (ta), Kannada (kn), Malayalam (ml), Marathi (mr), Odia (or), Hindi (hi), and English (en).
  */
 
 export const SPEECH_LANG_MAP = {
   te: 'te-IN',
-  hi: 'hi-IN',
   ta: 'ta-IN',
   kn: 'kn-IN',
   ml: 'ml-IN',
   mr: 'mr-IN',
-  bn: 'bn-IN',
-  gu: 'gu-IN',
-  pa: 'pa-IN',
-  ur: 'ur-IN',
   or: 'or-IN',
-  od: 'or-IN',
-  as: 'as-IN',
+  hi: 'hi-IN',
   en: 'en-IN'
 };
 
 export const LANGUAGE_NATIVE_NAMES = {
   te: 'తెలుగు (Telugu)',
-  hi: 'हिंदी (Hindi)',
   ta: 'தமிழ் (Tamil)',
   kn: 'ಕನ್ನಡ (Kannada)',
   ml: 'മലയാളം (Malayalam)',
   mr: 'मराठी (Marathi)',
-  bn: 'বাংলা (Bengali)',
-  gu: 'ગુજરાતી (Gujarati)',
-  pa: 'ਪੰਜਾਬੀ (Punjabi)',
-  ur: 'اردو (Urdu)',
   or: 'ଓଡ଼ିଆ (Odia)',
-  as: 'অসমীয়া (Assamese)',
+  hi: 'हिंदी (Hindi)',
   en: 'English'
 };
 

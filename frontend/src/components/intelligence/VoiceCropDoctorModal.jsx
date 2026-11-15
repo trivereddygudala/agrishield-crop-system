@@ -14,17 +14,12 @@ import API from '../../services/api';
 const SUPPORTED_LANGUAGES = [
   { code: 'en', bcp: 'en-IN', label: 'English', flag: '🌐' },
   { code: 'te', bcp: 'te-IN', label: 'తెలుగు', flag: '🌾' },
-  { code: 'hi', bcp: 'hi-IN', label: 'हिन्दी', flag: '🇮🇳' },
   { code: 'ta', bcp: 'ta-IN', label: 'தமிழ்', flag: '🌾' },
   { code: 'kn', bcp: 'kn-IN', label: 'ಕನ್ನಡ', flag: '🌾' },
   { code: 'ml', bcp: 'ml-IN', label: 'മലയാളം', flag: '🌴' },
   { code: 'mr', bcp: 'mr-IN', label: 'मराठी', flag: '🌿' },
-  { code: 'bn', bcp: 'bn-IN', label: 'বাংলা', flag: '🍃' },
-  { code: 'gu', bcp: 'gu-IN', label: 'ગુજરાતી', flag: '🚜' },
-  { code: 'pa', bcp: 'pa-IN', label: 'ਪੰਜਾਬੀ', flag: '🌾' },
   { code: 'or', bcp: 'or-IN', label: 'ଓଡ଼ିଆ', flag: '🌾' },
-  { code: 'ur', bcp: 'ur-IN', label: 'اردو', flag: '✨' },
-  { code: 'as', bcp: 'as-IN', label: 'অসমীয়া', flag: '🍵' }
+  { code: 'hi', bcp: 'hi-IN', label: 'हिन्दी', flag: '🇮🇳' }
 ];
 
 export const VoiceCropDoctorModal = ({ 
@@ -276,15 +271,12 @@ export const VoiceCropDoctorModal = ({
     if (!matchingVoice) {
       const nameKeywords = {
         te: ['mohan', 'telugu'],
-        hi: ['madhur', 'hemant', 'hindi'],
         ta: ['valluvar', 'kumar', 'tamil'],
         kn: ['gagan', 'kannada'],
         ml: ['midhun', 'malayalam'],
         mr: ['manohar', 'marathi'],
-        gu: ['niranjan', 'gujarati'],
-        bn: ['bashkar', 'pradeep', 'bengali'],
-        ur: ['salman', 'asad', 'urdu'],
         or: ['odia', 'oriya'],
+        hi: ['madhur', 'hemant', 'hindi'],
         en: ['prabhat', 'ravi', 'david', 'mark', 'george', 'male', 'english']
       };
       const kws = nameKeywords[targetCode] || [];

@@ -48,7 +48,7 @@ i18n
     fallbackLng: 'en',
     load: 'languageOnly',
     cleanCode: true,
-    supportedLngs: ['en', 'te', 'hi', 'ta', 'kn', 'ml', 'mr', 'gu', 'pa', 'bn', 'or', 'ur', 'as'],
+    supportedLngs: ['en', 'te', 'hi', 'ta', 'kn', 'ml', 'mr', 'or'],
     nonExplicitSupportedLngs: true,
     interpolation: {
       escapeValue: false, // React already safes from xss

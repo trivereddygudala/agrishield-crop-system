@@ -490,7 +490,7 @@ export default function FloatingAIAssistant() {
         const recognition = new SpeechRecognition();
         recognition.continuous = false;
         recognition.interimResults = false;
-        const bcpMap = { te: 'te-IN', hi: 'hi-IN', ta: 'ta-IN', kn: 'kn-IN', ml: 'ml-IN', mr: 'mr-IN', bn: 'bn-IN', gu: 'gu-IN', pa: 'pa-IN', ur: 'ur-IN', or: 'or-IN', as: 'as-IN', en: 'en-IN' };
+        const bcpMap = { te: 'te-IN', hi: 'hi-IN', ta: 'ta-IN', kn: 'kn-IN', ml: 'ml-IN', mr: 'mr-IN', or: 'or-IN', en: 'en-IN' };
         const activeLangKey = (i18n.language || 'en').split('-')[0];
         recognition.lang = bcpMap[activeLangKey] || 'en-IN';
 
@@ -526,7 +526,7 @@ export default function FloatingAIAssistant() {
       recognitionRef.current.stop();
       setIsListening(false);
     } else {
-      const bcpMap = { te: 'te-IN', hi: 'hi-IN', ta: 'ta-IN', kn: 'kn-IN', ml: 'ml-IN', mr: 'mr-IN', bn: 'bn-IN', gu: 'gu-IN', pa: 'pa-IN', ur: 'ur-IN', or: 'or-IN', as: 'as-IN', en: 'en-IN' };
+      const bcpMap = { te: 'te-IN', hi: 'hi-IN', ta: 'ta-IN', kn: 'kn-IN', ml: 'ml-IN', mr: 'mr-IN', or: 'or-IN', en: 'en-IN' };
       const activeLangKey = (i18n.language || 'en').split('-')[0];
       recognitionRef.current.lang = bcpMap[activeLangKey] || 'en-IN';
       setIsListening(true);

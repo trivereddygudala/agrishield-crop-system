@@ -11112,3 +11112,35 @@ otif-, 	hread-, BK-) in _build_id_query and NotificationsPage.jsx.
   - Expanded `READER_LANGUAGES` and `langMap` to support all 13 languages.
 - **Verification:**
   - `npm run build` compiled with 0 errors in 18.70s.
+
+## [2026-11-15 19:27:00] - Platform-Wide Standardization to 8 Official South Indian & Regional Languages
+- **Architecture & Policy Standardization:**
+  - Standardized the entire AgriShield platform strictly to the **8 official languages**:
+    1. Telugu (`te` - తెలుగు)
+    2. Tamil (`ta` - தமிழ்)
+    3. Kannada (`kn` - ಕನ್ನಡ)
+    4. Malayalam (`ml` - മലയാളം)
+    5. Marathi (`mr` - मराठी)
+    6. Odia (`or` - ଓଡ଼ିଆ)
+    7. Hindi (`hi` - हिन्दी)
+    8. English (`en` - English)
+  - Completely purged non-target / unuseful languages (`gu`, `pa`, `bn`, `ur`, `as`) across both frontend and backend to eliminate dictionary bloat, streamline user experience, and ensure synchronized vernacular support.
+- **Frontend Localization & Dictionary Pruning:**
+  - `frontend/src/data/languages.js`: Restructured `SUPPORTED_LANGUAGES` to strictly include the 8 official languages with regional flags, greetings, and territories.
+  - `frontend/src/i18n/config.js`: Updated `supportedLngs` to `['en', 'te', 'hi', 'ta', 'kn', 'ml', 'mr', 'or']`.
+  - `frontend/src/i18n/translations.js`: Pruned over 3,400 lines of unuseful language dictionary blocks (`gu`, `pa`, `ur`, `as`), reducing client bundle overhead while keeping complete translations for the 8 official languages.
+  - `frontend/src/utils/regionalLocale.js`: Standardized `SPEECH_LANG_MAP` and `LANGUAGE_NATIVE_NAMES` to the 8 official languages.
+  - `frontend/src/utils/localizationHelper.js`: Configured `SUPPORTED_LANGUAGES` and `SPEECH_LANG_MAP` to the 8 official languages.
+- **UI Components & Modals:**
+  - `frontend/src/components/intelligence/VoiceCropDoctorModal.jsx`: Pruned `SUPPORTED_LANGUAGES` and voice matching heuristics to strictly the 8 official languages.
+  - `frontend/src/components/common/GoogleMessageReader.jsx`: Pruned `READER_LANGUAGES` and `langMap` to the 8 official languages.
+  - `frontend/src/components/FloatingAIAssistant.jsx`: Pruned `bcpMap` to the 8 official languages.
+  - `frontend/src/pages/common/LandingPage.jsx`: Pruned `langOptions` to the 8 official languages.
+  - `frontend/src/pages/admin/AdminPage.jsx`: Standardized broadcast target languages (`targetLangs`), language dictionary, and preview tabs to the official languages.
+  - `frontend/src/hooks/useSpeechReader.js`: Cleaned voice fallback mapping to the 8 official languages.
+- **Backend Schema & Validation:**
+  - `backend/app/models/schemas.py`: Updated `SUPPORTED_LANGUAGE_CODES` to `{"en", "te", "ta", "kn", "hi", "ml", "mr", "or"}`.
+  - `backend/tests/test_language_preferences.py`: Updated canonical language validation tests to verify the 8 official codes and reject removed non-target codes.
+- **Build Verification & Dev Servers:**
+  - Ran `npm run build`: Compiled cleanly in 25.77s with 0 errors.
+  - FastAPI backend and Vite frontend dev servers verified running and responsive.

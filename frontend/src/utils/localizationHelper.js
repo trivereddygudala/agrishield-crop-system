@@ -1,9 +1,9 @@
 /**
- * AgriShield 7-Language Dynamic Localization Helper
- * Official supported languages: en, te, ta, kn, hi, ml, or
+ * AgriShield 8-Language Dynamic Localization Helper
+ * Official supported languages: en, te, ta, kn, hi, ml, mr, or
  */
 
-export const SUPPORTED_LANGUAGES = ['en', 'te', 'ta', 'kn', 'hi', 'ml', 'or'];
+export const SUPPORTED_LANGUAGES = ['en', 'te', 'ta', 'kn', 'hi', 'ml', 'mr', 'or'];
 
 export const SPEECH_LANG_MAP = {
   en: 'en-IN',
@@ -12,6 +12,7 @@ export const SPEECH_LANG_MAP = {
   kn: 'kn-IN',
   hi: 'hi-IN',
   ml: 'ml-IN',
+  mr: 'mr-IN',
   or: 'or-IN'
 };
 

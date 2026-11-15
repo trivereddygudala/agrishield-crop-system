@@ -31,18 +31,13 @@ import { VILLAGE_COORDINATES } from '../../data/indiaLocations';
 
 export const READER_LANGUAGES = [
   { code: 'te', name: 'తెలుగు', flag: '🌾', label: 'తెలుగు (Telugu)' },
-  { code: 'en', name: 'English', flag: '🌐', label: 'English' },
-  { code: 'hi', name: 'हिंदी', flag: '🇮🇳', label: 'हिंदी (Hindi)' },
   { code: 'ta', name: 'தமிழ்', flag: '🌾', label: 'தமிழ் (Tamil)' },
   { code: 'kn', name: 'ಕನ್ನಡ', flag: '🌾', label: 'ಕನ್ನಡ (Kannada)' },
   { code: 'ml', name: 'മലയാളം', flag: '🌴', label: 'മലയാളം (Malayalam)' },
   { code: 'mr', name: 'मराठी', flag: '🌿', label: 'मराठी (Marathi)' },
-  { code: 'bn', name: 'বাংলা', flag: '🍃', label: 'বাংলা (Bengali)' },
-  { code: 'gu', name: 'ગુજરાતી', flag: '🚜', label: 'ગુજરાતી (Gujarati)' },
-  { code: 'pa', name: 'ਪੰਜਾਬੀ', flag: '🌾', label: 'ਪੰਜਾਬੀ (Punjabi)' },
   { code: 'or', name: 'ଓଡ଼ିଆ', flag: '🌾', label: 'ଓଡ଼ିଆ (Odia)' },
-  { code: 'ur', name: 'اردو', flag: '✨', label: 'اردو (Urdu)' },
-  { code: 'as', name: 'অসমীয়া', flag: '🍵', label: 'অসমীয়া (Assamese)' }
+  { code: 'hi', name: 'हिंदी', flag: '🇮🇳', label: 'हिंदी (Hindi)' },
+  { code: 'en', name: 'English', flag: '🌐', label: 'English' }
 ];
 
 /**
@@ -482,7 +477,7 @@ export default function GoogleMessageReader({
       recognition.interimResults = true;
       recognition.maxAlternatives = 1;
 
-      const langMap = { te: 'te-IN', hi: 'hi-IN', ta: 'ta-IN', kn: 'kn-IN', ml: 'ml-IN', mr: 'mr-IN', bn: 'bn-IN', gu: 'gu-IN', pa: 'pa-IN', ur: 'ur-IN', or: 'or-IN', as: 'as-IN', en: 'en-IN' };
+      const langMap = { te: 'te-IN', hi: 'hi-IN', ta: 'ta-IN', kn: 'kn-IN', ml: 'ml-IN', mr: 'mr-IN', or: 'or-IN', en: 'en-IN' };
       const chosenLang = speechLanguage || langMap[(currentLang || 'te').split('-')[0]] || 'te-IN';
       recognition.lang = chosenLang;
 

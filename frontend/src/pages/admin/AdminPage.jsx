@@ -577,7 +577,7 @@ export default function AdminPage() {
     if (!broadcastTitle.trim() && !broadcastMessage.trim()) return;
     setIsTranslatingBroadcast(true);
     try {
-      const targetLangs = ['te', 'hi', 'ta', 'kn', 'ml', 'mr', 'gu', 'pa', 'bn', 'or'];
+      const targetLangs = ['te', 'ta', 'kn', 'ml', 'mr', 'or', 'hi'];
       let bundle = null;
       try {
         const res = await API.post('/api/admin/broadcast/translate', {
@@ -595,15 +595,12 @@ export default function AdminPage() {
       // Language metadata reference dictionary
       const langNames = {
         te: { name: 'Telugu', native: 'తెలుగు' },
-        hi: { name: 'Hindi', native: 'हिन्दी' },
         ta: { name: 'Tamil', native: 'தமிழ்' },
         kn: { name: 'Kannada', native: 'ಕನ್ನಡ' },
         ml: { name: 'Malayalam', native: 'മലയാളം' },
         mr: { name: 'Marathi', native: 'मराठी' },
-        gu: { name: 'Gujarati', native: 'ગુજરાતી' },
-        pa: { name: 'Punjabi', native: 'ਪੰਜਾਬੀ' },
-        bn: { name: 'Bengali', native: 'বাংলা' },
-        or: { name: 'Odia', native: 'ଓଡ଼ିଆ' }
+        or: { name: 'Odia', native: 'ଓଡ଼ିଆ' },
+        hi: { name: 'Hindi', native: 'हिन्दी' }
       };
 
       const finalTranslations = {};
@@ -3098,15 +3095,12 @@ export default function AdminPage() {
                       <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
                         {[
                           { code: 'te', label: 'Telugu', native: 'తెలుగు' },
-                          { code: 'hi', label: 'Hindi', native: 'हिन्दी' },
                           { code: 'ta', label: 'Tamil', native: 'தமிழ்' },
                           { code: 'kn', label: 'Kannada', native: 'ಕನ್ನಡ' },
                           { code: 'ml', label: 'Malayalam', native: 'മലയാളം' },
                           { code: 'mr', label: 'Marathi', native: 'मराठी' },
-                          { code: 'bn', label: 'Bengali', native: 'বাংলা' },
                           { code: 'or', label: 'Odia', native: 'ଓଡ଼ିଆ' },
-                          { code: 'gu', label: 'Gujarati', native: 'ગુજરાતી' },
-                          { code: 'pa', label: 'Punjabi', native: 'ਪੰਜਾਬੀ' }
+                          { code: 'hi', label: 'Hindi', native: 'हिन्दी' }
                         ].map((lang) => {
                           const isActive = activeTranslationLang === lang.code;
                           const hasData = Boolean(

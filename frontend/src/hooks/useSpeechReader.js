@@ -88,9 +88,8 @@ export const useSpeechReader = () => {
 
     // 6. Voice name containing the language name and male indicator
     const langNames = {
-      te: 'telugu', hi: 'hindi', ta: 'tamil', kn: 'kannada',
-      ml: 'malayalam', mr: 'marathi', gu: 'gujarati', pa: 'punjabi',
-      ur: 'urdu', or: 'odia', as: 'assamese', en: 'english'
+      te: 'telugu', ta: 'tamil', kn: 'kannada', ml: 'malayalam',
+      mr: 'marathi', or: 'odia', hi: 'hindi', en: 'english'
     };
     const targetName = langNames[primaryCode];
     if (targetName) {

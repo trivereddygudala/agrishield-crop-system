@@ -1,5 +1,5 @@
 // AgriShield Multi-Language Configuration
-// 7 Supported Regional Languages with English as Fallback
+// 8 Official South Indian & Regional Agronomy Languages with English Fallback
 export const SUPPORTED_LANGUAGES = [
   { 
     code: 'en', 
@@ -58,52 +58,12 @@ export const SUPPORTED_LANGUAGES = [
     region: 'महाराष्ट्र (Maharashtra)' 
   },
   { 
-    code: 'bn', 
-    name: 'Bengali', 
-    nativeName: 'বাংলা', 
-    flag: '🍃', 
-    greeting: 'নমস্কার', 
-    region: 'পশ্চিমবঙ্গ (West Bengal)' 
-  },
-  { 
-    code: 'gu', 
-    name: 'Gujarati', 
-    nativeName: 'ગુજરાતી', 
-    flag: '🚜', 
-    greeting: 'નમસ્તે', 
-    region: 'ગુજરાત (Gujarat)' 
-  },
-  { 
-    code: 'pa', 
-    name: 'Punjabi', 
-    nativeName: 'ਪੰਜਾਬੀ', 
-    flag: '🌾', 
-    greeting: 'ਸਤਿ ਸ੍ਰੀ ਅਕਾਲ', 
-    region: 'ਪੰਜਾਬ (Punjab)' 
-  },
-  { 
     code: 'or', 
     name: 'Odia', 
     nativeName: 'ଓଡ଼ିଆ', 
     flag: '🌾', 
     greeting: 'ନମସ୍କାର', 
     region: 'ଓଡ଼ିଶା (Odisha)' 
-  },
-  { 
-    code: 'ur', 
-    name: 'Urdu', 
-    nativeName: 'اردو', 
-    flag: '✨', 
-    greeting: 'آداب', 
-    region: 'تہذیبی خطہ (National)' 
-  },
-  { 
-    code: 'as', 
-    name: 'Assamese', 
-    nativeName: 'অসমীয়া', 
-    flag: '🍵', 
-    greeting: 'নমস্কাৰ', 
-    region: 'অসম (Assam)' 
   }
 ];
 

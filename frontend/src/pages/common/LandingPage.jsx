@@ -142,17 +142,13 @@ const LandingPage = () => {
 
   const langOptions = [
     { value: 'en', label: 'English (US)' },
-    { value: 'hi', label: 'हिन्दी (Hindi)' },
     { value: 'te', label: 'తెలుగు (Telugu)' },
     { value: 'ta', label: 'தமிழ் (Tamil)' },
     { value: 'kn', label: 'ಕನ್ನಡ (Kannada)' },
     { value: 'ml', label: 'മലയാളം (Malayalam)' },
     { value: 'mr', label: 'मराठी (Marathi)' },
-    { value: 'gu', label: 'ગુજરાતી (Gujarati)' },
-    { value: 'pa', label: 'ਪੰਜਾਬੀ (Punjabi)' },
-    { value: 'ur', label: 'اردو (Urdu)' },
     { value: 'or', label: 'ଓଡ଼ିଆ (Odia)' },
-    { value: 'as', label: 'অসমীয়া (Assamese)' },
+    { value: 'hi', label: 'हिन्दी (Hindi)' },
   ];
 
   return (
