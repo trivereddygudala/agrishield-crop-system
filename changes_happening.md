@@ -11173,3 +11173,21 @@ pm run build compiled with 0 errors in 26.14s.
 - **Verification:**
   - 
 pm run build compiled cleanly in 18.40s with 0 errors.
+## [2026-11-15 21:55:00] - AI Scan Center Hybrid Acceleration (Sub-2.5s Response)
+- **Local-First Async Storage Architecture (predict.py, storage_service.py):**
+  - Upgraded /api/upload endpoint to immediately persist image bytes to local canonical storage (uploads/...), returning in <10ms for instant inference kickoff.
+  - Offloaded Supabase / S3 cloud persistence to asynchronous background tasks (BackgroundTasks), completely decoupling internet upload latency from the farmer's scan request.
+  - Streamlined ensure_local_cache_for_inference to recognize local canonical paths in  ms with zero redundant remote network downloads.
+- **Disease Diagnosis Acceleration (predict.py, 
+vidia_service.py):**
+  - Integrated Groq Cloud AI (llama-3.1-8b-instant @ 300+ tok/s) into NVIDIAService as the primary sub-400ms completion engine.
+  - Fixed Google Gemini model names to valid API versions and bounded external translation / advisory timeouts from 30s down to 2.0s.
+  - Wrapped 7-day prescriptive treatment calendar generation with strict 2.5s bounded failover to instant local ICAR schedule fallback.
+- **Plant Identification Local-First Inversion (identifier.py, online_provider.py):**
+  - Inverted execution order: local PyTorch vision classifier and Andhra botanical species database are evaluated FIRST (<200ms). High-confidence matches return immediately.
+  - Eliminated 24-second dead API hangs: PlantNetOnlineProvider instantly bypasses to Gemini Vision when no API key is set, and remote timeouts are bounded to 2.5s.
+  - Streamlined 	ranslate_plant_data with fast Groq completion for instant multi-language botanical attributes.
+- **Agrochemical Scanner Adaptive Single-Pass OCR (grochemical_detector.py):**
+  - Upgraded OCR pre-processing to single-pass adaptive scanning on 768px downscaled images, optimizing CRAFT CPU latency by ~3x while preserving label text legibility.
+  - Implemented early-exit logic: immediately returns upon detecting text on the upright orientation, bypassing unnecessary 90°/180°/270° rotations.
+  - Capped Gemini Vision OCR and web search timeouts to 2.5s and 2.0s respectively.

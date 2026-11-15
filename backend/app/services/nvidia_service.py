@@ -186,8 +186,22 @@ class NVIDIAService:
         self.base_url = self.nvidia_base_url
         self.model = self.nvidia_model
 
-        # Groq client disabled to eliminate fallback latency
+        # Groq client ultra-fast path (~300ms, 300+ tok/s)
+        self.groq_api_key = getattr(settings, "GROQ_API_KEY", "") or os.getenv("GROQ_API_KEY", "")
+        self.groq_model = getattr(settings, "GROQ_MODEL_NAME", "llama-3.1-8b-instant") or "llama-3.1-8b-instant"
         self.groq_client = None
+        if self.groq_api_key and "mock" not in self.groq_api_key and "PASTE" not in self.groq_api_key:
+            try:
+                groq_base = getattr(settings, "GROQ_API_BASE_URL", "https://api.groq.com/openai/v1") or "https://api.groq.com/openai/v1"
+                self.groq_client = AsyncOpenAI(
+                    api_key=self.groq_api_key,
+                    base_url=groq_base,
+                    timeout=3.0
+                )
+                logger.info(f"Initialized Groq Cloud AI client (Model: {self.groq_model})")
+            except Exception as ge:
+                logger.warning(f"Groq client initialization warning: {ge}")
+                self.groq_client = None
 
         self.nvidia_client = None
         if self.nvidia_api_key and "mock-api-key" not in self.nvidia_api_key and "PASTE" not in self.nvidia_api_key:
@@ -228,11 +242,13 @@ class NVIDIAService:
             logger.info(f"AI Service initialized with providers: {' -> '.join(configured)}")
 
     def _get_providers(self):
-        """Returns the primary active configured NVIDIA provider. Avoids redundant 4-way cascades that stall user requests."""
+        """Returns the primary active configured providers (Groq -> NVIDIA NIM). Avoids redundant cascades."""
         import time
         if time.time() < self._circuit_broken_until:
             return []
         providers = []
+        if self.groq_client:
+            providers.append(("Groq Cloud AI (llama-3.1-8b-instant)", self.groq_client, self.groq_model or "llama-3.1-8b-instant"))
         if self.nvidia_client:
             providers.append((f"NVIDIA NIM ({self.nvidia_model.split('/')[-1]})", self.nvidia_client, self.nvidia_model))
         elif self.nvidia_client_2:
@@ -277,11 +293,9 @@ class NVIDIAService:
             }
 
             models_to_try = [
-                "gemini-3.5-flash-lite",
-                "gemini-3.1-flash-lite",
-                "gemini-3-flash-preview",
-                "gemini-3.5-flash",
-                "gemini-3.8-flash"
+                "gemini-2.0-flash",
+                "gemini-1.5-flash",
+                "gemini-1.5-flash-8b"
             ]
             async with httpx.AsyncClient(timeout=8.0) as http_client:
                 for model_name in models_to_try:
@@ -315,12 +329,32 @@ class NVIDIAService:
     ) -> tuple[Optional[str], Optional[str]]:
         """
         Executes a single fast chat completion attempt.
-        Fails fast to Google Gemini Flash -> NVIDIA NIM -> local ICAR knowledge base.
+        Fails fast: Groq Cloud AI (<400ms) -> Google Gemini Flash -> NVIDIA NIM -> local ICAR knowledge base.
         """
         safe_tokens = max(min(max_tokens, 3072), 1200)
-        safe_timeout = min(max(timeout, 8.0), 35.0)
+        safe_timeout = min(max(timeout, 1.2), 12.0)
 
-        # 1. Primary Engine: Google Gemini Flash (ultra-low 1.5s latency, 1,000,000 TPM limit)
+        # 0. Ultra-Fast Engine: Groq Cloud AI (~300ms latency, 300+ tok/s)
+        if self.groq_client is not None:
+            try:
+                groq_resp = await asyncio.wait_for(
+                    self.groq_client.chat.completions.create(
+                        model=self.groq_model or "llama-3.1-8b-instant",
+                        messages=messages,
+                        temperature=temperature,
+                        max_tokens=safe_tokens
+                    ),
+                    timeout=min(safe_timeout, 2.0)
+                )
+                choice = groq_resp.choices[0]
+                content = (choice.message.content or "").strip()
+                if content:
+                    logger.info("AI completion succeeded via Groq Cloud AI (<400ms)")
+                    return content, "Groq Cloud AI"
+            except Exception as gr_err:
+                logger.debug(f"Groq fast-pass bypassed: {gr_err}")
+
+        # 1. Secondary Engine: Google Gemini Flash (ultra-low 1.5s latency, 1,000,000 TPM limit)
         gemini_text = await self._call_gemini_flash(messages, max_tokens=safe_tokens, temperature=temperature)
         if gemini_text:
             return gemini_text, "Google Gemini Flash"
@@ -891,7 +925,7 @@ Fields to translate:
             {"role": "user", "content": prompt}
         ]
 
-        content, provider = await self._execute_completion(messages, temperature=0.1, max_tokens=4096, timeout=30.0)
+        content, provider = await self._execute_completion(messages, temperature=0.1, max_tokens=4096, timeout=2.5)
         if content:
             try:
                 if "```json" in content:
@@ -1260,7 +1294,7 @@ Do not include any conversational text or markdown blocks. Only output the raw J
             {"role": "user", "content": prompt}
         ]
 
-        content, provider = await self._execute_completion(messages, temperature=0.1, max_tokens=900, timeout=6.0)
+        content, provider = await self._execute_completion(messages, temperature=0.1, max_tokens=900, timeout=2.0)
         if content:
             parsed = safe_parse_json(content)
             if isinstance(parsed, list) and len(parsed) > 0:

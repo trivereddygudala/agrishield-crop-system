@@ -117,7 +117,7 @@ Output pure JSON only. Do not add markdown or extra conversational text."""
             }
 
             models = ["gemini-flash-lite-latest", "gemini-flash-latest"]
-            async with httpx.AsyncClient(timeout=8.0) as client:
+            async with httpx.AsyncClient(timeout=3.0) as client:
                 for model_name in models:
                     try:
                         url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={self.api_key}"
@@ -164,13 +164,19 @@ class PlantNetOnlineProvider(BaseOnlinePlantProvider):
         if valid_organ not in ["leaf", "flower", "fruit", "bark"]:
             valid_organ = "leaf"
 
+        # If PlantNet API key is missing or invalid, bypass directly to Gemini Vision without waiting
+        if not self.api_key or "mock" in self.api_key or "PASTE" in self.api_key or not self.api_key.strip():
+            if self.gemini_provider:
+                return await self.gemini_provider.identify(image_path, crop_name, plant_type, tree_filter, valid_organ)
+            return None
+
         def _sync_plantnet_call():
             try:
                 with open(image_path, "rb") as f:
                     files = [("images", (os.path.basename(image_path), f, "image/jpeg"))]
                     data = {"organs": [valid_organ]}
                     url = f"{self.base_url}?api-key={self.api_key}&lang=en"
-                    resp = requests.post(url, files=files, data=data, timeout=8.0)
+                    resp = requests.post(url, files=files, data=data, timeout=3.0)
                     if resp.status_code == 200:
                         payload = resp.json()
                         results = payload.get("results", [])

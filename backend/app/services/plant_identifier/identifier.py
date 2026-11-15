@@ -241,7 +241,20 @@ class PlantIdentifier:
                 plant_cache.set(cache_key, local_filter_res)
                 return local_filter_res
 
-        # 4. PRIMARY BOTANICAL VISION ENGINE (Pl@ntNet + Google Gemini Vision Dual AI)
+        # 4. PRIMARY FAST ENGINE: Local Offline PyTorch Vision & Andhra Botanical Knowledge Base (<200ms)
+        local_result = self._attempt_local_identification(
+            image_path=image_path,
+            plant_type=plant_type,
+            tree_filter=tree_filter,
+            crop_filter=crop_filter,
+            organ=valid_organ
+        )
+
+        if local_result and local_result.get("confidence", 0) >= LOCAL_CONFIDENCE_THRESHOLD:
+            plant_cache.set(cache_key, local_result)
+            return local_result
+
+        # 5. SECONDARY FALLBACK: Online Multimodal Vision Engine (when local neural confidence is below threshold)
         try:
             online_data = await self.online_provider.identify(
                 image_path=image_path,
@@ -303,19 +316,6 @@ class PlantIdentifier:
                     return result
         except Exception as e:
             logger.warning(f"Online identification provider failed: {e}")
-
-        # 5. SECONDARY FALLBACK: Local Offline Identification
-        local_result = self._attempt_local_identification(
-            image_path=image_path,
-            plant_type=plant_type,
-            tree_filter=tree_filter,
-            crop_filter=crop_filter,
-            organ=valid_organ
-        )
-
-        if local_result and local_result.get("confidence", 0) >= LOCAL_CONFIDENCE_THRESHOLD:
-            plant_cache.set(cache_key, local_result)
-            return local_result
 
         # 6. Unknown Plant Handling (If confidence is low or unidentifiable)
         return {

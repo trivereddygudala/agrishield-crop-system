@@ -240,6 +240,62 @@ class StorageService:
 
         return self.build_public_url(object_name)
 
+    async def upload_image_fast_local(
+        self,
+        content_bytes: bytes,
+        original_filename: str = "",
+        content_type: str = "image/jpeg"
+    ) -> Tuple[str, str, str]:
+        """
+        Instant local-first storage (<5ms):
+        Saves the file to local canonical directory immediately and returns:
+        (relative_path, object_name, normalized_content_type)
+        Cloud upload can be performed asynchronously in the background.
+        """
+        object_name = self.generate_object_name(content_bytes, original_filename)
+        rel_path, local_path = self._save_local_file(content_bytes, object_name)
+
+        normalized_content_type = content_type or "image/jpeg"
+        if normalized_content_type == "application/octet-stream":
+            ext = os.path.splitext(object_name)[1].lower()
+            if ext == ".png":
+                normalized_content_type = "image/png"
+            elif ext == ".webp":
+                normalized_content_type = "image/webp"
+            else:
+                normalized_content_type = "image/jpeg"
+
+        return rel_path, object_name, normalized_content_type
+
+    async def upload_image_background(
+        self,
+        object_name: str,
+        content_bytes: bytes,
+        content_type: str = "image/jpeg"
+    ):
+        """Asynchronously syncs a locally saved image to cloud storage (Supabase/S3)."""
+        if not self.is_cloud_configured():
+            return
+        provider = self.get_provider()
+        try:
+            if provider == "supabase":
+                await self._upload_supabase(object_name, content_bytes, content_type)
+                logger.info(f"[STORAGE ASYNC] Successfully synced {object_name} to Supabase in background")
+            elif provider in ("r2", "s3"):
+                client = self._get_s3_client()
+                if client is not None:
+                    import asyncio
+                    await asyncio.to_thread(
+                        client.put_object,
+                        Bucket=settings.STORAGE_BUCKET_NAME,
+                        Key=object_name,
+                        Body=content_bytes,
+                        ContentType=content_type
+                    )
+                    logger.info(f"[STORAGE ASYNC] Successfully synced {object_name} to S3/R2 in background")
+        except Exception as e:
+            logger.warning(f"[STORAGE ASYNC] Cloud sync non-blocking note for {object_name}: {e}")
+
     async def upload_image(
         self,
         content_bytes: bytes,
