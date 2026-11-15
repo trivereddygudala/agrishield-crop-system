@@ -47,7 +47,7 @@ export const comprehensiveResources = {
       live_alert_tag: "AI Diagnosis Alert",
       view_details: "View Full Details",
       ai_copilot: "AI Copilot",
-      ai_advisor: "AI Agronomist",
+      ai_advisor: "AgriShield Chat Assistant",
       provider_hub: "Fleet Hub",
       scan_center: "AI Scan Center",
       iot_devices: "ESP32 IoT",

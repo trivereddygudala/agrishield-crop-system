@@ -163,7 +163,7 @@ const MorePage = () => {
     },
     {
       icon: Bot,
-      label: t('more.tools.assistant.label', 'AI Agronomist Chat'),
+      label: t('more.tools.assistant.label', 'AgriShield Chat Assistant'),
       description: t('more.tools.assistant.desc', 'Voice & text consultation in Hindi, Telugu, Tamil'),
       path: '/assistant',
       iconColor: 'text-blue-600 dark:text-blue-400',

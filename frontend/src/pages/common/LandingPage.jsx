@@ -132,7 +132,7 @@ const LandingPage = () => {
       photo: CURATED_FARM_PHOTOS.irrigation
     },
     {
-      icon: Bot, badge: t('nav.ai_advisor', 'AI Agronomist'), route: '/assistant',
+      icon: Bot, badge: t('nav.ai_advisor', 'AgriShield Chat Assistant'), route: '/assistant',
       color: 'bg-purple-500/20 text-purple-300',
       title: t('landing.feat4_title', 'Multilingual Smart Chat Advisor'),
       description: t('landing.feat4_desc', 'Get 24/7 personalized advice on soil NPK nutrients, organic bio-pesticide treatments, and spray schedules in your preferred language.'),

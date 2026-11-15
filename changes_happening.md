@@ -10954,3 +10954,82 @@ otif-, 	hread-, BK-) in _build_id_query and NotificationsPage.jsx.
   2. Admin: Correctly delivered Enterprise Admin Security & OWASP Compliance Report for crop_disease_db.
   3. Equipment Provider: Correctly inspected registered fleet (Mahindra 575 DI (45 HP)), provided 4.5-5.5 L/acre diesel consumption with 6-foot rotavator, and oil change hours.
   4. Telugu: Correctly gave fluent, natural spray safety evaluation without English bracket clutter.
+
+## [2026-11-15 12:52:00] - AgriShield Chat Assistant Hybrid Redesign & Zero-Scroll Conflict Architecture
+
+### Objectives & Summary
+- Renamed AI Assistant branding to 'AgriShield Chat Assistant' across navigation menus, layout headers, and floating widgets.
+- Implemented the 'Hybrid Design' architecture for AIAssistantPage.jsx:
+  - Eliminated the double-sidebar squeeze on desktop by replacing the static 288px drawer with a smooth slide-over conversation history drawer.
+  - Resolved mobile BottomNav overlap and keyboard viewport shifting by establishing strict safe-area clearance and flexible scroll containers.
+  - Eliminated 1000px inline message bloat: Replaced large inline cards with a dedicated right-hand Field Toolkit Tray (Acreage/16L knapsack calculator, doctor-style prescription PDF generator, weather spray window, nearby RBK GPS hubs).
+  - Fixed auto-scroll jitter by using height-stabilized scroll observers and sleek custom scrollbars.
+  - Verified production build and started localhost servers (frontend on :3000, backend on :8000).
+
+### Modified Files
+1. frontend/src/pages/common/AIAssistantPage.jsx (Rebuilt with Hybrid Design 2-column layout & Field Toolkit Tray)
+2. frontend/src/components/AppLayout.jsx (Updated navigation labels to 'AgriShield Chat Assistant')
+3. frontend/src/components/FloatingAIAssistant.jsx (Updated branding and header labels)
+4. frontend/src/components/DemoModal.jsx (Updated quick-launcher button label)
+
+## [2026-11-15 13:06:00] - Portal-Specific Hybrid Architecture & Extensive Role Commands
+
+### Objectives & Summary
+- Designed and implemented dedicated, portal-distinct UI themes, layouts, functions, and quick command suites for each user role:
+  1. **Farmer Portal (armer):**
+     - Emerald theme & '🌾 AgriShield Chat Assistant' branding with '🌿 Crop Doctor & Smart Advisor' badge.
+     - 14 high-precision quick commands covering 16L knapsack dilutions, weather spray windows, Mandi rates, RBKs, NPK schedules, IPM traps, CIB&RC toxicity triangles, and Kisan call centers.
+     - Field Toolkit Tray: Active Farm Profile card, dynamic 16L sprayer pump mix calculator, 1-click prescription slip PDF generator and WhatsApp store share, real-time spray window safety card, nearby RBK GPS search.
+  2. **Equipment Provider Portal (equipment_provider / provider):**
+     - Indigo industrial theme & '🚜 AgriShield Chat Assistant' branding with '⚙️ Machinery Fleet & Operations Copilot' badge.
+     - 14 high-precision quick commands covering Rotavator diesel consumption per acre, MB Plough soil inversion, 250h engine oil change countdown, hydraulic fluid bleeding, tyre pressure PSI, spray drone DGCA operating rules, LiPo battery storage voltage, and custom hiring benchmark pricing.
+     - Fleet Operations Toolkit: Registered Fleet status, interactive Diesel & Rental Job Estimator (select implement + acreage -> litres, hours, fuel cost @ ₹98/L, and recommended rental dispatch quote), tractor service interval countdown tracker, DGCA drone pre-flight checklist.
+  3. **Admin Portal (dmin):**
+     - Violet command center theme & '🛡️ AgriShield Chat Assistant' branding with '⚡ Admin Intelligence & Security Operations' badge.
+     - 14 high-precision quick commands covering OWASP security audits, rate limiter compliance, microservices latency, database record health, IoT ESP32 telemetry nodes, and emergency outbreak notifications.
+     - Admin Operations Toolkit: Live microservice health indicators (FastAPI, PyTorch 1226 classes, MongoDB), OWASP protection telemetry, in-field ESP32 node monitoring, and 1-Click Outbreak Broadcast Drafter (generates SMS/WhatsApp advisory directly into chat).
+- Added an on-demand Portal Switcher in the assistant header for Admins and Testers to preview and verify all three portal interfaces in real-time.
+- Added a full 'Commands Catalog (14)' modal with searchable categorization for effortless 1-click command execution.
+- Injected backend telemetry and domain benchmarks:
+  - ackend/app/routers/common/ai.py: Injected live database counts, role distributions, and disease scans for Admin; injected official Indian machinery diesel benchmarks, maintenance schedules, drone SOPs, and hiring rates for Equipment Providers.
+  - ackend/app/services/nvidia_service.py: Enriched system prompts to ensure 100% concrete, numbers-based, authoritative answers aligned with each portal's role boundaries.
+- Re-launched localhost servers with host-accessible ports (localhost:3000 for frontend, localhost:8000 for backend) for browser verification without git commit or push.
+
+### Modified Files
+1. rontend/src/pages/common/AIAssistantPage.jsx (Portal-distinct themes, right-hand toolkits, and 14+ commands per portal)
+2. ackend/app/routers/common/ai.py (Injected admin database telemetry & machinery benchmarks)
+3. ackend/app/services/nvidia_service.py (Enriched role prompt definitions and context formatters)
+
+## [2026-11-15 13:15:00] - Comprehensive Name Audit & Global Replacement of 'AI Agronomist Chat'
+
+### Root Cause & Audit
+- Identified that on `/more` (`localhost:3000/more`), the tool card displayed **'AI Agronomist Chat'** because:
+  1. `frontend/src/pages/common/MorePage.jsx` had fallback text `'AI Agronomist Chat'`.
+  2. `frontend/src/i18n/translations.js` had 7 instances of `"label": "AI Agronomist Chat"` across English, Hindi, Telugu, and other regional language configurations for the `more.tools.assistant.label` key.
+  3. `translations.js` also had 15 occurrences of `"agronomist": "AI Agronomist"`, `"title": "AgriShield Smart Agronomist AI"`, and `"tag": "Smart Agronomist Pro"`.
+  4. `LandingPage.jsx`, `HelpSupportPage.jsx`, `DemoModal.jsx`, `FloatingAIAssistant.jsx`, and `comprehensiveTranslations.js` had remaining occurrences of `'AI Agronomist'`.
+  5. `backend/app/services/nvidia_service.py` had system prompt identifying as `'AgriShield AI Agronomist'`.
+
+### Complete Technical Modifications
+1. `frontend/src/pages/common/MorePage.jsx`: Replaced `'AI Agronomist Chat'` with `'AgriShield Chat Assistant'`.
+2. `frontend/src/i18n/translations.js`: Replaced all 7 `more.tools.assistant.label` instances with `'AgriShield Chat Assistant'`, all 15 `quick_tools.agronomist` instances with `'AgriShield Chat Assistant'`, and assistant page title/tag/welcome strings.
+3. `frontend/src/components/DemoModal.jsx`: Updated deep-dive badge and prescription answer title to `'AgriShield Chat Assistant'`.
+4. `frontend/src/components/FloatingAIAssistant.jsx`: Updated WhatsApp share attribution to `(Prescribed via AgriShield Chat Assistant)`.
+5. `frontend/src/pages/common/LandingPage.jsx`: Updated feature card badge to `'AgriShield Chat Assistant'`.
+6. `frontend/src/pages/common/HelpSupportPage.jsx`: Updated button label to `'AgriShield Chat Assistant'`.
+7. `frontend/src/i18n/comprehensiveTranslations.js`: Updated `ai_advisor` dictionary entry to `'AgriShield Chat Assistant'`.
+8. `backend/app/services/nvidia_service.py`: Updated system prompt persona to `'AgriShield Chat Assistant'`.
+
+### Verification
+- Verified 0 remaining occurrences of 'AI Agronomist' across all frontend and backend source files.
+- Verified production build compiled with 0 errors (`npm run build` passed in 22.78s).
+- Maintained active background daemon servers on `localhost:3000` (Vite) and `localhost:8000` (FastAPI).
+- Zero git commits or pushes performed.
+
+## [2026-11-15 13:20:00] - Git Commit Created (0c0fafb)
+
+### Summary of Committed Changes
+- Executed `git commit` for all portal-specific hybrid architecture, right-hand toolkit trays, extensive commands suite, and global branding updates to 'AgriShield Chat Assistant'.
+- Commit Hash: `0c0fafb`
+- Commit Title: `feat(ai-assistant): implement AgriShield Chat Assistant with portal-specific hybrid architecture and extensive commands suite`
+- Working tree clean. Ahead of origin/main by 1 commit.

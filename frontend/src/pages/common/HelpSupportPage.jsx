@@ -536,7 +536,7 @@ export default function HelpSupportPage() {
             }`}
           >
             <Bot className="w-4 h-4" />
-            <span>{isEquipmentProvider ? t('support_center.machinery_ai_copilot', 'Machinery AI Copilot') : t('support_page.ask_ai', 'Ask AI Agronomist')}</span>
+            <span>{isEquipmentProvider ? t('support_center.machinery_ai_copilot', 'Machinery AI Copilot') : t('support_page.ask_ai', 'AgriShield Chat Assistant')}</span>
           </button>
         </div>
       </div>

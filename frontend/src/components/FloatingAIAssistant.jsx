@@ -324,7 +324,7 @@ export default function FloatingAIAssistant() {
 
   const handleWhatsAppShare = (adviceText) => {
     const clean = adviceText.replace(/[*_#`|]/g, '').slice(0, 320);
-    const text = `🌾 *AgriShield Kisan Prescription*:\n\n${clean}...\n\n(Prescribed via AgriShield AI Agronomist)`;
+    const text = `🌾 *AgriShield Kisan Prescription*:\n\n${clean}...\n\n(Prescribed via AgriShield Chat Assistant)`;
     window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
   };
 
@@ -734,10 +734,10 @@ export default function FloatingAIAssistant() {
                 </div>
                 <div>
                   <div className="flex items-center gap-1.5">
-                    <span className="font-extrabold text-xs text-white">{isAdmin ? 'AgriShield Copilot' : 'AgriShield AI'}</span>
+                    <span className="font-extrabold text-xs text-white">{isAdmin ? 'AgriShield Admin Copilot' : 'AgriShield Chat Assistant'}</span>
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                   </div>
-                  <span className="text-[10px] text-slate-400 block leading-tight">{isAdmin ? 'System Administrator Intelligence' : 'Farm Agronomist'}</span>
+                  <span className="text-[10px] text-slate-400 block leading-tight">{isAdmin ? 'System Administrator Intelligence' : 'Smart Farm & Crop Doctor Assistant'}</span>
                 </div>
               </div>
 

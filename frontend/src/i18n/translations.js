@@ -47,7 +47,7 @@ export const resources = {
           "see_all": "See all tools",
           "leaf_doctor": "Leaf Doctor",
           "leaf_doctor_desc": "Scan crop leaf for instant disease detection.",
-          "agronomist": "AI Agronomist",
+          "agronomist": "AgriShield Chat Assistant",
           "agronomist_desc": "Ask farming advice in your voice or language.",
           "mandi_prices": "Market",
           "mandi_prices_desc": "Track daily live agricultural mandi rates.",
@@ -152,9 +152,9 @@ export const resources = {
         "single_leaf_desc": "High-precision single leaf pathology lesion scan"
       },
       "assistant_page": {
-        "title": "AgriShield Smart Agronomist AI",
-        "tag": "Smart Agronomist Pro",
-        "welcome": "Hello **{{name}}**! I am your **AgriShield Smart Agronomist AI**.\n\nI can help you diagnose crop diseases, calculate fertilizer dosages, optimize drip irrigation, and check daily market prices.",
+        "title": "AgriShield Chat Assistant",
+        "tag": "AgriShield Chat Assistant",
+        "welcome": "Hello **{{name}}**! I am your **AgriShield Chat Assistant**.\n\nI can help you diagnose crop diseases, calculate fertilizer dosages, optimize drip irrigation, and check daily market prices.",
         "placeholder": "Ask your crop, disease, or fertilizer question...",
         "new_chat": "New Consultation",
         "send": "Send"
@@ -897,7 +897,7 @@ export const resources = {
             "desc": "Agronomy schedules, weather windows & spray alerts"
           },
           "assistant": {
-            "label": "AI Agronomist Chat",
+            "label": "AgriShield Chat Assistant",
             "desc": "Voice & text consultation in your regional language"
           },
           "analytics": {
@@ -1039,7 +1039,7 @@ export const resources = {
             "see_all": "See all tools",
             "leaf_doctor": "Leaf Doctor",
             "leaf_doctor_desc": "Scan crop leaf for instant disease detection.",
-            "agronomist": "AI Agronomist",
+            "agronomist": "AgriShield Chat Assistant",
             "agronomist_desc": "Ask farming advice in your voice or language.",
             "mandi_prices": "Market",
             "mandi_prices_desc": "Track daily live agricultural mandi rates.",
@@ -2231,7 +2231,7 @@ export const resources = {
             "see_all": "See all tools",
             "leaf_doctor": "Leaf Doctor",
             "leaf_doctor_desc": "Scan crop leaf for instant disease detection.",
-            "agronomist": "AI Agronomist",
+            "agronomist": "AgriShield Chat Assistant",
             "agronomist_desc": "Ask farming advice in your voice or language.",
             "mandi_prices": "Market",
             "mandi_prices_desc": "Track daily live agricultural mandi rates.",
@@ -4964,7 +4964,7 @@ export const resources = {
             "see_all": "See all tools",
             "leaf_doctor": "Leaf Doctor",
             "leaf_doctor_desc": "Scan crop leaf for instant disease detection.",
-            "agronomist": "AI Agronomist",
+            "agronomist": "AgriShield Chat Assistant",
             "agronomist_desc": "Ask farming advice in your voice or language.",
             "mandi_prices": "Market",
             "mandi_prices_desc": "Track daily live agricultural mandi rates.",
@@ -5428,7 +5428,7 @@ export const resources = {
           "mandi_desc": "Live market rates",
           "tips": "Farming Tips",
           "tips_desc": "Schedules & advice",
-          "agronomist": "AI Agronomist",
+          "agronomist": "AgriShield Chat Assistant",
           "agronomist_desc": "Instant answers",
           "more": "More Hub",
           "more_desc": "12 farming tools",
@@ -6291,7 +6291,7 @@ export const resources = {
             "see_all": "See all tools",
             "leaf_doctor": "Leaf Doctor",
             "leaf_doctor_desc": "Scan crop leaf for instant disease detection.",
-            "agronomist": "AI Agronomist",
+            "agronomist": "AgriShield Chat Assistant",
             "agronomist_desc": "Ask farming advice in your voice or language.",
             "mandi_prices": "Market",
             "mandi_prices_desc": "Track daily live agricultural mandi rates.",
@@ -6746,7 +6746,7 @@ export const resources = {
           "mandi_desc": "Live market rates",
           "tips": "Farming Tips",
           "tips_desc": "Schedules & advice",
-          "agronomist": "AI Agronomist",
+          "agronomist": "AgriShield Chat Assistant",
           "agronomist_desc": "Instant answers",
           "more": "More Hub",
           "more_desc": "12 farming tools"
@@ -7435,7 +7435,7 @@ export const resources = {
             "desc": "Agronomy schedules, weather windows & spray alerts"
           },
           "assistant": {
-            "label": "AI Agronomist Chat",
+            "label": "AgriShield Chat Assistant",
             "desc": "Voice & text consultation in your regional language"
           },
           "analytics": {
@@ -7578,7 +7578,7 @@ export const resources = {
             "see_all": "See all tools",
             "leaf_doctor": "Leaf Doctor",
             "leaf_doctor_desc": "Scan crop leaf for instant disease detection.",
-            "agronomist": "AI Agronomist",
+            "agronomist": "AgriShield Chat Assistant",
             "agronomist_desc": "Ask farming advice in your voice or language.",
             "mandi_prices": "Market",
             "mandi_prices_desc": "Track daily live agricultural mandi rates.",
@@ -7991,7 +7991,7 @@ export const resources = {
           "mandi_desc": "Live market rates",
           "tips": "Farming Tips",
           "tips_desc": "Schedules & advice",
-          "agronomist": "AI Agronomist",
+          "agronomist": "AgriShield Chat Assistant",
           "agronomist_desc": "Instant answers",
           "more": "More Hub",
           "more_desc": "12 farming tools"
@@ -9007,7 +9007,7 @@ export const resources = {
           "mandi_desc": "Live market rates",
           "tips": "Farming Tips",
           "tips_desc": "Schedules & advice",
-          "agronomist": "AI Agronomist",
+          "agronomist": "AgriShield Chat Assistant",
           "agronomist_desc": "Instant answers",
           "more": "More Hub",
           "more_desc": "12 farming tools"
@@ -9374,7 +9374,7 @@ export const resources = {
             "desc": "Agronomy schedules, weather windows & spray alerts"
           },
           "assistant": {
-            "label": "AI Agronomist Chat",
+            "label": "AgriShield Chat Assistant",
             "desc": "Voice & text consultation in your regional language"
           },
           "analytics": {
@@ -9858,7 +9858,7 @@ export const resources = {
           "mandi_desc": "Live market rates",
           "tips": "Farming Tips",
           "tips_desc": "Schedules & advice",
-          "agronomist": "AI Agronomist",
+          "agronomist": "AgriShield Chat Assistant",
           "agronomist_desc": "Instant answers",
           "more": "More Hub",
           "more_desc": "12 farming tools"
@@ -10225,7 +10225,7 @@ export const resources = {
             "desc": "Agronomy schedules, weather windows & spray alerts"
           },
           "assistant": {
-            "label": "AI Agronomist Chat",
+            "label": "AgriShield Chat Assistant",
             "desc": "Voice & text consultation in your regional language"
           },
           "analytics": {
@@ -10709,7 +10709,7 @@ export const resources = {
           "mandi_desc": "Live market rates",
           "tips": "Farming Tips",
           "tips_desc": "Schedules & advice",
-          "agronomist": "AI Agronomist",
+          "agronomist": "AgriShield Chat Assistant",
           "agronomist_desc": "Instant answers",
           "more": "More Hub",
           "more_desc": "12 farming tools"
@@ -11076,7 +11076,7 @@ export const resources = {
             "desc": "Agronomy schedules, weather windows & spray alerts"
           },
           "assistant": {
-            "label": "AI Agronomist Chat",
+            "label": "AgriShield Chat Assistant",
             "desc": "Voice & text consultation in your regional language"
           },
           "analytics": {
@@ -11569,7 +11569,7 @@ export const resources = {
           "mandi_desc": "Live market rates",
           "tips": "Farming Tips",
           "tips_desc": "Schedules & advice",
-          "agronomist": "AI Agronomist",
+          "agronomist": "AgriShield Chat Assistant",
           "agronomist_desc": "Instant answers",
           "more": "More Hub",
           "more_desc": "12 farming tools",
@@ -12279,7 +12279,7 @@ export const resources = {
             "desc": "Agronomy schedules, weather windows & spray alerts"
           },
           "assistant": {
-            "label": "AI Agronomist Chat",
+            "label": "AgriShield Chat Assistant",
             "desc": "Voice & text consultation in your regional language"
           },
           "analytics": {
@@ -12422,7 +12422,7 @@ export const resources = {
             "see_all": "See all tools",
             "leaf_doctor": "Leaf Doctor",
             "leaf_doctor_desc": "Scan crop leaf for instant disease detection.",
-            "agronomist": "AI Agronomist",
+            "agronomist": "AgriShield Chat Assistant",
             "agronomist_desc": "Ask farming advice in your voice or language.",
             "mandi_prices": "Market",
             "mandi_prices_desc": "Track daily live agricultural mandi rates.",
@@ -12877,7 +12877,7 @@ export const resources = {
           "mandi_desc": "Live market rates",
           "tips": "Farming Tips",
           "tips_desc": "Schedules & advice",
-          "agronomist": "AI Agronomist",
+          "agronomist": "AgriShield Chat Assistant",
           "agronomist_desc": "Instant answers",
           "more": "More Hub",
           "more_desc": "12 farming tools"
@@ -13244,7 +13244,7 @@ export const resources = {
             "desc": "Agronomy schedules, weather windows & spray alerts"
           },
           "assistant": {
-            "label": "AI Agronomist Chat",
+            "label": "AgriShield Chat Assistant",
             "desc": "Voice & text consultation in your regional language"
           },
           "analytics": {

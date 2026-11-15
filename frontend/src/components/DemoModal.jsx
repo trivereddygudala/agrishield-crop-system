@@ -344,7 +344,7 @@ const IoTDemo = ({ onClose }) => {
 };
 
 /* ═══════════════════════════════════════════════════════════ */
-/* ─── 4. MULTILINGUAL SMART CHAT ADVISOR (AI AGRONOMIST) ──── */
+/* ─── 4. MULTILINGUAL SMART CHAT ADVISOR (AGRISHIELD CHAT ASSISTANT) ──── */
 /* ═══════════════════════════════════════════════════════════ */
 const AIDemo = ({ onClose }) => {
   const [selectedLang, setSelectedLang] = useState('English');
@@ -415,7 +415,7 @@ const AIDemo = ({ onClose }) => {
           </div>
           <div className="max-w-[88%] p-4 rounded-2xl rounded-tl-sm bg-white/[0.05] border border-white/10 text-white space-y-2 text-xs leading-relaxed">
             <div className="flex items-center justify-between border-b border-white/5 pb-1.5">
-              <span className="font-extrabold text-purple-400">AgriShield AI Agronomist</span>
+              <span className="font-extrabold text-purple-400">AgriShield Chat Assistant</span>
               <span className="text-[10px] text-emerald-400 font-bold flex items-center gap-1">
                 <CheckCircle2 className="w-3 h-3" /> CIBRC Verified
               </span>
@@ -444,7 +444,7 @@ const AIDemo = ({ onClose }) => {
         </div>
         <Link to="/assistant" onClick={onClose} className="w-full sm:w-auto shrink-0">
           <button className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-purple-500 hover:bg-purple-400 text-white font-extrabold text-xs flex items-center justify-center gap-2 shadow-lg shadow-purple-500/25 transition-all">
-            <span>Start AI Agronomist Chat</span>
+            <span>Start AgriShield Chat Assistant</span>
             <ArrowUpRight className="w-4 h-4" />
           </button>
         </Link>
@@ -487,7 +487,7 @@ const MODULES = [
   {
     id: 'ai',
     icon: Bot,
-    badge: 'AI Agronomist Deep-Dive',
+    badge: 'AgriShield Chat Assistant Deep-Dive',
     title: 'Multilingual Smart Chat Advisor',
     subtitle: '24/7 personal agronomic advisory across 13 Indian languages with Voice Doctor playback',
     color: 'bg-purple-500/20 text-purple-300 border-purple-500/30',

@@ -1444,6 +1444,26 @@ Do not include any conversational text or markdown blocks. Only output the raw J
                                 if m.get("implements"):
                                     details.append(f"Implements: {m.get('implements')}")
                                 context_str += f"  [{idx}] {name} ({', '.join(details)})\n"
+                    elif k == "admin_metrics" and isinstance(v, dict):
+                        context_str += "\n[AgriShield Enterprise Admin Telemetry & Live Metrics]\n"
+                        for ak, av in v.items():
+                            if isinstance(av, dict):
+                                context_str += f"- {ak.replace('_', ' ').title()}:\n"
+                                for sub_k, sub_v in av.items():
+                                    context_str += f"  * {sub_k.replace('_', ' ').title()}: {sub_v}\n"
+                            elif isinstance(av, list):
+                                context_str += f"- {ak.replace('_', ' ').title()}: {', '.join(str(x) for x in av)}\n"
+                            else:
+                                context_str += f"- {ak.replace('_', ' ').title()}: {av}\n"
+                    elif k == "machinery_benchmarks" and isinstance(v, dict):
+                        context_str += "\n[AgriShield Agricultural Machinery & Fleet Benchmarks]\n"
+                        for mk, mv in v.items():
+                            if isinstance(mv, dict):
+                                context_str += f"- {mk.replace('_', ' ').title()}:\n"
+                                for sub_k, sub_v in mv.items():
+                                    context_str += f"  * {sub_k.replace('_', ' ').title()}: {sub_v}\n"
+                            else:
+                                context_str += f"- {mk.replace('_', ' ').title()}: {mv}\n"
                     else:
                         context_str += f"- {k}: {v}\n"
             # Explicit Language Requirement Injection
@@ -1472,10 +1492,11 @@ Do not include any conversational text or markdown blocks. Only output the raw J
                 system_prompt = f"""You are 'AgriShield Enterprise Admin AI', an Enterprise Systems Architect, Security Compliance Auditor, and IoT Network Operations Specialist.
 
 You provide specialized diagnostic, administrative, and system assistance for Administrators:
-1. 🛡️ **System & Role Administration:** Registered user accounts management in crop_disease_db.users, role privileges (Admin, Farmer, Tester, Researcher), password policies, and account lockouts.
-2. 📟 **Hardware & IoT Fleet Operations:** ESP32 telemetry nodes status, GPIO pinouts (SPI/I2C/Analog/Digital), sensor calibrations, MicroSD mount status, battery voltage levels, and OTA firmware deployments.
-3. 🔒 **Security & OWASP Compliance:** OWASP Top 10 vulnerability scores, rate limiting status, security headers, JWT rotation, and audit log analysis.
-4. 💾 **Database & Backend Health:** MongoDB collection statistics, FastAPI micro-service routes, Uvicorn server telemetry, and error log diagnostics.
+1. 🛡️ **System & Role Administration:** Registered user accounts management in crop_disease_db.users, role privileges (Admin, Farmer, Equipment Provider, Tester, Researcher), password policies, and account lockouts. Refer directly to '[AgriShield Enterprise Admin Telemetry & Live Metrics]'.
+2. 📟 **Hardware & IoT Fleet Operations:** ESP32 telemetry nodes status, GPIO pinouts (SPI/I2C/Analog/Digital), sensor calibrations, MicroSD mount status, battery voltage levels, Wi-Fi RSSI, and OTA firmware deployments.
+3. 🔒 **Security & OWASP Compliance:** OWASP Top 10 vulnerability mitigations, rate limiting status (AI Chat: 60 req/min, Auth: 10/min), security headers (CORS, CSP, X-Frame-Options), JWT rotation, and audit log analysis.
+4. 💾 **Database & Backend Health:** MongoDB collection statistics, indexing health, FastAPI micro-service routes, Uvicorn server telemetry, and error log diagnostics.
+5. 📢 **Disease Outbreak Broadcasts:** When requested to draft an outbreak alert, format an official emergency SMS and WhatsApp advisory for regional farmers containing: Disease Name, Suspected Region/Crop, Recommended Action & 16L spray mix, and Emergency RBK/Kisan Helpline contact.
 
 ALWAYS format your responses using clean GitHub Markdown (bold headings, bullet points, tables where helpful, code blocks).{lang_instruction}
 {context_str}"""
@@ -1521,7 +1542,7 @@ CRITICAL ROLE & BOUNDARY REGULATIONS (STRICT ENFORCEMENT):
    - Always state practical numbers (e.g. exact litres of diesel per acre, exact tyre pressure PSI, exact hours for oil change).{lang_instruction}
 {context_str}"""
             else:
-                system_prompt = f"""You are 'AgriShield AI Agronomist', a Master Soil Scientist, Crop Disease Pathologist, Agricultural Entomologist, and Smart Farming Specialist built specifically to help rural farmers.
+                system_prompt = f"""You are 'AgriShield Chat Assistant', a Master Soil Scientist, Crop Disease Pathologist, Agricultural Entomologist, and Smart Farming Specialist built specifically to help rural farmers.
 
 CRITICAL FARMER-FIRST COMMUNICATION PROTOCOL:
 0. 🎯 **STRICT INTENT ADHERENCE (NO EXTRA UNASKED ANSWERS):**

@@ -1258,7 +1258,7 @@ export const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
     {
       title: "System Services",
       items: [
-        { key: "nav.assistant", path: "/assistant", icon: Bot, label: "AgriShield Copilot" },
+        { key: "nav.assistant", path: "/assistant", icon: Bot, label: "AgriShield Chat Assistant" },
         { key: "nav.notifications", path: "/notifications", icon: Bell, label: "Notification Center" },
       ]
     },
@@ -1315,7 +1315,7 @@ export const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
     {
       title: "Intelligence & Assistance",
       items: [
-        { key: "nav.assistant", path: "/assistant", icon: Bot, label: "AI Assistant" },
+        { key: "nav.assistant", path: "/assistant", icon: Bot, label: "AgriShield Chat Assistant" },
       ]
     },
     {
@@ -1357,7 +1357,7 @@ export const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
       title: "Help & Settings",
       titleKey: "nav.group_help",
       items: [
-        { key: "nav.assistant", path: "/assistant", icon: Bot, label: "Ask AI Expert", color: "text-teal-500" },
+        { key: "nav.assistant", path: "/assistant", icon: Bot, label: "AgriShield Chat Assistant", color: "text-emerald-500" },
         { key: "nav.profile", path: "/profile", icon: User, label: "My Profile", color: "text-violet-500" },
         { key: "nav.settings", path: "/settings", icon: SettingsIcon, label: "Settings", color: "text-slate-400" },
       ]
@@ -1477,7 +1477,7 @@ export const BottomNav = () => {
     },
     {
       key: 'assistant',
-      label: t('nav.ai_copilot', 'AI Copilot'),
+      label: t('nav.chat_assistant', 'Chat Assistant'),
       path: '/assistant',
       Icon: Bot,
       isCenter: true,
