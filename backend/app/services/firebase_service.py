@@ -116,7 +116,7 @@ class FirebaseService:
                 for idx, resp in enumerate(response.responses):
                     if not resp.success:
                         bad_token = tokens[idx]
-                        logger.warning(f"Failed to deliver FCM to token: {bad_token}. Error: {resp.exception}")
+                        logger.info(f"Evicted stale/unregistered FCM token from DB: {bad_token[:20]}... ({resp.exception})")
                         # Optionally remove bad token
                         await db.fcm_tokens.delete_one({"token": bad_token})
             

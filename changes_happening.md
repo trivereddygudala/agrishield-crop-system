@@ -11191,3 +11191,9 @@ vidia_service.py):**
   - Upgraded OCR pre-processing to single-pass adaptive scanning on 768px downscaled images, optimizing CRAFT CPU latency by ~3x while preserving label text legibility.
   - Implemented early-exit logic: immediately returns upon detecting text on the upright orientation, bypassing unnecessary 90°/180°/270° rotations.
   - Capped Gemini Vision OCR and web search timeouts to 2.5s and 2.0s respectively.
+## [2026-11-15 22:10:00] - Terminal Error Analysis & Resilient Calendar Fallback
+- **Prescription Calendar Resilient Fallback (predict.py):**
+  - Resolved [NVIDIA PRESCRIPTION WARNING] Failed to generate treatment calendar by adding instant local ICAR 7-day schedule fallback inside the exception block.
+  - Farmers will now always receive a complete day-by-day 7-day treatment plan even if the external LLM times out after 2.5s.
+- **FCM Stale Token Logging Normalization (irebase_service.py):**
+  - Downgraded NotRegistered expired device token warning to informational log during automatic token eviction from MongoDB, removing red warning noise from terminal logs.

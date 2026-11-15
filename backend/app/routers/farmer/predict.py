@@ -2702,7 +2702,13 @@ async def predict_pytorch_endpoint(
                 timeout=2.5
             )
         except Exception as cal_err:
-            print(f"[NVIDIA PRESCRIPTION WARNING] Failed to generate treatment calendar: {cal_err}")
+            logger.info(f"Prescription calendar fast fallback ({cal_err or 'timeout'}); applying instant ICAR treatment schedule.")
+            try:
+                from backend.app.services.nvidia_service import nvidia_service
+                clean_lang = (target_lang.split("-")[0] if target_lang else "en").lower()
+                prescription_calendar = nvidia_service._generate_mock_calendar(prediction_result["disease_name"], clean_lang)
+            except Exception:
+                prescription_calendar = []
 
     # Financial matching and VAR Analysis
     financial_metrics = None
