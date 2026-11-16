@@ -110,8 +110,7 @@ public class MainActivity extends AppCompatActivity {
                 if (mWebView != null && mWebView.canGoBack()) {
                     mWebView.goBack();
                 } else {
-                    setEnabled(false);
-                    MainActivity.super.onBackPressed();
+                    finish();
                 }
             }
         });

@@ -11355,3 +11355,8 @@ vidia_service.py):**
 - Added rootProject.name to android/settings.gradle.
 - Modernized android/app/build.gradle with compileSdk 34, minSdk 22, targetSdk 34 and explicit debug build type.
 - Enhanced build_android_apk.yml with pipefail error capture and direct workflow annotations.
+
+
+## [2026-11-16 21:22:00] - Fix Java Syntax in MainActivity for Android Compilation
+- Fixed invalid Outer.super invocation in MainActivity.java: replaced MainActivity.super.onBackPressed() with finish() inside OnBackPressedCallback.
+- Added detailed error capturing and reporting to build_android_apk.yml.
