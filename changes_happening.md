@@ -11305,3 +11305,15 @@ vidia_service.py):**
   - dab3bfe: feat(edge-ai): implement multi-module edge AI for plant identification and barcode agrochemical scanning (Phase 4)
   - 2569dd5: feat(edge-ai): implement standalone native android packaging and automated apk build workflow (Phase 5)
 - Remote repository is fully synchronized on main branch.
+
+
+## [2026-11-16 20:12:00] - Fix GitHub Actions CI/CD & Android APK Workflows
+- **Fixed Ubuntu 24.04 Dependency in ci_cd.yml:**
+  - Replaced deprecated 'libgl1-mesa-glx' (which does not exist in Ubuntu 24.04 noble and caused the 18s failure) with 'libgl1'.
+  - Pre-installed lightweight CPU PyTorch wheels (--index-url https://download.pytorch.org/whl/cpu) to prevent 2.5GB CUDA downloads and fast-track CI runner execution.
+  - Targeted unit tests explicitly to 'backend/tests/test_api.py' and 'backend/tests/test_pytorch_prediction.py' to avoid running interactive/scraping scripts in 'backend/scripts/'.
+- **Fixed Android APK Build Pipeline in build_android_apk.yml:**
+  - Added 'android-actions/setup-android@v3' to automatically accept Android SDK licenses and configure build tools.
+  - Configured 'gradle/actions/setup-gradle@v3' with 'gradle-version: 8.5' so the Gradle 8.5 CLI is directly available in PATH, resolving the 'gradle: command not found' 42s failure.
+  - Added 'android/gradle/wrapper/gradle-wrapper.properties' configured for Gradle 8.5.
+  - Modernized 'android/build.gradle' build directory deletion syntax to avoid Gradle 8.x deprecation warnings.
