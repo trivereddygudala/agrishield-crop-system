@@ -58,18 +58,41 @@ export const OfflineSyncDrawer = ({ isOpen, onClose }) => {
       const uploadedPath = uploadRes.data?.image_path || uploadRes.data?.filepath || uploadRes.data?.file_path;
 
       if (uploadedPath) {
-        let endpoint = '/api/predict';
-        let payload = {
-          image_path: uploadedPath,
-          explainer_type: 'gradcam++',
-          language: item.language || i18n.language || 'en'
-        };
+        let predRes;
+        if (item.offlineTriage && item.offlineTriage.inference_source === 'on_device_edge_ai') {
+          // Zero-RAM archival path: saves directly without running server-side PyTorch
+          predRes = await API.post('/api/predict/archive-ondevice', {
+            image_path: uploadedPath,
+            crop_name: item.offlineTriage.crop_name,
+            canonical_crop_name: item.offlineTriage.canonical_crop_name,
+            disease_name: item.offlineTriage.disease_name,
+            canonical_disease_name: item.offlineTriage.canonical_disease_name,
+            confidence: item.offlineTriage.confidence,
+            prediction_status: item.offlineTriage.prediction_status,
+            symptoms: item.offlineTriage.symptoms,
+            farmer_friendly_advice: item.offlineTriage.farmer_friendly_advice,
+            organic_treatment: item.offlineTriage.organic_treatment,
+            chemical_treatment: item.offlineTriage.chemical_treatment,
+            prevention_methods: item.offlineTriage.prevention_methods,
+            top_predictions: item.offlineTriage.top_predictions,
+            disease_severity: item.offlineTriage.disease_severity,
+            language: item.language || i18n.language || 'en',
+            prediction_time_ms: item.offlineTriage.prediction_time_ms
+          });
+        } else {
+          let endpoint = '/api/predict';
+          let payload = {
+            image_path: uploadedPath,
+            explainer_type: 'gradcam++',
+            language: item.language || i18n.language || 'en'
+          };
 
-        if (item.tabId === 'plant-id') endpoint = '/api/identify-plant';
-        else if (item.tabId === 'agro-scan') endpoint = '/api/agrochemical-scan';
-        else if (item.cropFilter) payload.crop_filter = item.cropFilter;
+          if (item.tabId === 'plant-id') endpoint = '/api/identify-plant';
+          else if (item.tabId === 'agro-scan') endpoint = '/api/agrochemical-scan';
+          else if (item.cropFilter) payload.crop_filter = item.cropFilter;
 
-        const predRes = await API.post(endpoint, payload);
+          predRes = await API.post(endpoint, payload);
+        }
         await removeOfflineScan(item.id);
         await loadScans();
 
@@ -111,13 +134,35 @@ export const OfflineSyncDrawer = ({ isOpen, onClose }) => {
 
         const uploadedPath = uploadRes.data?.image_path || uploadRes.data?.filepath || uploadRes.data?.file_path;
         if (uploadedPath) {
-          const payload = {
-            image_path: uploadedPath,
-            explainer_type: 'gradcam++',
-            language: item.language || 'en'
-          };
-          if (item.cropFilter) payload.crop_filter = item.cropFilter;
-          await API.post('/api/predict', payload);
+          if (item.offlineTriage && item.offlineTriage.inference_source === 'on_device_edge_ai') {
+            // Zero-RAM archival path for batch sync
+            await API.post('/api/predict/archive-ondevice', {
+              image_path: uploadedPath,
+              crop_name: item.offlineTriage.crop_name,
+              canonical_crop_name: item.offlineTriage.canonical_crop_name,
+              disease_name: item.offlineTriage.disease_name,
+              canonical_disease_name: item.offlineTriage.canonical_disease_name,
+              confidence: item.offlineTriage.confidence,
+              prediction_status: item.offlineTriage.prediction_status,
+              symptoms: item.offlineTriage.symptoms,
+              farmer_friendly_advice: item.offlineTriage.farmer_friendly_advice,
+              organic_treatment: item.offlineTriage.organic_treatment,
+              chemical_treatment: item.offlineTriage.chemical_treatment,
+              prevention_methods: item.offlineTriage.prevention_methods,
+              top_predictions: item.offlineTriage.top_predictions,
+              disease_severity: item.offlineTriage.disease_severity,
+              language: item.language || 'en',
+              prediction_time_ms: item.offlineTriage.prediction_time_ms
+            });
+          } else {
+            const payload = {
+              image_path: uploadedPath,
+              explainer_type: 'gradcam++',
+              language: item.language || 'en'
+            };
+            if (item.cropFilter) payload.crop_filter = item.cropFilter;
+            await API.post('/api/predict', payload);
+          }
           await removeOfflineScan(item.id);
           successCount++;
         }

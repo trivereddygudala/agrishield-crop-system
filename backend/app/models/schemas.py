@@ -273,6 +273,27 @@ class CropAdvisorRequest(BaseModel):
     uncertainty_score: Optional[float] = 0.0
     image_path: Optional[str] = None
 
+class OnDeviceScanArchiveRequest(BaseModel):
+    image_path: str
+    crop_name: str
+    disease_name: str
+    confidence: float
+    canonical_crop_name: Optional[str] = None
+    canonical_disease_name: Optional[str] = None
+    prediction_status: Optional[str] = "diseased"
+    symptoms: Optional[str] = "None"
+    farmer_friendly_advice: Optional[str] = None
+    organic_treatment: Optional[str] = "None"
+    chemical_treatment: Optional[str] = "None"
+    prevention_methods: Optional[List[str]] = Field(default_factory=list)
+    top_predictions: Optional[List[Dict[str, Any]]] = Field(default_factory=list)
+    disease_severity: Optional[str] = "Moderate"
+    language: Optional[str] = "en"
+    farm_id: Optional[str] = None
+    farm_name: Optional[str] = None
+    image_data_url: Optional[str] = None
+    prediction_time_ms: Optional[float] = 0.0
+
 # NVIDIA NIM Farming Assistant Schemas
 class FarmingAssistantRequest(BaseModel):
     crop_name: str

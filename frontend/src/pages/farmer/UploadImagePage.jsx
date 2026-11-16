@@ -514,17 +514,32 @@ const UploadImagePage = () => {
           } catch (_) {}
 
           // Background fire-and-forget sync to archive the scan record in database without freezing the UI
+          // Uses lightweight zero-RAM endpoint (never loads PyTorch on Render server)
           (async () => {
             try {
               const bgForm = new FormData();
               bgForm.append('file', selectedFile);
               const bgUpload = await API.post('/api/upload', bgForm);
               if (bgUpload?.data?.image_path) {
-                await API.post('/api/predict', {
+                await API.post('/api/predict/archive-ondevice', {
                   image_path: bgUpload.data.image_path,
+                  crop_name: onDeviceResult.crop_name,
+                  canonical_crop_name: onDeviceResult.canonical_crop_name,
+                  disease_name: onDeviceResult.disease_name,
+                  canonical_disease_name: onDeviceResult.canonical_disease_name,
+                  confidence: onDeviceResult.confidence,
+                  prediction_status: onDeviceResult.prediction_status,
+                  symptoms: onDeviceResult.symptoms,
+                  farmer_friendly_advice: onDeviceResult.farmer_friendly_advice,
+                  organic_treatment: onDeviceResult.organic_treatment,
+                  chemical_treatment: onDeviceResult.chemical_treatment,
+                  prevention_methods: onDeviceResult.prevention_methods,
+                  top_predictions: onDeviceResult.top_predictions,
+                  disease_severity: onDeviceResult.disease_severity,
                   language: activeLang,
                   farm_id: activeFarm?.id || activeFarm?._id || undefined,
-                  crop_filter: selectedCropFilter || undefined
+                  farm_name: activeFarm?.farm_name || activeFarm?.name || undefined,
+                  prediction_time_ms: onDeviceResult.prediction_time_ms
                 });
               }
             } catch (bgSyncErr) {

@@ -35,6 +35,58 @@ const CLASSES_PATH = '/models/model_classes.json';
 const MEAN = [0.485, 0.456, 0.406];
 const STD = [0.229, 0.224, 0.225];
 
+const IDB_NAME = 'agrishield_edge_ai_models';
+const IDB_STORE = 'model_blobs';
+const IDB_KEY = 'crop_disease_int8_v1';
+
+const openModelIDB = () => {
+  return new Promise((resolve, reject) => {
+    if (typeof window === 'undefined' || !window.indexedDB) {
+      reject(new Error('IndexedDB not supported'));
+      return;
+    }
+    const req = indexedDB.open(IDB_NAME, 1);
+    req.onupgradeneeded = (e) => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains(IDB_STORE)) {
+        db.createObjectStore(IDB_STORE);
+      }
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+};
+
+const getModelFromIDB = async () => {
+  try {
+    const db = await openModelIDB();
+    return new Promise((resolve) => {
+      const tx = db.transaction(IDB_STORE, 'readonly');
+      const store = tx.objectStore(IDB_STORE);
+      const req = store.get(IDB_KEY);
+      req.onsuccess = () => resolve(req.result || null);
+      req.onerror = () => resolve(null);
+    });
+  } catch (_) {
+    return null;
+  }
+};
+
+const saveModelToIDB = async (buffer) => {
+  try {
+    const db = await openModelIDB();
+    return new Promise((resolve) => {
+      const tx = db.transaction(IDB_STORE, 'readwrite');
+      const store = tx.objectStore(IDB_STORE);
+      const req = store.put(buffer, IDB_KEY);
+      req.onsuccess = () => resolve(true);
+      req.onerror = () => resolve(false);
+    });
+  } catch (_) {
+    return false;
+  }
+};
+
 /**
  * Check if the user's browser/device supports WebAssembly
  */
@@ -69,7 +121,25 @@ export const preloadOnDeviceModel = async () => {
           executionProviders: ['wasm'],
           graphOptimizationLevel: 'all'
         };
-        _session = await ort.InferenceSession.create(MODEL_PATH, sessionOptions);
+
+        // Try reading model binary directly from IndexedDB (<50ms instant flash read)
+        let modelSource = null;
+        try {
+          const cachedBuffer = await getModelFromIDB();
+          if (cachedBuffer) {
+            modelSource = cachedBuffer;
+          }
+        } catch (_) {}
+
+        if (!modelSource) {
+          const modelResp = await fetch(MODEL_PATH);
+          if (!modelResp.ok) throw new Error(`Failed to fetch model: HTTP ${modelResp.status}`);
+          modelSource = await modelResp.arrayBuffer();
+          // Asynchronously persist to IndexedDB for instant subsequent boots
+          saveModelToIDB(modelSource).catch(() => {});
+        }
+
+        _session = await ort.InferenceSession.create(modelSource, sessionOptions);
         console.log(`[On-Device AI] Quantized model loaded successfully (${_classes.length} classes)`);
       }
       return true;
