@@ -11374,3 +11374,8 @@ vidia_service.py):**
 ## [2026-11-16 21:33:00] - Upgrade AGP to 8.4.2 for Android SDK XML 4 Compatibility
 - Upgraded Android Gradle Plugin from 8.2.1 to 8.4.2 in android/build.gradle to natively support Android SDK XML schema version 4 and Gradle 8.5.
 - Refined error log tailing in build_android_apk.yml.
+
+
+## [2026-11-16 21:36:00] - Migrate to Modern Gradle Plugins DSL for Android Application
+- Configured root android/build.gradle with plugins block (id 'com.android.application' version '8.4.2' apply false).
+- Updated android/app/build.gradle with plugins block (id 'com.android.application'), resolving plugin resolution failure on line 1.
