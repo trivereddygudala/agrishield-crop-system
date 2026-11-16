@@ -174,6 +174,9 @@ const UploadImagePage = () => {
   // Universal normalized active language across all 3 AI scanner modules
   const activeLang = (i18n?.language ? i18n.language.split('-')[0] : (user?.preferred_language || 'en')).toLowerCase();
 
+  // Phase 3: Secondary cloud verification state
+  const [isDeepScanning, setIsDeepScanning] = useState(false);
+
   // Pre-warm On-Device Edge AI model for instant <150ms scans (0 Render server RAM)
   useEffect(() => {
     if (isOnDeviceInferenceSupported()) {
@@ -493,7 +496,8 @@ const UploadImagePage = () => {
     scanStore.setTabState(currentTab, { loading: true, errorMsg: '' });
 
     // 0. On-Device Edge AI Acceleration (<150ms instant mobile diagnosis, 0 Render RAM load)
-    if (currentTab === 'disease-diag' && isOnDeviceInferenceSupported() && selectedFile) {
+    const isEdgeAiEnabled = typeof window !== 'undefined' ? localStorage.getItem('agrishield_edge_ai_enabled') !== 'false' : true;
+    if (isEdgeAiEnabled && currentTab === 'disease-diag' && isOnDeviceInferenceSupported() && selectedFile) {
       try {
         const onDeviceResult = await runOnDeviceInference(selectedFile, {
           language: activeLang,
@@ -872,6 +876,41 @@ const UploadImagePage = () => {
     }
   };
 
+  // Phase 3: Secondary cloud verification with PyTorch & GradCAM++
+  const handleRequestCloudDeepScan = async () => {
+    if ((!selectedFile && !liveResult?.image_path) || isDeepScanning) return;
+    setIsDeepScanning(true);
+    try {
+      let imagePath = liveResult?.image_path;
+      if (!imagePath && selectedFile) {
+        const formData = new FormData();
+        formData.append('file', selectedFile);
+        const uploadRes = await API.post('/api/upload', formData);
+        imagePath = uploadRes.data?.image_path;
+      }
+      if (imagePath) {
+        const cloudRes = await API.post('/api/predict', {
+          image_path: imagePath,
+          explainer_type: 'gradcam++',
+          language: activeLang,
+          farm_id: activeFarm?.id || activeFarm?._id || undefined,
+          crop_filter: selectedCropFilter || undefined
+        });
+        if (cloudRes?.data) {
+          scanStore.setTabState('disease-diag', {
+            liveResult: cloudRes.data,
+            hasScanned: true,
+            loading: false
+          });
+        }
+      }
+    } catch (err) {
+      console.error('Deep cloud scan failed:', err);
+    } finally {
+      setIsDeepScanning(false);
+    }
+  };
+
   return (
     <motion.div 
       initial={{ opacity: 0, y: 15 }}
@@ -1158,6 +1197,8 @@ const UploadImagePage = () => {
                       onDownloadPDF={handleDownloadPDF}
                       onSaveScan={() => navigate('/history')}
                       onScanAnother={clearSelection}
+                      onRequestDeepCloudScan={handleRequestCloudDeepScan}
+                      isDeepScanning={isDeepScanning}
                     />
                   )}
 

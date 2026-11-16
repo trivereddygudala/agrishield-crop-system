@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { 
   User, ShieldCheck, Globe, Key, Save, LogOut, Check, AlertCircle, Sprout, ArrowRight, ChevronRight,
   Sun, Type, Contrast, Monitor, Cpu, Fingerprint, ScanFace, Smartphone, Trash2, Sparkles,
-  Truck, Phone, Clock, DollarSign, Calendar
+  Truck, Phone, Clock, DollarSign, Calendar, Zap
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import API from '../../services/api';
@@ -79,6 +79,23 @@ const SettingsPage = () => {
   // ── Display Accessibility Modes ──
   const [fieldMode, setFieldMode] = useState(() => localStorage.getItem('fieldMode') === 'true');
   const [farmerMode, setFarmerMode] = useState(() => localStorage.getItem('farmerMode') === 'true');
+
+  // Phase 3: On-Device Edge AI Toggle
+  const [edgeAiMode, setEdgeAiMode] = useState(() => {
+    try {
+      return localStorage.getItem('agrishield_edge_ai_enabled') !== 'false';
+    } catch {
+      return true;
+    }
+  });
+
+  const toggleEdgeAiMode = () => {
+    const next = !edgeAiMode;
+    setEdgeAiMode(next);
+    localStorage.setItem('agrishield_edge_ai_enabled', String(next));
+    setToastMsg(next ? '⚡ On-Device Mobile AI Enabled' : '☁️ Cloud Neural Inference Enabled');
+    setTimeout(() => setToastMsg(''), 3000);
+  };
 
   useEffect(() => {
     if (fieldMode) {
@@ -535,6 +552,70 @@ const SettingsPage = () => {
           </div>
         </Card>
       </div>
+
+      {/* ── AI Engine Execution Mode (Phase 3 On-Device Edge AI) ── */}
+      {!isEquipmentProvider && (
+        <div className="space-y-3">
+          <h3 className="text-xs font-black text-slate-500 dark:text-white/40 uppercase tracking-widest px-1">
+            AI Vision Engine Mode
+          </h3>
+          <button
+            type="button"
+            id="edge-ai-mode-toggle"
+            onClick={toggleEdgeAiMode}
+            className={`w-full text-left p-4 sm:p-5 rounded-2xl border-2 transition-all duration-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${
+              edgeAiMode
+                ? 'bg-emerald-500/10 border-emerald-400 dark:bg-emerald-950/40 dark:border-emerald-500 shadow-md shadow-emerald-500/5'
+                : 'bg-white dark:bg-white/[0.02] border-slate-200 dark:border-white/10 hover:border-slate-300 dark:hover:border-white/20'
+            }`}
+          >
+            <div className="flex items-start sm:items-center gap-3.5">
+              <div className={`p-3 rounded-2xl border shrink-0 ${
+                edgeAiMode
+                  ? 'bg-emerald-500/20 border-emerald-400/40 text-emerald-600 dark:text-emerald-400'
+                  : 'bg-slate-100 dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-400'
+              }`}>
+                <Zap className="w-6 h-6 fill-current" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <p className={`text-base font-black leading-tight ${
+                    edgeAiMode ? 'text-emerald-700 dark:text-emerald-300' : 'text-slate-800 dark:text-white'
+                  }`}>
+                    {edgeAiMode ? '⚡ On-Device Mobile AI (Fast 150ms): ENABLED' : '☁️ Cloud PyTorch Scan: ACTIVE'}
+                  </p>
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                    edgeAiMode
+                      ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-400/40'
+                      : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                  }`}>
+                    {edgeAiMode ? 'Edge AI Active' : 'Cloud Server AI'}
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 dark:text-white/45 mt-1 leading-relaxed max-w-xl">
+                  {edgeAiMode
+                    ? 'Runs INT8 neural vision directly on your phone hardware. 0ms server delay, 0 mobile data cost, and works 100% offline.'
+                    : 'Sends photos to cloud server for full GradCAM++ convolutional attention heatmaps.'}
+                </p>
+              </div>
+            </div>
+
+            {/* Large Toggle Switch */}
+            <div className="flex items-center gap-2.5 self-end sm:self-center shrink-0">
+              <span className="text-xs font-bold text-slate-500 dark:text-white/40 hidden sm:inline">
+                {edgeAiMode ? 'Turn OFF' : 'Turn ON'}
+              </span>
+              <div className={`relative w-14 h-8 rounded-full transition-colors duration-200 shrink-0 ${
+                edgeAiMode ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-white/15'
+              }`}>
+                <span className={`absolute top-[4px] w-[24px] h-[24px] rounded-full bg-white shadow-md transition-all duration-200 ${
+                  edgeAiMode ? 'left-[26px]' : 'left-[4px]'
+                }`} />
+              </div>
+            </div>
+          </button>
+        </div>
+      )}
 
       {/* ── Hardware & IoT Integration Setup Mode (Farmers & Testers Only) ── */}
       {!isEquipmentProvider && (

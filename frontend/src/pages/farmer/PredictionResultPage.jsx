@@ -23,7 +23,8 @@ import {
   Stethoscope,
   RefreshCw,
   AlertTriangle,
-  Globe
+  Globe,
+  Zap
 } from 'lucide-react';
 import API from '../../services/api';
 import { Card, Button, Badge, Progress, Skeleton } from '../../components/ui/index';
@@ -512,6 +513,39 @@ const PredictionResultPage = () => {
               className="bg-amber-600 hover:bg-amber-500 text-white font-bold shrink-0 shadow-md"
             >
               {isVerifyingCloud ? 'Verifying with Cloud...' : 'Verify with PyTorch Cloud AI'}
+            </Button>
+          )}
+        </div>
+      )}
+
+      {/* On-Device Edge AI Acceleration Banner */}
+      {(result?.inference_source === 'on_device_edge_ai' || result?.diagnosis_status === 'confirmed_on_device') && !result?.gradcam_base64 && (
+        <div className="p-3.5 sm:p-4 rounded-2xl bg-cyan-950/40 border border-cyan-500/30 text-cyan-200 text-xs font-semibold flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-lg">
+          <div className="flex items-center gap-2.5">
+            <Zap className="w-5 h-5 text-cyan-400 shrink-0 fill-cyan-400" />
+            <div>
+              <p className="font-bold text-cyan-300 text-sm flex items-center gap-1.5">
+                <span>⚡ On-Device Edge AI Diagnosis</span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+                  {result?.prediction_time_ms ? `${result.prediction_time_ms}ms` : '<150ms'}
+                </span>
+              </p>
+              <p className="text-slate-300 text-xs">
+                Executed directly on your mobile device hardware. 0 MB mobile data used.
+              </p>
+            </div>
+          </div>
+
+          {imagePath && navigator.onLine && (
+            <Button
+              variant="solid"
+              size="sm"
+              onClick={handleCloudVerify}
+              disabled={isVerifyingCloud}
+              leftIcon={<Sparkles className={`w-3.5 h-3.5 ${isVerifyingCloud ? 'animate-spin' : ''}`} />}
+              className="bg-cyan-600 hover:bg-cyan-500 text-white font-bold shrink-0 shadow-md"
+            >
+              {isVerifyingCloud ? 'Running Cloud GradCAM++...' : '🔬 Run Deep Cloud Scan (GradCAM++)'}
             </Button>
           )}
         </div>

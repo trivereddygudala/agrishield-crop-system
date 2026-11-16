@@ -11233,3 +11233,26 @@ vidia_service.py):**
 - **Verification:**
   - Frontend production build (npm run build --prefix frontend) compiled in 17.32s with 0 errors.
   - Backend modules compiled with 0 errors via py_compile.
+
+
+## [2026-11-16 07:19:00] - Remote Deployment: Pushed Phase 1 & Phase 2 to GitHub
+- Pushed commits 61a218f and 4c936b5 to origin/main (https://github.com/trivereddygudala/agrishield-crop-system.git).
+- Fully synchronized edge-cloud on-device neural vision architecture and zero-RAM archival backend for live deployment.
+
+
+## [2026-11-16 07:46:00] - Phase 3: UI Transparency, Edge AI Badging & Secondary Cloud Verification
+- **Executive Diagnosis Card Edge Badging (DiseaseDiagnosisResults.jsx):**
+  - Added '⚡ On-Device AI (<150ms)' status pill right next to accuracy gauge in Card 1 when inference is run client-side.
+  - Transparently conveys to the farmer that the scan executed locally with 0 server delay and 0 mobile data consumption.
+- **On-Demand Secondary Cloud Verification (DiseaseDiagnosisResults.jsx & UploadImagePage.jsx):**
+  - Added interactive 'Deep Cloud Neural X-Ray (Grad-CAM++)' card when on-device inference was executed without heatmaps.
+  - Implemented 'handleRequestCloudDeepScan' in UploadImagePage to call /api/predict on-demand with 'explainer_type: gradcam++'.
+  - Provides the farmer with full convolutional visual attention heatmaps whenever desired without burdening the server during routine scans.
+- **Dedicated Results Page Telemetry Banner (PredictionResultPage.jsx):**
+  - Added on-device execution banner with latency chip and 1-click cloud verification button for scans viewed from history or direct link.
+- **App Settings AI Vision Mode Switcher (SettingsPage.jsx):**
+  - Added 'AI Vision Engine Mode' toggle card in Settings, allowing users to toggle between '⚡ On-Device Mobile AI (Fast 150ms)' and '☁️ Cloud PyTorch Scan'.
+  - Saves choice in localStorage ('agrishield_edge_ai_enabled') and is seamlessly respected by UploadImagePage.
+- **Verification:**
+  - Frontend production build (npm run build --prefix frontend) built cleanly in 17.58s with 0 errors.
+  - Backend python modules verified with 0 errors.
