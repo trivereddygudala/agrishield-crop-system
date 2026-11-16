@@ -137,5 +137,6 @@ jobs:
 
       - name: Verify Docker Compose Configuration Syntax
         run: |
+          touch .env
           docker compose config -q
           echo "✅ Docker Compose syntax and multi-stage container orchestration verified."
