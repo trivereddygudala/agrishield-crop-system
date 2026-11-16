@@ -48,12 +48,10 @@ COPY --from=builder /install /usr/local
 # Copy application directories
 COPY --chown=appuser:appuser backend/ /app/backend/
 COPY --chown=appuser:appuser model/ /app/model/
-COPY --chown=appuser:appuser knowledge_base/ /app/knowledge_base/
-COPY --chown=appuser:appuser knowledge_base/ /app/backend/knowledge_base/
 
-# Ensure uploads and logs directories exist with correct permissions
-RUN mkdir -p /app/uploads /app/backend/logs && \
-    chown -R appuser:appuser /app/uploads /app/backend/logs
+# Ensure uploads, logs, and knowledge_base directories exist with correct permissions
+RUN mkdir -p /app/uploads /app/backend/logs /app/knowledge_base /app/backend/knowledge_base && \
+    chown -R appuser:appuser /app/uploads /app/backend/logs /app/knowledge_base /app/backend/knowledge_base
 
 # Switch to non-root user
 USER appuser

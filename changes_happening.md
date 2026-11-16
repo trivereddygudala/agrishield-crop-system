@@ -11334,3 +11334,13 @@ vidia_service.py):**
   - Replaced deprecated 'libgl1-mesa-glx' with 'libgl1' in runtime stage, resolving the Docker build failure in ci_cd.yml.
 - **Fixed Android SDK Setup (build_android_apk.yml):**
   - Replaced problematic external setup action with direct Android SDK configuration and license acceptance using pre-installed runner tools at ANDROID_HOME.
+
+
+## [2026-11-16 21:01:00] - Fix Dockerfile KnowledgeBase Copy and Android Mipmap Fallback
+- **Fixed Dockerfile Build Verification (backend/Dockerfile):**
+  - Removed 'COPY knowledge_base/ ...' which failed Docker build in CI because knowledge_base directory is generated dynamically at runtime.
+  - Replaced with 'mkdir -p' in the runtime image.
+- **Fixed Android Gradle Build (android/):**
+  - Added 'res/mipmap/ic_launcher.xml' and 'res/mipmap/ic_launcher_round.xml' to support Android API 22-25.
+  - Added 'androidx.activity:activity:1.8.0' to app build.gradle.
+  - Set 'cache-disabled: true' in build_android_apk.yml to prevent runner cache service 400 errors.
