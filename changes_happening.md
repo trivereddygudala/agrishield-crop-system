@@ -11383,3 +11383,7 @@ vidia_service.py):**
 
 ## [2026-11-16 21:40:00] - Add PluginManagement to Android Settings for Google Repository
 - Added pluginManagement block with google(), mavenCentral(), and gradlePluginPortal() to android/settings.gradle so Gradle can resolve com.android.application:8.4.2 directly.
+
+
+## [2026-11-16 21:43:00] - Upgrade Gradle to 8.7 to Match AGP 8.4.2 Requirements
+- Upgraded Gradle distribution and runner setup to 8.7 in build_android_apk.yml and gradle-wrapper.properties to satisfy Android Gradle Plugin 8.4.2 minimum Gradle 8.6 requirement.
