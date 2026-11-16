@@ -11327,3 +11327,10 @@ vidia_service.py):**
   - Updated model_loader.py to inspect tracked git weights (best_model_fp16.pth).
   - Added pytest.skip fallback in test_pytorch_prediction.py when weights are omitted in lightweight CI runners.
   - Pinned 'httpx>=0.25.0' in ci_cd.yml to ensure ASGITransport compatibility.
+
+
+## [2026-11-16 20:53:00] - Fix Backend Dockerfile Build and Android SDK Runner Setup
+- **Fixed Backend Dockerfile Build (backend/Dockerfile):**
+  - Replaced deprecated 'libgl1-mesa-glx' with 'libgl1' in runtime stage, resolving the Docker build failure in ci_cd.yml.
+- **Fixed Android SDK Setup (build_android_apk.yml):**
+  - Replaced problematic external setup action with direct Android SDK configuration and license acceptance using pre-installed runner tools at ANDROID_HOME.
