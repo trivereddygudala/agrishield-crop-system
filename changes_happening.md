@@ -11379,3 +11379,7 @@ vidia_service.py):**
 ## [2026-11-16 21:36:00] - Migrate to Modern Gradle Plugins DSL for Android Application
 - Configured root android/build.gradle with plugins block (id 'com.android.application' version '8.4.2' apply false).
 - Updated android/app/build.gradle with plugins block (id 'com.android.application'), resolving plugin resolution failure on line 1.
+
+
+## [2026-11-16 21:40:00] - Add PluginManagement to Android Settings for Google Repository
+- Added pluginManagement block with google(), mavenCentral(), and gradlePluginPortal() to android/settings.gradle so Gradle can resolve com.android.application:8.4.2 directly.
