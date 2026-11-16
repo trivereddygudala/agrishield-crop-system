@@ -11387,3 +11387,7 @@ vidia_service.py):**
 
 ## [2026-11-16 21:43:00] - Upgrade Gradle to 8.7 to Match AGP 8.4.2 Requirements
 - Upgraded Gradle distribution and runner setup to 8.7 in build_android_apk.yml and gradle-wrapper.properties to satisfy Android Gradle Plugin 8.4.2 minimum Gradle 8.6 requirement.
+
+
+## [2026-11-16 21:46:00] - Fix Kotlin Stdlib Duplicate Classes in Android APK Build
+- Added org.jetbrains.kotlin:kotlin-bom:1.8.22 and dependency constraints for kotlin-stdlib-jdk7/jdk8 in android/app/build.gradle to resolve checkDebugDuplicateClasses collision.
