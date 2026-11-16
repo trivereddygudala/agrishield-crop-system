@@ -55,6 +55,7 @@ jobs:
 
       - name: Configure Android SDK & Accept Licenses
         run: |
+          mkdir -p android
           echo "sdk.dir=$ANDROID_HOME" > android/local.properties
           echo "Generated local.properties with sdk.dir=$ANDROID_HOME"
           cat android/local.properties
@@ -69,7 +70,13 @@ jobs:
       - name: Build Android Debug APK
         working-directory: android
         run: |
-          gradle assembleDebug --no-daemon --stacktrace
+          set -o pipefail
+          gradle assembleDebug --no-daemon --stacktrace 2>&1 | tee gradle_build.log || {
+            echo "::error file=android/app/build.gradle::Gradle build failed."
+            echo "=== FULL GRADLE FAILURE LOG ==="
+            cat gradle_build.log
+            exit 1
+          }
 
       - name: Rename & Verify APK
         run: |

@@ -11348,3 +11348,10 @@ vidia_service.py):**
 
 ## [2026-11-16 21:05:00] - Fix Android SDK Path Resolution in APK Build
 - Fixed Android SDK path discovery in build_android_apk.yml by writing sdk.dir to android/local.properties and avoiding env evaluation overwrite.
+
+
+## [2026-11-16 21:18:00] - Refine AGP 8 Manifest and Android Gradle Build
+- Removed deprecated package attribute from AndroidManifest.xml for AGP 8 compatibility.
+- Added rootProject.name to android/settings.gradle.
+- Modernized android/app/build.gradle with compileSdk 34, minSdk 22, targetSdk 34 and explicit debug build type.
+- Enhanced build_android_apk.yml with pipefail error capture and direct workflow annotations.
