@@ -55,7 +55,9 @@ jobs:
 
       - name: Configure Android SDK & Accept Licenses
         run: |
-          echo "ANDROID_HOME=$ANDROID_HOME"
+          echo "sdk.dir=$ANDROID_HOME" > android/local.properties
+          echo "Generated local.properties with sdk.dir=$ANDROID_HOME"
+          cat android/local.properties
           yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses || true
 
       - name: Setup Gradle 8.5
@@ -66,8 +68,6 @@ jobs:
 
       - name: Build Android Debug APK
         working-directory: android
-        env:
-          ANDROID_HOME: ${{ env.ANDROID_HOME }}
         run: |
           gradle assembleDebug --no-daemon --stacktrace
 

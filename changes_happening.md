@@ -11344,3 +11344,7 @@ vidia_service.py):**
   - Added 'res/mipmap/ic_launcher.xml' and 'res/mipmap/ic_launcher_round.xml' to support Android API 22-25.
   - Added 'androidx.activity:activity:1.8.0' to app build.gradle.
   - Set 'cache-disabled: true' in build_android_apk.yml to prevent runner cache service 400 errors.
+
+
+## [2026-11-16 21:05:00] - Fix Android SDK Path Resolution in APK Build
+- Fixed Android SDK path discovery in build_android_apk.yml by writing sdk.dir to android/local.properties and avoiding env evaluation overwrite.
