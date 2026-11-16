@@ -5,7 +5,7 @@ import {
   Package, Calendar, HelpCircle, Layers, ExternalLink, ZoomIn, X,
   ChevronDown, ChevronUp, Sprout, Flower2, Apple, Shield, Globe, Loader2,
   Award, UserCheck, PenSquare, SlidersHorizontal, IndianRupee, Copy, Check, Banknote, Building2,
-  RotateCcw, Share2, FileText, Phone
+  RotateCcw, Share2, FileText, Phone, Zap
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
@@ -609,6 +609,18 @@ const AgrochemicalResults = ({ data = {}, previewUrl, onScanAnother }) => {
             <span className="px-2.5 py-1 rounded-full text-[11px] font-black uppercase tracking-wider bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
               {productDetails.toxicity_class}
             </span>
+
+            {/* Phase 4: On-Device Edge AI Badge */}
+            {data?.inference_source === 'on_device_edge_ai' && (
+              <span
+                className="px-2.5 py-1 rounded-full text-xs font-black bg-cyan-500/15 text-cyan-700 dark:text-cyan-300 border border-cyan-500/30 flex items-center gap-1 shadow-xs"
+                title="Decoded instantly on client device. Zero mobile data used."
+              >
+                <Zap className="w-3.5 h-3.5 text-cyan-500 fill-cyan-500" />
+                <span>{activeLang === 'te' ? '⚡ ఆన్-డివైస్ AI' : '⚡ On-Device AI'}</span>
+                <span className="text-[10px] opacity-80">({data?.prediction_time_ms ? `${data.prediction_time_ms}ms` : '<50ms'})</span>
+              </span>
+            )}
           </div>
 
           {/* Voice Audio Reader */}

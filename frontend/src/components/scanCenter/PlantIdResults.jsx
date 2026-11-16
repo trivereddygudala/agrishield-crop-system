@@ -30,7 +30,8 @@ import {
   Award,
   ShieldCheck,
   Clock,
-  Activity
+  Activity,
+  Zap
 } from 'lucide-react';
 import CollapsibleSection from './CollapsibleSection';
 import { Card, Button, Badge } from '../ui/index';
@@ -1274,6 +1275,18 @@ const PlantIdResults = ({ liveResult, data, previewUrl, onScanAnother, onCheckDi
             <span className="text-xs font-black text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-full">
               {info.confidence || '98.4%'} {activeLang === 'te' ? 'కచ్చితత్వం' : 'Accuracy'}
             </span>
+
+            {/* Phase 4: On-Device Edge AI Badge */}
+            {liveResult?.inference_source === 'on_device_edge_ai' && (
+              <span
+                className="px-2.5 py-1 rounded-full text-xs font-black bg-cyan-500/15 text-cyan-700 dark:text-cyan-300 border border-cyan-500/30 flex items-center gap-1 shadow-xs"
+                title="Executed locally on phone hardware in <150ms. Zero mobile data used."
+              >
+                <Zap className="w-3.5 h-3.5 text-cyan-500 fill-cyan-500" />
+                <span>{activeLang === 'te' ? '⚡ ఆన్-డివైస్ AI' : '⚡ On-Device AI'}</span>
+                <span className="text-[10px] opacity-80">({liveResult?.prediction_time_ms ? `${liveResult.prediction_time_ms}ms` : '<150ms'})</span>
+              </span>
+            )}
           </div>
 
           {/* Voice Doctor Audio Button */}

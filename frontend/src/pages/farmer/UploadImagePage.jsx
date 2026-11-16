@@ -18,7 +18,13 @@ import { Badge, Button } from '../../components/ui/index';
 import { compressImageForUpload, formatFileSize, generatePlantixThumbnail } from '../../utils/imageCompression';
 import { queueOfflineScan } from '../../utils/offlineQueue';
 import { diagnoseOfflineLeaf, identifyOfflinePlant } from '../../utils/offlineDiagnosticEngine';
-import { runOnDeviceInference, isOnDeviceInferenceSupported, preloadOnDeviceModel } from '../../utils/onDeviceModelRunner';
+import {
+  runOnDeviceInference,
+  runOnDevicePlantIdentification,
+  runOnDeviceAgrochemicalScan,
+  isOnDeviceInferenceSupported,
+  preloadOnDeviceModel
+} from '../../utils/onDeviceModelRunner';
 import { CURATED_FARM_PHOTOS } from '../../services/photoService';
 
 // Diagnostic Modules metadata for overview and fresh sub-pages
@@ -555,6 +561,111 @@ const UploadImagePage = () => {
         }
       } catch (onDeviceErr) {
         console.warn('On-Device inference fallback to server:', onDeviceErr);
+      }
+    }
+
+    // 0B. On-Device Plant & Crop Botanical Identification (Phase 4 Edge AI)
+    if (isEdgeAiEnabled && currentTab === 'plant-id' && isOnDeviceInferenceSupported() && selectedFile) {
+      try {
+        const onDevicePlant = await runOnDevicePlantIdentification(selectedFile, {
+          language: activeLang,
+          plantType: plantType,
+          organ: state.selectedOrgan
+        });
+        if (onDevicePlant && onDevicePlant.confidence >= 35.0) {
+          scanStore.setTabState(currentTab, {
+            liveResult: onDevicePlant,
+            hasScanned: true,
+            loading: false,
+            errorMsg: ''
+          });
+
+          // Background fire-and-forget sync to archive plant identification
+          (async () => {
+            try {
+              const bgForm = new FormData();
+              bgForm.append('file', selectedFile);
+              const bgUpload = await API.post('/api/upload', bgForm);
+              if (bgUpload?.data?.image_path) {
+                await API.post('/api/predict/archive-ondevice', {
+                  image_path: bgUpload.data.image_path,
+                  crop_name: onDevicePlant.common_name,
+                  canonical_crop_name: onDevicePlant.common_name,
+                  disease_name: 'Botanical Identification',
+                  canonical_disease_name: 'Botanical Identification',
+                  confidence: onDevicePlant.confidence,
+                  prediction_status: 'identified',
+                  symptoms: onDevicePlant.botanical_data?.description || `${onDevicePlant.common_name} identified via on-device neural taxonomy.`,
+                  farmer_friendly_advice: onDevicePlant.botanical_data?.primaryUseImpact || 'Cultivated agricultural flora.',
+                  prevention_methods: onDevicePlant.botanical_data?.commonDiseases || [],
+                  disease_severity: 'None',
+                  language: activeLang,
+                  farm_id: activeFarm?.id || activeFarm?._id || undefined,
+                  farm_name: activeFarm?.farm_name || activeFarm?.name || undefined,
+                  prediction_time_ms: onDevicePlant.prediction_time_ms
+                });
+              }
+            } catch (bgPlantSyncErr) {
+              console.debug('Background plant scan archive note:', bgPlantSyncErr);
+            }
+          })();
+
+          return;
+        }
+      } catch (onDevicePlantErr) {
+        console.warn('On-Device plant identification fallback to server:', onDevicePlantErr);
+      }
+    }
+
+    // 0C. On-Device Agrochemical Barcode & Instant Catalog Scanner (Phase 4 Edge AI)
+    if (isEdgeAiEnabled && currentTab === 'agro-scan' && selectedFile) {
+      try {
+        const onDeviceAgro = await runOnDeviceAgrochemicalScan(selectedFile, {
+          language: activeLang
+        });
+        if (onDeviceAgro && onDeviceAgro.product_name) {
+          scanStore.setTabState(currentTab, {
+            liveResult: onDeviceAgro,
+            hasScanned: true,
+            loading: false,
+            errorMsg: ''
+          });
+
+          // Background fire-and-forget sync to archive agrochemical scan
+          (async () => {
+            try {
+              const bgForm = new FormData();
+              bgForm.append('file', selectedFile);
+              const bgUpload = await API.post('/api/upload', bgForm);
+              if (bgUpload?.data?.image_path) {
+                await API.post('/api/predict/archive-ondevice', {
+                  image_path: bgUpload.data.image_path,
+                  crop_name: 'Agrochemical Product',
+                  canonical_crop_name: 'Agrochemical Product',
+                  disease_name: onDeviceAgro.product_name,
+                  canonical_disease_name: onDeviceAgro.product_name,
+                  confidence: onDeviceAgro.confidence,
+                  prediction_status: 'agrochemical',
+                  symptoms: `Category: ${onDeviceAgro.category}\nActive Formulation: ${onDeviceAgro.active_ingredients}`,
+                  farmer_friendly_advice: `Safety Handling:\n${onDeviceAgro.safety_precautions}`,
+                  chemical_treatment: `Recommended Dosage: ${onDeviceAgro.recommended_dosage}`,
+                  prevention_methods: onDeviceAgro.target_crops || [],
+                  disease_severity: 'None',
+                  language: activeLang,
+                  farm_id: activeFarm?.id || activeFarm?._id || undefined,
+                  farm_name: activeFarm?.farm_name || activeFarm?.name || undefined,
+                  prediction_time_ms: onDeviceAgro.prediction_time_ms
+                });
+              }
+            } catch (bgAgroSyncErr) {
+              console.debug('Background agro scan archive note:', bgAgroSyncErr);
+            }
+          })();
+
+          return;
+        }
+      } catch (onDeviceAgroErr) {
+        console.warn('On-Device agrochemical scan fallback to server:', onDeviceAgroErr);
       }
     }
 

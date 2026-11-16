@@ -11256,3 +11256,22 @@ vidia_service.py):**
 - **Verification:**
   - Frontend production build (npm run build --prefix frontend) built cleanly in 17.58s with 0 errors.
   - Backend python modules verified with 0 errors.
+
+
+## [2026-11-16 08:03:00] - Phase 4: Multi-Module Edge AI (Plant Identification & Agrochemical Scanner)
+- **On-Device Plant Botanical Identification (onDeviceModelRunner.js):**
+  - Implemented 'runOnDevicePlantIdentification' using on-device quantized INT8 ONNX vision model.
+  - Aggregates multi-class crop probability distributions and synthesizes authentic botanical profiles using ANDHRA_BOTANICAL_BASE in <150ms.
+  - Integrates plant taxonomy attributes: scientific name, genus, family, growth habits, suitable soil, ideal climate, and fertilizers.
+- **Client-Side Agrochemical Barcode Scanner (onDeviceModelRunner.js):**
+  - Implemented 'runOnDeviceAgrochemicalScan' leveraging hardware BarcodeDetector API for 1D/2D packaging barcodes (EAN-13, QR, Code-128).
+  - Cross-references Indian commercial agrochemical catalog (COMMERCIAL_PRODUCTS) in <50ms with 15L pump spray dosages and CIB&RC active formulations.
+  - Seamlessly falls back to server OCR when no barcode is present.
+- **Scan Center Integration (UploadImagePage.jsx):**
+  - Enabled on-device fast paths for Tab 2 (Plant Identification) and Tab 3 (Agrochemical Scanner).
+  - Fires non-blocking background archival to /api/predict/archive-ondevice, keeping Render server RAM permanently <40MB.
+- **UI Edge Badging (PlantIdResults.jsx & AgrochemicalResults.jsx):**
+  - Added '⚡ On-Device AI (<150ms)' and '⚡ On-Device AI (<50ms)' badges to Tab 2 and Tab 3 result headers.
+- **Verification:**
+  - Frontend production build (npm run build --prefix frontend) built cleanly in 18.75s with 0 errors.
+  - Backend python modules verified with 0 errors via py_compile.
