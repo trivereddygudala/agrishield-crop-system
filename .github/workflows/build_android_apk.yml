@@ -72,10 +72,10 @@ jobs:
         run: |
           set -o pipefail
           gradle assembleDebug --no-daemon --stacktrace 2>&1 | tee gradle_build.log || {
-            ERR_MSG=$(tail -n 25 gradle_build.log | tr '\r\n' '  ')
+            ERR_MSG=$(grep -B 2 -A 5 -E "(FAILURE:|FAILED|> Task|error:)" gradle_build.log | head -n 15 | tr '\r\n' '  ')
             echo "::error file=android/app/build.gradle::$ERR_MSG"
             echo "=== FULL GRADLE FAILURE LOG ==="
-            cat gradle_build.log
+            tail -n 120 gradle_build.log
             exit 1
           }
 
