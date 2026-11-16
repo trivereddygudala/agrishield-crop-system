@@ -56,7 +56,7 @@ self.addEventListener('fetch', (event) => {
           request.method === 'GET' &&
           networkResponse &&
           networkResponse.status === 200 &&
-          (request.url.includes('/assets/') || request.destination === 'style' || request.destination === 'script' || request.destination === 'image')
+          (request.url.includes('/assets/') || request.url.includes('/models/') || request.url.includes('/onnx-wasm/') || request.destination === 'style' || request.destination === 'script' || request.destination === 'image')
         ) {
           const responseClone = networkResponse.clone();
           caches.open(CACHE_NAME).then((cache) => {
