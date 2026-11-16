@@ -10,7 +10,12 @@ def load_pytorch_model(weights_path: str = None, num_classes: int = 1226, archit
     """
     if weights_path is None:
         base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-        weights_path = os.path.join(base_dir, "model", "trained pytorch", "best_model.pth")
+        candidates = [
+            os.path.join(base_dir, "model", "saved_models", "best_model_fp16.pth"),
+            os.path.join(base_dir, "model", "saved_models", "best_model.pth"),
+            os.path.join(base_dir, "model", "trained pytorch", "best_model.pth"),
+        ]
+        weights_path = next((p for p in candidates if os.path.exists(p)), candidates[0])
 
     if not os.path.exists(weights_path):
         raise FileNotFoundError(f"PyTorch model weights not found at: {weights_path}")
