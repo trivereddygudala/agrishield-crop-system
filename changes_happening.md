@@ -11275,3 +11275,25 @@ vidia_service.py):**
 - **Verification:**
   - Frontend production build (npm run build --prefix frontend) built cleanly in 18.75s with 0 errors.
   - Backend python modules verified with 0 errors via py_compile.
+
+
+## [2026-11-16 08:14:00] - Phase 5: Standalone Native Android Packaging & Automated APK CI/CD
+- **Native Android Project Scaffolding (android/):**
+  - Generated complete Android application scaffolding targeting Android SDK 34 (min SDK 22) with Java 17 and Gradle 8.2.1/8.5.
+  - Configured AndroidManifest.xml with camera, storage, and network permissions, hardware acceleration for WebGL/WASM execution, and custom launcher theme.
+  - Implemented MainActivity.java with hardware acceleration flags, permission requests, custom WebChromeClient auto-granting camera access to HTML5/WebRTC media devices, file chooser support, and back button navigation.
+  - Created Android resources: strings.xml, styles.xml, colors.xml, file_paths.xml, and vector adaptive launcher icons.
+- **Cross-Platform Capacitor Scaffolding (capacitor.config.json & frontend/capacitor.config.json):**
+  - Created unified Capacitor configs linking app ID com.agrishield.croppathology with web distribution directory dist.
+- **Automated GitHub Actions APK Builder (.github/workflows/build_android_apk.yml):**
+  - Created CI/CD pipeline running on ubuntu-latest with Java 17 and Android SDK.
+  - Pipeline builds the production frontend with quantized INT8 vision models and ONNX WebAssembly binaries, embeds assets into android/app/src/main/assets/public/, compiles signed debug .apk, and publishes AgriShield-AI-v1.0-Offline.apk as a downloadable artifact.
+- **PWA & Native APK Download Prompt (PWAInstallPrompt.jsx):**
+  - Updated PWA install prompt with '⚡ 100% Offline AI' badge in Telugu and English.
+  - Added direct 1-click APK download link alongside the PWA installation button.
+- **Git & Build Hygiene (.gitignore):**
+  - Enabled .github/workflows/ tracking in git by removing unintentional .github/ exclusion.
+  - Ignored Android build caches (android/.gradle/, android/build/, android/app/build/, *.apk).
+- **Verification:**
+  - Production frontend build (npm run build --prefix frontend) verified cleanly: 3,200 modules transformed in 16.33s with 0 errors.
+  - Backend python modules verified with python -m py_compile (0 errors).

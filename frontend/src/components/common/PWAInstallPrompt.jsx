@@ -133,16 +133,19 @@ export default function PWAInstallPrompt() {
             <div className="flex-1 min-w-0 pr-6">
               <div className="flex items-center gap-1.5 flex-wrap">
                 <span className="font-extrabold text-sm text-white tracking-tight">
-                  {isTe ? 'అగ్రిషీల్డ్ యాప్' : 'AgriShield AI App'}
+                  {isTe ? 'అగ్రిషీల్డ్ AI యాప్' : 'AgriShield AI App'}
                 </span>
                 <span className="px-1.5 py-0.5 rounded-full text-[9px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                  {isTe ? 'ఉచితం' : 'Free / PWA'}
+                  {isTe ? 'ఉచితం' : 'Free / APK & PWA'}
+                </span>
+                <span className="px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1">
+                  ⚡ {isTe ? '100% ఆఫ్‌లైన్' : '100% Offline AI'}
                 </span>
               </div>
-              <p className="text-[11px] text-slate-300 mt-0.5 line-clamp-2 leading-snug">
+              <p className="text-[11px] text-slate-300 mt-1 line-clamp-2 leading-snug">
                 {isTe
-                  ? 'మొబైల్ నోటిఫికేషన్ బార్ అలర్ట్‌లు మరియు ఆఫ్‌లైన్ పంట రక్షణ పొందండి.'
-                  : 'Get instant alerts in your notification bar and offline crop disease diagnosis.'}
+                  ? 'ఇంటర్నెట్ లేకుండా <150ms లో పంట వ్యాధి గుర్తింపు, ఆఫ్‌లైన్ సింక్ మరియు నోటిఫికేషన్ అలర్ట్‌లు.'
+                  : 'Zero-data on-device AI scans in <150ms, offline farm sync, and instant crop alerts.'}
               </p>
             </div>
 
@@ -189,12 +192,23 @@ export default function PWAInstallPrompt() {
               className="flex-1 py-1.5 px-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-extrabold text-xs shadow-md shadow-emerald-950 flex items-center justify-center gap-1.5 cursor-pointer transition-all active:scale-95"
             >
               <Download size={13} />
-              <span>{isTe ? 'యాప్‌ను ఇన్‌స్టాల్ చేయండి' : 'Install App'}</span>
+              <span>{isTe ? 'ఇన్‌స్టాల్ చేయండి' : 'Install App'}</span>
             </button>
+
+            <a
+              href="https://github.com/Trivex96/AI-Crop-Disease-Detection-System/actions"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="py-1.5 px-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 text-emerald-300 hover:text-white font-bold text-xs flex items-center gap-1 border border-emerald-500/20 transition-colors"
+              title={isTe ? 'ఆండ్రాయిడ్ APK డౌన్‌లోడ్' : 'Download Android APK'}
+            >
+              <Smartphone size={12} />
+              <span>APK</span>
+            </a>
 
             <button
               onClick={handleDismiss}
-              className="py-1.5 px-3 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 text-slate-300 hover:text-white font-bold text-xs transition-colors cursor-pointer"
+              className="py-1.5 px-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 text-slate-300 hover:text-white font-bold text-xs transition-colors cursor-pointer"
             >
               {isTe ? 'తర్వాత' : 'Later'}
             </button>

@@ -1,0 +1,61 @@
+name: Render Cluster 24/7 Keep-Alive Heartbeat
+
+on:
+  schedule:
+    # Trigger every 9 minutes to beat Render's 15-minute free-tier inactivity spin-down
+    - cron: '*/9 * * * *'
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: 'Reason for manual pre-warm pulse'
+        required: false
+        default: 'Manual keep-alive trigger'
+
+jobs:
+  keep-alive:
+    name: Ping All 4 Render Cluster Nodes
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Main Gateway & All 3 AI Workers
+        run: |
+          echo "========================================================"
+          echo "🌿 AgriShield 24/7 Cloud Keep-Alive Heartbeat"
+          echo "========================================================"
+          echo "Timestamp: $(date -u)"
+          
+          NODES=(
+            "Main Gateway|https://agrishield-crop-system.onrender.com"
+            "AI Worker 1 (Disease Diagnosis)|https://agrishield-ai-worker-1.onrender.com"
+            "AI Worker 2 (Plant Identification)|https://agrishield-ai-worker-2.onrender.com"
+            "AI Worker 3 (Agrochemical Scanner)|https://agrishield-ai-worker-3.onrender.com"
+          )
+          
+          for entry in "${NODES[@]}"; do
+            IFS="|" read -r name base_url <<< "$entry"
+            echo ""
+            echo "📡 Pinging $name ($base_url)..."
+            
+            # 1. Try lightweight B11.5 warm-up endpoint
+            WARMUP_URL="${base_url}/health/warmup"
+            HTTP_CODE=$(curl -s -m 45 -o /tmp/resp.json -w "%{http_code}" "$WARMUP_URL" || echo "000")
+            
+            if [ "$HTTP_CODE" = "200" ]; then
+              echo "  ✅ $name responded with HTTP 200 via /health/warmup"
+              cat /tmp/resp.json 2>/dev/null || true
+              echo ""
+            elif [ "$HTTP_CODE" = "404" ]; then
+              # 2. Fallback to /health if /health/warmup is pending deployment
+              echo "  ℹ️ /health/warmup returned 404, falling back to ${base_url}/health..."
+              FB_CODE=$(curl -s -m 45 -o /tmp/resp.json -w "%{http_code}" "${base_url}/health" || echo "000")
+              echo "  ✅ $name responded with HTTP $FB_CODE via /health"
+              cat /tmp/resp.json 2>/dev/null || true
+              echo ""
+            else
+              echo "  ⚠️ $name ping returned HTTP $HTTP_CODE (Node may be spinning up from cold state)"
+            fi
+          done
+          
+          echo ""
+          echo "========================================================"
+          echo "🚀 Keep-alive heartbeat dispatch completed."
+          echo "========================================================"

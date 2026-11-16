@@ -61,11 +61,19 @@ backend/firebase-service-account.json
 # IDE & OS
 .vscode/
 .idea/
-.github/
 .DS_Store
 Thumbs.db
 *.swp
 *.swo
+
+# Android Build Artifacts & Local Gradle Cache
+android/.gradle/
+android/build/
+android/app/build/
+android/app/src/main/assets/
+*.apk
+*.aab
+local.properties
 
 # Large Training Checkpoints & Duplicate Weight Copies
 *.tfevents*
