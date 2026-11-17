@@ -11457,3 +11457,12 @@ vidia_service.py):**
   - Executed test_full_model_100.py on 100 agricultural leaf samples (Tomato, Potato, Chilli, Rice, Corn, Cotton).
   - Output Metrics: 100.0% accuracy (100/100 matches), 34.38 ms average latency per image, 3.44s total run time, 0 MB Render cloud RAM overhead. Results saved to benchmark_full_model_100_results.json.
   - Verified Vite production build: 3,203 modules compiled with code-splitting in 19.28 seconds with zero errors.
+
+## [2026-11-17 20:40:00] - Fix Mobile Vercel WebAssembly Initialization & Deploy ONNX Glue Modules
+- **Diagnosed and Resolved 'On-device neural vision model could not be initialized' on Mobile Vercel:**
+  - **Root Cause Identified:** Missing Emscripten companion JavaScript glue files (ort-wasm-simd-threaded.mjs, ort-wasm-simd-threaded.jsep.mjs, ort-wasm-simd-threaded.jspi.mjs, ort-wasm-simd-threaded.asyncify.mjs) in rontend/public/onnx-wasm/. On mobile Chrome, requests for these glue files were rewritten by Vercel to index.html (text/html), causing WebAssembly compilation to abort.
+  - **Deployed All Glue Scripts & Single-Thread Aliases:** Copied all .mjs scripts from onnxruntime-web/dist and created single-thread aliases (ort-wasm-simd.wasm, ort-wasm.wasm, ort-wasm-simd.mjs, ort-wasm.mjs) in rontend/public/onnx-wasm/ to guarantee execution on mobile devices lacking SharedArrayBuffer.
+  - **Added CDN Resilience in onDeviceModelRunner.js:** Wrapped session creation in automatic CDN fallback (https://cdn.jsdelivr.net/npm/onnxruntime-web@1.31.1/dist/) so any transient local WASM load hiccup seamlessly retries and resolves without failing.
+  - **Configured Vercel Rewrites & Caching Headers (vercel.json & frontend/vercel.json):** Added explicit pass-through rewrites and immutable caching headers (Access-Control-Allow-Origin: *, Cache-Control: public, max-age=31536000, immutable) for /onnx-wasm/:path* and /models/:path*.
+  - **Enhanced Diagnostics:** Captured _lastInitError to surface exact browser diagnostic exceptions instead of generic fallback strings.
+- **Production Build:** Re-compiled frontend via Vite; confirmed all 12 WASM and MJS files copied directly into rontend/dist/onnx-wasm/ in 21.86s with zero errors.

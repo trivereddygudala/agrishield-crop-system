@@ -65,6 +65,18 @@
       "destination": "https://agrishield-crop-system.onrender.com/api/:path*"
     },
     {
+      "source": "/manifest.json",
+      "destination": "/manifest.json"
+    },
+    {
+      "source": "/onnx-wasm/:path*",
+      "destination": "/onnx-wasm/:path*"
+    },
+    {
+      "source": "/models/:path*",
+      "destination": "/models/:path*"
+    },
+    {
       "source": "/.well-known/:path*",
       "destination": "/.well-known/:path*"
     },
@@ -74,6 +86,32 @@
     }
   ],
   "headers": [
+    {
+      "source": "/onnx-wasm/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        },
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
+        }
+      ]
+    },
+    {
+      "source": "/models/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        },
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
+        }
+      ]
+    },
     {
       "source": "/(.*)",
       "headers": [

@@ -49,6 +49,9 @@ let _session = null;
 let _classes = null;
 let _activeModelFlavor = null; // 'fp32_full_87mb' | 'int8_quantized_22mb'
 let _sessionLoadingPromise = null;
+let _lastInitError = null;
+
+export const getLastInitError = () => _lastInitError;
 
 // ImageNet normalization constants
 const MEAN = [0.485, 0.456, 0.406];
@@ -200,7 +203,19 @@ export const preloadOnDeviceModel = async (options = {}) => {
         enableMemPattern: true
       };
 
-      _session = await ort.InferenceSession.create(modelBuffer, sessionOptions);
+      try {
+        _session = await ort.InferenceSession.create(modelBuffer, sessionOptions);
+      } catch (primaryWasmErr) {
+        console.warn('[On-Device AI] Local wasm load note, retrying with fallback CDN...', primaryWasmErr.message);
+        try {
+          ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.31.1/dist/';
+          _session = await ort.InferenceSession.create(modelBuffer, sessionOptions);
+        } catch (cdnErr) {
+          _lastInitError = primaryWasmErr.message || cdnErr.message || String(cdnErr);
+          throw cdnErr;
+        }
+      }
+
       _activeModelFlavor = flavor;
 
       console.log(`[On-Device AI] Session initialized (${flavor}, ${_classes?.length} classes, ~${Math.round(modelBuffer.byteLength / (1024 * 1024))} MB)`);
@@ -220,6 +235,7 @@ export const preloadOnDeviceModel = async (options = {}) => {
 
       return true;
     } catch (err) {
+      _lastInitError = err.message || String(err);
       console.warn('[On-Device AI] Model initialization note:', err.message);
       return false;
     } finally {
@@ -360,7 +376,8 @@ export const runOnDeviceInference = async (imageSource, options = {}) => {
   // 1. Ensure model & classes are ready
   const isLoaded = await preloadOnDeviceModel();
   if (!isLoaded || !_session || !_classes) {
-    throw new Error('On-device neural vision model could not be initialized.');
+    const detail = _lastInitError ? `: ${_lastInitError}` : '';
+    throw new Error(`On-device neural vision model could not be initialized${detail}`);
   }
 
   // 2. Preprocess image into 224x224 planar float tensor
@@ -480,7 +497,8 @@ export const runOnDevicePlantIdentification = async (imageSource, options = {}) 
   // 1. Ensure model & classes are ready
   const isLoaded = await preloadOnDeviceModel();
   if (!isLoaded || !_session || !_classes) {
-    throw new Error('On-device neural vision model could not be initialized.');
+    const detail = _lastInitError ? `: ${_lastInitError}` : '';
+    throw new Error(`On-device neural vision model could not be initialized${detail}`);
   }
 
   // 2. Preprocess image into 224x224 planar float tensor
