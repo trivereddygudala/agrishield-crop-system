@@ -159,6 +159,22 @@ function ThemeInitializer({ children }) {
     warmUp();
     // Keep alive pulse every 4 minutes while farmer tab is open
     const interval = setInterval(warmUp, 240000);
+
+    // Silent background pre-cache of offline AI model into IndexedDB for zero-internet rural fields
+    if (typeof window !== 'undefined') {
+      const preloadEdgeAi = () => {
+        import('./utils/onDeviceModelRunner').then(({ preloadOnDeviceModel }) => {
+          preloadOnDeviceModel().catch(() => {});
+        }).catch(() => {});
+      };
+
+      if ('requestIdleCallback' in window) {
+        window.requestIdleCallback(preloadEdgeAi, { timeout: 6000 });
+      } else {
+        setTimeout(preloadEdgeAi, 3500);
+      }
+    }
+
     return () => {
       stopSync();
       clearInterval(interval);

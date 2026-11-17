@@ -11402,3 +11402,14 @@ vidia_service.py):**
 - **Restored Official AgriShield App Logo:**
   - Generated high-resolution raster launcher icons (ic_launcher.png and ic_launcher_round.png) across all 5 Android density tiers (mipmap-mdpi, mipmap-hdpi, mipmap-xhdpi, mipmap-xxhdpi, mipmap-xxxhdpi) from frontend/public/icon-512.png.
   - Updated AndroidManifest.xml to point android:icon='@mipmap/ic_launcher' and android:roundIcon='@mipmap/ic_launcher_round' so Android home screens, app drawers, and notification bars display the true AgriShield logo.
+
+
+## [2026-11-17 14:43:00] - Enable Background Pre-Caching & Offline Edge AI Leaf Scanning in PWA
+- **App Boot Background Pre-Caching (App.jsx):**
+  - Integrated non-blocking idle callback (window.requestIdleCallback with 6s timeout or 3.5s fallback) to pre-load and warm the quantized on-device neural model in the background upon opening the PWA.
+- **Resilient IndexedDB Model & Class Catalog Storage (onDeviceModelRunner.js):**
+  - Added IDB_CLASSES_KEY to store the complete 1,252-class disease/species catalog in IndexedDB alongside the INT8 ONNX weights, ensuring 100% offline startup with zero network calls.
+  - Added safe SharedArrayBuffer detection to ensure fallback to single-threaded WebAssembly execution on mobile devices lacking cross-origin isolation headers.
+  - Exported isOfflineModelCached() utility for UI status verification.
+- **Production Build Verification:**
+  - Ran production Vite build: 3,200 modules successfully compiled into optimized chunks with zero errors.

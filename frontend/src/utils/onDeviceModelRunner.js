@@ -19,7 +19,9 @@ import { COMMERCIAL_PRODUCTS } from './commercialProducts';
 if (typeof window !== 'undefined') {
   try {
     ort.env.wasm.wasmPaths = '/onnx-wasm/';
-    ort.env.wasm.numThreads = 2; // Optimal for 4GB budget octa-core mobile chipsets
+    // Check SharedArrayBuffer availability to prevent errors on mobile without COOP/COEP
+    const hasSAB = typeof window !== 'undefined' && 'SharedArrayBuffer' in window;
+    ort.env.wasm.numThreads = hasSAB ? 2 : 1;
   } catch (wasmErr) {
     console.debug('ONNX wasm configuration note:', wasmErr);
   }
@@ -40,6 +42,7 @@ const STD = [0.229, 0.224, 0.225];
 const IDB_NAME = 'agrishield_edge_ai_models';
 const IDB_STORE = 'model_blobs';
 const IDB_KEY = 'crop_disease_int8_v1';
+const IDB_CLASSES_KEY = 'crop_disease_classes_v1';
 
 const openModelIDB = () => {
   return new Promise((resolve, reject) => {
@@ -89,6 +92,48 @@ const saveModelToIDB = async (buffer) => {
   }
 };
 
+const getClassesFromIDB = async () => {
+  try {
+    const db = await openModelIDB();
+    return new Promise((resolve) => {
+      const tx = db.transaction(IDB_STORE, 'readonly');
+      const store = tx.objectStore(IDB_STORE);
+      const req = store.get(IDB_CLASSES_KEY);
+      req.onsuccess = () => resolve(req.result || null);
+      req.onerror = () => resolve(null);
+    });
+  } catch (_) {
+    return null;
+  }
+};
+
+const saveClassesToIDB = async (classesData) => {
+  try {
+    const db = await openModelIDB();
+    return new Promise((resolve) => {
+      const tx = db.transaction(IDB_STORE, 'readwrite');
+      const store = tx.objectStore(IDB_STORE);
+      const req = store.put(classesData, IDB_CLASSES_KEY);
+      req.onsuccess = () => resolve(true);
+      req.onerror = () => resolve(false);
+    });
+  } catch (_) {
+    return false;
+  }
+};
+
+/**
+ * Check if the on-device AI model & classes are already downloaded into local IndexedDB
+ */
+export const isOfflineModelCached = async () => {
+  try {
+    const [model, classes] = await Promise.all([getModelFromIDB(), getClassesFromIDB()]);
+    return Boolean(model && classes);
+  } catch (_) {
+    return false;
+  }
+};
+
 /**
  * Check if the user's browser/device supports WebAssembly
  */
@@ -110,11 +155,21 @@ export const preloadOnDeviceModel = async () => {
 
   _sessionLoadingPromise = (async () => {
     try {
-      // 1. Fetch classes JSON
+      // 1. Fetch classes JSON (Memory -> IndexedDB -> Network)
       if (!_classes) {
-        const resp = await fetch(CLASSES_PATH);
-        if (!resp.ok) throw new Error(`Failed to fetch classes: HTTP ${resp.status}`);
-        _classes = await resp.json();
+        try {
+          const cachedClasses = await getClassesFromIDB();
+          if (cachedClasses && Array.isArray(cachedClasses) && cachedClasses.length > 0) {
+            _classes = cachedClasses;
+          }
+        } catch (_) {}
+
+        if (!_classes) {
+          const resp = await fetch(CLASSES_PATH);
+          if (!resp.ok) throw new Error(`Failed to fetch classes: HTTP ${resp.status}`);
+          _classes = await resp.json();
+          saveClassesToIDB(_classes).catch(() => {});
+        }
       }
 
       // 2. Initialize ONNX WebAssembly session
