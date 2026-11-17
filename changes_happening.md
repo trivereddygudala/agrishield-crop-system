@@ -11391,3 +11391,14 @@ vidia_service.py):**
 
 ## [2026-11-16 21:46:00] - Fix Kotlin Stdlib Duplicate Classes in Android APK Build
 - Added org.jetbrains.kotlin:kotlin-bom:1.8.22 and dependency constraints for kotlin-stdlib-jdk7/jdk8 in android/app/build.gradle to resolve checkDebugDuplicateClasses collision.
+
+
+## [2026-11-17 13:56:00] - Fix Android Offline Blank Screen & Restore AgriShield App Logo
+- **Resolved WebView Blank White Screen:**
+  - Integrated androidx.webkit:webkit:1.11.0 and WebViewAssetLoader with virtual domain appassets.androidplatform.net to eliminate Chromium file:// CORS block on Vite ES module scripts.
+  - Added Single Page Application (SPA) client-side routing fallback in MainActivity.java so React Router paths (e.g. /dashboard, /farm, /upload) return index.html seamlessly without 404 or white screen.
+  - Set dark slate background (#0F172A) on WebView matching brand theme to eliminate white canvas flash during app initialization.
+  - Replaced unreliable AssetManager.list('public') check with deterministic getAssets().open('public/index.html'), and corrected fallback URL to https://agrishield-crop-system.onrender.com.
+- **Restored Official AgriShield App Logo:**
+  - Generated high-resolution raster launcher icons (ic_launcher.png and ic_launcher_round.png) across all 5 Android density tiers (mipmap-mdpi, mipmap-hdpi, mipmap-xhdpi, mipmap-xxhdpi, mipmap-xxxhdpi) from frontend/public/icon-512.png.
+  - Updated AndroidManifest.xml to point android:icon='@mipmap/ic_launcher' and android:roundIcon='@mipmap/ic_launcher_round' so Android home screens, app drawers, and notification bars display the true AgriShield logo.

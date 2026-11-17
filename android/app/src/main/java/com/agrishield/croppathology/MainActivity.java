@@ -3,25 +3,35 @@ package com.agrishield.croppathology;
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.content.res.AssetManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.view.View;
 import android.view.WindowManager;
 import android.webkit.PermissionRequest;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
+import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
-import android.webkit.WebViewClient;
 import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.webkit.WebResourceErrorCompat;
+import androidx.webkit.WebViewAssetLoader;
+import androidx.webkit.WebViewClientCompat;
+
+import java.io.InputStream;
+import java.net.URLConnection;
+import java.util.HashMap;
+import java.util.Map;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -29,6 +39,8 @@ public class MainActivity extends AppCompatActivity {
     private ValueCallback<Uri[]> mUploadMessage;
     private static final int FILECHOOSER_RESULTCODE = 1001;
     private static final int PERMISSION_REQUEST_CODE = 2001;
+    private static final String APP_ASSETS_DOMAIN = "appassets.androidplatform.net";
+    private static final String FALLBACK_PRODUCTION_URL = "https://agrishield-crop-system.onrender.com";
 
     @SuppressLint("SetJavaScriptEnabled")
     @Override
@@ -42,13 +54,71 @@ public class MainActivity extends AppCompatActivity {
         );
 
         mWebView = new WebView(this);
+        // Set dark slate background matching #0f172a theme to prevent white flash during boot
+        mWebView.setBackgroundColor(0xFF0F172A);
         setContentView(mWebView);
 
         configureWebSettings();
         requestAppPermissions();
 
+        // 1. Build WebViewAssetLoader for secure local HTTPS asset serving (bypasses Chromium file:// CORS blocks)
+        final WebViewAssetLoader assetLoader = new WebViewAssetLoader.Builder()
+            .setDomain(APP_ASSETS_DOMAIN)
+            .addPathHandler("/", new WebViewAssetLoader.PathHandler() {
+                @Nullable
+                @Override
+                public WebResourceResponse handle(@NonNull String path) {
+                    try {
+                        AssetManager am = getAssets();
+                        String assetPath;
+                        if (path.isEmpty() || path.equals("/") || path.equals("index.html")) {
+                            assetPath = "public/index.html";
+                        } else {
+                            assetPath = "public/" + path;
+                        }
+
+                        // Try direct asset stream
+                        try {
+                            InputStream is = am.open(assetPath);
+                            String mimeType = getMimeType(assetPath);
+                            String encoding = isTextMime(mimeType) ? "UTF-8" : null;
+                            WebResourceResponse response = new WebResourceResponse(mimeType, encoding, is);
+                            Map<String, String> headers = new HashMap<>();
+                            headers.put("Access-Control-Allow-Origin", "*");
+                            headers.put("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+                            headers.put("Access-Control-Allow-Headers", "*");
+                            response.setResponseHeaders(headers);
+                            return response;
+                        } catch (Exception notDirectAsset) {
+                            // Single Page Application (SPA) client-side route fallback:
+                            // If the path does not have a static file extension (e.g. /dashboard, /farm, /upload, /market)
+                            // return index.html so React Router renders the route client-side without 404!
+                            if (!path.contains(".") || path.endsWith(".html")) {
+                                InputStream is = am.open("public/index.html");
+                                WebResourceResponse response = new WebResourceResponse("text/html", "UTF-8", is);
+                                Map<String, String> headers = new HashMap<>();
+                                headers.put("Access-Control-Allow-Origin", "*");
+                                response.setResponseHeaders(headers);
+                                return response;
+                            }
+                            return null;
+                        }
+                    } catch (Exception e) {
+                        return null;
+                    }
+                }
+            })
+            .build();
+
+        // 2. Configure WebChromeClient (Console diagnostics, WebRTC camera permission, File uploads)
         mWebView.setWebChromeClient(new WebChromeClient() {
-            // Auto-grant camera & microphone permissions to WebRTC / HTML5 MediaDevices
+            @Override
+            public boolean onConsoleMessage(android.webkit.ConsoleMessage consoleMessage) {
+                android.util.Log.d("AgriShieldJS", "[" + consoleMessage.messageLevel() + "] " +
+                    consoleMessage.message() + " (" + consoleMessage.sourceId() + ":" + consoleMessage.lineNumber() + ")");
+                return true;
+            }
+
             @Override
             public void onPermissionRequest(final PermissionRequest request) {
                 MainActivity.this.runOnUiThread(() -> {
@@ -58,7 +128,6 @@ public class MainActivity extends AppCompatActivity {
                 });
             }
 
-            // HTML5 file upload / camera capture handler
             @Override
             public boolean onShowFileChooser(WebView webView, ValueCallback<Uri[]> filePathCallback, FileChooserParams fileChooserParams) {
                 if (mUploadMessage != null) {
@@ -86,11 +155,20 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        mWebView.setWebViewClient(new WebViewClient() {
+        // 3. Configure WebViewClientCompat with request interception
+        mWebView.setWebViewClient(new WebViewClientCompat() {
+            @Nullable
+            @Override
+            public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
+                return assetLoader.shouldInterceptRequest(request.getUrl());
+            }
+
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 String url = request.getUrl().toString();
-                if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("file://")) {
+                if (url.startsWith("https://" + APP_ASSETS_DOMAIN) ||
+                    url.startsWith("https://agrishield-crop-system.onrender.com") ||
+                    url.startsWith("https://agrishield-ai-worker")) {
                     return false; // Load inside WebView
                 }
                 try {
@@ -101,9 +179,17 @@ public class MainActivity extends AppCompatActivity {
                     return false;
                 }
             }
+
+            @Override
+            public void onReceivedError(WebView view, WebResourceRequest request, WebResourceErrorCompat error) {
+                super.onReceivedError(view, request, error);
+                if (request.isForMainFrame()) {
+                    android.util.Log.e("AgriShield", "WebView Main Frame Error: " + error.getDescription());
+                }
+            }
         });
 
-        // Setup OnBackPressedDispatcher for Android 13+ (API 33+)
+        // 4. Setup OnBackPressedDispatcher for Android 13+ (API 33+)
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
             @Override
             public void handleOnBackPressed() {
@@ -115,7 +201,7 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        // Load bundled asset or online app
+        // 5. Load bundled offline assets or live cloud cluster
         loadApplication();
     }
 
@@ -141,17 +227,52 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void loadApplication() {
-        // Check if index.html exists in assets
-        try {
-            String[] assets = getAssets().list("public");
-            if (assets != null && assets.length > 0) {
-                mWebView.loadUrl("file:///android_asset/public/index.html");
-                return;
+        boolean hasLocalAssets = false;
+        try (InputStream is = getAssets().open("public/index.html")) {
+            if (is != null) {
+                hasLocalAssets = true;
             }
         } catch (Exception ignored) {
         }
-        // Fallback to local dev server or production URL with offline ServiceWorker caching
-        mWebView.loadUrl("https://ai-crop-disease-detection-system.onrender.com");
+
+        if (hasLocalAssets) {
+            // Load through secure appassets virtual domain (solves file:// CORS block on ES modules)
+            mWebView.loadUrl("https://" + APP_ASSETS_DOMAIN + "/index.html");
+        } else {
+            // Fallback to active Render cloud cluster
+            mWebView.loadUrl(FALLBACK_PRODUCTION_URL);
+        }
+    }
+
+    private boolean isTextMime(String mimeType) {
+        if (mimeType == null) return false;
+        return mimeType.startsWith("text/") ||
+               mimeType.equals("application/json") ||
+               mimeType.equals("application/javascript") ||
+               mimeType.equals("image/svg+xml");
+    }
+
+    private String getMimeType(String path) {
+        String lower = path.toLowerCase();
+        if (lower.endsWith(".html") || lower.endsWith(".htm")) return "text/html";
+        if (lower.endsWith(".js") || lower.endsWith(".mjs")) return "text/javascript";
+        if (lower.endsWith(".css")) return "text/css";
+        if (lower.endsWith(".json")) return "application/json";
+        if (lower.endsWith(".png")) return "image/png";
+        if (lower.endsWith(".jpg") || lower.endsWith(".jpeg")) return "image/jpeg";
+        if (lower.endsWith(".gif")) return "image/gif";
+        if (lower.endsWith(".svg")) return "image/svg+xml";
+        if (lower.endsWith(".webp")) return "image/webp";
+        if (lower.endsWith(".ico")) return "image/x-icon";
+        if (lower.endsWith(".woff")) return "font/woff";
+        if (lower.endsWith(".woff2")) return "font/woff2";
+        if (lower.endsWith(".ttf")) return "font/ttf";
+        if (lower.endsWith(".otf")) return "font/otf";
+        if (lower.endsWith(".wasm")) return "application/wasm";
+        if (lower.endsWith(".onnx") || lower.endsWith(".bin")) return "application/octet-stream";
+
+        String guessed = URLConnection.guessContentTypeFromName(path);
+        return guessed != null ? guessed : "application/octet-stream";
     }
 
     private void requestAppPermissions() {
