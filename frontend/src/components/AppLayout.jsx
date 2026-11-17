@@ -68,6 +68,7 @@ import { useHardwareMode } from '../hooks/useHardwareMode';
 import API from '../services/api';
 import Breadcrumbs from './Breadcrumbs';
 import LogoutOverlay from './animations/LogoutOverlay';
+import OfflineAiStatusPill from './common/OfflineAiStatusPill';
 import { SUPPORTED_LANGUAGES } from '../data/languages';
 import { popDeviceNotification } from '../utils/deviceNotification';
 
@@ -896,6 +897,9 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
                   </>
                 )}
               </div>
+
+              {/* Edge AI On-Device Status & Storage Pill */}
+              <OfflineAiStatusPill />
 
               {/* Admin Panel Direct Access Badge Button - STRICTLY FOR ADMIN ONLY */}
               {user?.role?.toLowerCase() === 'admin' && (

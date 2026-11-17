@@ -456,14 +456,29 @@ const UploadImagePage = () => {
               cropFilter: selectedCropFilter
             });
           } catch (_) {}
+        } else if (currentTab === 'plant-id' && isOnDeviceInferenceSupported() && selectedFile) {
+          try {
+            offlineResult = await runOnDevicePlantIdentification(selectedFile, {
+              language: activeLang,
+              plantType: plantType,
+              organ: state.selectedOrgan
+            });
+          } catch (_) {}
+        } else if (currentTab === 'agro-scan' && selectedFile) {
+          try {
+            offlineResult = await runOnDeviceAgrochemicalScan(selectedFile, {
+              language: activeLang
+            });
+          } catch (_) {}
         }
+
         if (!offlineResult && currentTab === 'disease-diag' && previewUrl) {
           offlineResult = await diagnoseOfflineLeaf({
             imageSrc: previewUrl,
             cropFilter: selectedCropFilter,
             language: activeLang
           });
-        } else if (currentTab === 'plant-id' && previewUrl) {
+        } else if (!offlineResult && currentTab === 'plant-id' && previewUrl) {
           offlineResult = await identifyOfflinePlant({
             imageSrc: previewUrl,
             language: activeLang
@@ -820,13 +835,36 @@ const UploadImagePage = () => {
       if (isNetworkUnreachable) {
         try {
           let offlineResult = null;
-          if (currentTab === 'disease-diag' && previewUrl) {
+          if (currentTab === 'disease-diag' && isOnDeviceInferenceSupported() && selectedFile) {
+            try {
+              offlineResult = await runOnDeviceInference(selectedFile, {
+                language: activeLang,
+                cropFilter: selectedCropFilter
+              });
+            } catch (_) {}
+          } else if (currentTab === 'plant-id' && isOnDeviceInferenceSupported() && selectedFile) {
+            try {
+              offlineResult = await runOnDevicePlantIdentification(selectedFile, {
+                language: activeLang,
+                plantType: plantType,
+                organ: state.selectedOrgan
+              });
+            } catch (_) {}
+          } else if (currentTab === 'agro-scan' && selectedFile) {
+            try {
+              offlineResult = await runOnDeviceAgrochemicalScan(selectedFile, {
+                language: activeLang
+              });
+            } catch (_) {}
+          }
+
+          if (!offlineResult && currentTab === 'disease-diag' && previewUrl) {
             offlineResult = await diagnoseOfflineLeaf({
               imageSrc: previewUrl,
               cropFilter: selectedCropFilter,
               language: activeLang
             });
-          } else if (currentTab === 'plant-id' && previewUrl) {
+          } else if (!offlineResult && currentTab === 'plant-id' && previewUrl) {
             offlineResult = await identifyOfflinePlant({
               imageSrc: previewUrl,
               language: activeLang

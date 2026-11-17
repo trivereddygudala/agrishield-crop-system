@@ -166,6 +166,15 @@ function ThemeInitializer({ children }) {
         import('./utils/onDeviceModelRunner').then(({ preloadOnDeviceModel }) => {
           preloadOnDeviceModel().catch(() => {});
         }).catch(() => {});
+
+        // Background stream of full 87MB High-Precision AI model into IndexedDB
+        import('./utils/chunkedModelDownloader').then(({ ensureFullModelDownloaded, isFullModelCached }) => {
+          isFullModelCached().then(cached => {
+            if (!cached && navigator.onLine) {
+              ensureFullModelDownloaded().catch(() => {});
+            }
+          }).catch(() => {});
+        }).catch(() => {});
       };
 
       if ('requestIdleCallback' in window) {
