@@ -21,6 +21,8 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.pa
 PER_CROP_DIR = os.path.join(BASE_DIR, "models", "per_crop")
 
 # LRU Cache with Max 2 active models in RAM to lock memory strictly < 180MB (Render Free-tier safety)
+import threading
+_MODEL_LOCK = threading.Lock()
 MAX_ACTIVE_MODELS = 2
 _CACHED_MODELS: OrderedDict[str, Any] = OrderedDict()
 _CACHED_METADATA: Dict[str, Dict[str, Any]] = {}
@@ -201,35 +203,36 @@ def _get_crop_model(slug: str, num_classes: int):
     """
     global _CACHED_MODELS
     
-    if slug in _CACHED_MODELS:
-        _CACHED_MODELS.move_to_end(slug)
-        return _CACHED_MODELS[slug]
+    with _MODEL_LOCK:
+        if slug in _CACHED_MODELS:
+            _CACHED_MODELS.move_to_end(slug)
+            return _CACHED_MODELS[slug]
+            
+        import timm
+        crop_dir = os.path.join(PER_CROP_DIR, slug)
+        model_path = os.path.join(crop_dir, "model.pth")
         
-    import timm
-    crop_dir = os.path.join(PER_CROP_DIR, slug)
-    model_path = os.path.join(crop_dir, "model.pth")
-    
-    # LRU Eviction: If capacity reached, remove the least recently used model
-    if len(_CACHED_MODELS) >= MAX_ACTIVE_MODELS:
-        evicted_slug, evicted_model = _CACHED_MODELS.popitem(last=False)
-        del evicted_model
-        gc.collect()
-        if torch.cuda.is_available():
-            torch.cuda.empty_cache()
-        logger.info(f"[LRU RAM OPTIMIZER] Evicted '{evicted_slug}' micro-model from RAM to guarantee < 180MB footprint.")
+        # LRU Eviction: If capacity reached, remove the least recently used model
+        while len(_CACHED_MODELS) >= MAX_ACTIVE_MODELS:
+            evicted_slug, evicted_model = _CACHED_MODELS.popitem(last=False)
+            del evicted_model
+            gc.collect()
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+            logger.info(f"[LRU RAM OPTIMIZER] Evicted '{evicted_slug}' micro-model from RAM to guarantee < 180MB footprint.")
 
-    try:
-        model = timm.create_model("mobilenetv3_small_050", pretrained=False, num_classes=num_classes)
-        state_dict = torch.load(model_path, map_location="cpu")
-        model.load_state_dict(state_dict)
-        model.eval()
-        _CACHED_MODELS[slug] = model
-        _CACHED_MODELS.move_to_end(slug)
-        logger.info(f"[MICRO-MODEL LOADED] Initialized '{slug}' ({num_classes} classes, ~2.3 MB). Active in RAM: {list(_CACHED_MODELS.keys())}")
-        return model
-    except Exception as e:
-        logger.error(f"Failed to load micro-model for {slug}: {e}")
-        return None
+        try:
+            model = timm.create_model("mobilenetv3_small_050", pretrained=False, num_classes=num_classes)
+            state_dict = torch.load(model_path, map_location="cpu")
+            model.load_state_dict(state_dict)
+            model.eval()
+            _CACHED_MODELS[slug] = model
+            _CACHED_MODELS.move_to_end(slug)
+            logger.info(f"[MICRO-MODEL LOADED] Initialized '{slug}' ({num_classes} classes, ~2.3 MB). Active in RAM: {list(_CACHED_MODELS.keys())}")
+            return model
+        except Exception as e:
+            logger.error(f"Failed to load micro-model for {slug}: {e}")
+            return None
 
 
 def get_icar_bilingual_advisory(crop_name: str, disease_name: str, lang: str = "en") -> Dict[str, Any]:

@@ -540,10 +540,17 @@ const UploadImagePage = () => {
 
           // Background fire-and-forget sync to archive the scan record in database without freezing the UI
           // Uses lightweight zero-RAM endpoint (never loads PyTorch on Render server)
+          // Phase 4 Concurrency Jitter & Compression: Smooth out simultaneous 30-student bursts
           (async () => {
             try {
+              await new Promise(r => setTimeout(r, Math.floor(Math.random() * 2000)));
+              let fileForBg = selectedFile;
+              try {
+                const comp = await compressImageForUpload(selectedFile, { maxDimension: 640, quality: 0.70, maxSizeKB: 100 });
+                if (comp?.file) fileForBg = comp.file;
+              } catch (_) {}
               const bgForm = new FormData();
-              bgForm.append('file', selectedFile);
+              bgForm.append('file', fileForBg);
               const bgUpload = await API.post('/api/upload', bgForm);
               if (bgUpload?.data?.image_path) {
                 await API.post('/api/predict/archive-ondevice', {
@@ -598,8 +605,14 @@ const UploadImagePage = () => {
           // Background fire-and-forget sync to archive plant identification
           (async () => {
             try {
+              await new Promise(r => setTimeout(r, Math.floor(Math.random() * 2000)));
+              let fileForBg = selectedFile;
+              try {
+                const comp = await compressImageForUpload(selectedFile, { maxDimension: 640, quality: 0.70, maxSizeKB: 100 });
+                if (comp?.file) fileForBg = comp.file;
+              } catch (_) {}
               const bgForm = new FormData();
-              bgForm.append('file', selectedFile);
+              bgForm.append('file', fileForBg);
               const bgUpload = await API.post('/api/upload', bgForm);
               if (bgUpload?.data?.image_path) {
                 await API.post('/api/predict/archive-ondevice', {
@@ -649,8 +662,14 @@ const UploadImagePage = () => {
           // Background fire-and-forget sync to archive agrochemical scan
           (async () => {
             try {
+              await new Promise(r => setTimeout(r, Math.floor(Math.random() * 2000)));
+              let fileForBg = selectedFile;
+              try {
+                const comp = await compressImageForUpload(selectedFile, { maxDimension: 640, quality: 0.70, maxSizeKB: 100 });
+                if (comp?.file) fileForBg = comp.file;
+              } catch (_) {}
               const bgForm = new FormData();
-              bgForm.append('file', selectedFile);
+              bgForm.append('file', fileForBg);
               const bgUpload = await API.post('/api/upload', bgForm);
               if (bgUpload?.data?.image_path) {
                 await API.post('/api/predict/archive-ondevice', {
