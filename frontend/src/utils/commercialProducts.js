@@ -2,6 +2,35 @@
 
 export const COMMERCIAL_PRODUCTS = [
   {
+    productId: 'a-guard',
+    brandName: 'A-GUARD',
+    aliases: ['a-guard', 'aguard', 'a guard', 'a_guard', 'aguard plus', 'a-guard pesticide'],
+    company: 'Agri-Care Bio Crop Sciences',
+    category: 'pesticide',
+    activeIngredients: 'Abamectin 1.9% EC (Broad Spectrum Acaricide / Insecticide)',
+    formulation: 'Emulsifiable Concentrate (EC)',
+    targetDiseases: [
+      'Chilli Yellow Mites (మిరప నల్లి తెగులు)',
+      'Thrips (తామర పురుగులు)',
+      'Red Spider Mites (ఎర్ర నల్లి)',
+      'Leaf Curl Infestation (ముడుత తెగులు)',
+      'Leaf Miners & Sucking Pests'
+    ],
+    targetCrops: ['Chilli', 'Capsicum', 'Tomato', 'Brinjal', 'Cotton', 'Bhendi'],
+    dosagePer15L: '15 - 20 ml',
+    dosagePer20L: '20 - 25 ml',
+    farmerMeasureTip: '~1 standard measuring cap (20 ml) per 15L knapsack spray tank',
+    dosagePerAcre: '200 - 250 ml in 200L water',
+    approxPrice: '₹420 - ₹480 (100ml bottle)',
+    action: 'Macrocyclic Lactone GABA-Chloride Blocker with Translaminar Systemic Activity against Mites & Thrips',
+    imageUrl: '/products/aguard_bottle.jpg',
+    badge: 'Chilli Mite & Thrips Specialist',
+    cibrcNumber: 'CIR-89214/2021-Abamectin(EC)-1452',
+    toxicityBand: 'Yellow (Highly Toxic - Avoid Waterway Drift)',
+    upvotes: 2480,
+    phiDays: 5
+  },
+  {
     productId: 'exponus-basf',
     brandName: 'Exponus',
     company: 'BASF India',

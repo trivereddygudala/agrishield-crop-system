@@ -63,22 +63,26 @@ const getBaselineICARReferences = (crop, disease, lang = 'en') => {
   // 0. HEALTHY CROP NORMALIZATION (When no disease is detected)
   const isHealthyCondition = dLow.includes('healthy') || dLow.includes('ఆరోగ్య') || dLow.includes('రక్షణ') || dLow.includes('స్వస్థ') || dLow.includes('సంపూర్ణ');
   if (isHealthyCondition) {
-    let healthyImg1 = '/samples/botanical/tomato_01.jpg';
-    let healthyImg2 = '/samples/botanical/tomato_02.jpg';
-    let healthyImg3 = '/samples/botanical/tomato_03.jpg';
+    let healthyImg1 = '/samples/dataset/tomato/tomato_healthy_leaf_01.jpg';
+    let healthyImg2 = '/samples/dataset/tomato/tomato_healthy_leaf_02.jpg';
+    let healthyImg3 = '/samples/dataset/tomato/tomato_healthy_leaf_03.jpg';
 
-    if (cLow.includes('corn') || cLow.includes('maize') || cLow.includes('మొక్కజొన్న')) {
-      healthyImg1 = '/samples/botanical/corn_01.jpg';
-      healthyImg2 = '/samples/botanical/corn_02.jpg';
-      healthyImg3 = '/samples/botanical/corn_03.jpg';
+    if (cLow.includes('chilli') || cLow.includes('chili') || cLow.includes('pepper') || cLow.includes('మిరప') || cLow.includes('mirchi') || cLow.includes('capsicum')) {
+      healthyImg1 = '/samples/dataset/chilli/chilli_healthy_foliage_01.jpg';
+      healthyImg2 = '/samples/dataset/chilli/chilli_healthy_foliage_02.jpg';
+      healthyImg3 = '/samples/dataset/chilli/chilli_healthy_foliage_03.jpg';
+    } else if (cLow.includes('corn') || cLow.includes('maize') || cLow.includes('మొక్కజొన్న')) {
+      healthyImg1 = '/samples/dataset/corn/corn_healthy_corn_leaf_01.jpg';
+      healthyImg2 = '/samples/dataset/corn/corn_healthy_corn_leaf_02.jpg';
+      healthyImg3 = '/samples/dataset/corn/corn_healthy_corn_leaf_03.jpg';
     } else if (cLow.includes('cotton') || cLow.includes('పత్తి')) {
       healthyImg1 = '/samples/botanical/cotton_01.jpg';
       healthyImg2 = '/samples/botanical/cotton_02.jpg';
       healthyImg3 = '/samples/botanical/cotton_03.jpg';
-    } else if (cLow.includes('chilli') || cLow.includes('మిరప')) {
-      healthyImg1 = '/samples/botanical/chilli_01.jpg';
-      healthyImg2 = '/samples/botanical/chilli_02.jpg';
-      healthyImg3 = '/samples/botanical/chilli_03.jpg';
+    } else if (cLow.includes('rice') || cLow.includes('paddy') || cLow.includes('వరి')) {
+      healthyImg1 = '/samples/botanical/wild_grass_01.png';
+      healthyImg2 = '/samples/botanical/wild_grass_02.png';
+      healthyImg3 = '/samples/botanical/wild_grass_03.png';
     } else if (cLow.includes('citrus') || cLow.includes('నిమ్మ')) {
       healthyImg1 = '/samples/botanical/citrus_01.jpg';
       healthyImg2 = '/samples/botanical/citrus_02.jpg';
@@ -155,7 +159,14 @@ const getBaselineICARReferences = (crop, disease, lang = 'en') => {
   }
 
   // 3. CHILLI / PEPPER
-  if (cLow.includes('chilli') || cLow.includes('chili') || cLow.includes('pepper') || cLow.includes('మిరప') || cLow.includes('mirchi')) {
+  if (cLow.includes('chilli') || cLow.includes('chili') || cLow.includes('pepper') || cLow.includes('మిరప') || cLow.includes('mirchi') || cLow.includes('capsicum')) {
+    if (dLow.includes('curl') || dLow.includes('ముడుత') || dLow.includes('వైరస్') || dLow.includes('virus')) {
+      return makeStages([
+        { id: 'chi_lcv_01', crop: 'Chilli', disease: 'Leaf Curl Virus', url: '/samples/dataset/chilli/chilli_leaf_curl_virus_01.jpg', stage: isTe ? 'ప్రారంభ దశ (Upward Leaf Curling)' : 'Upward Leaf Curling' },
+        { id: 'chi_lcv_02', crop: 'Chilli', disease: 'Leaf Curl Virus', url: '/samples/dataset/chilli/chilli_leaf_curl_virus_02.jpg', stage: isTe ? 'మధ్యస్థ దశ (Stunting & Vein Clearing)' : 'Stunting & Vein Clearing' },
+        { id: 'chi_lcv_03', crop: 'Chilli', disease: 'Leaf Curl Virus', url: '/samples/dataset/chilli/chilli_leaf_curl_virus_03.jpg', stage: isTe ? 'తీవ్ర దశ (Severe Foliar Distortion)' : 'Severe Foliar Distortion' }
+      ]);
+    }
     if (dLow.includes('anthracnose') || dLow.includes('కొమ్మ ఎండు') || dLow.includes('కాయ కుళ్లు') || dLow.includes('dieback')) {
       return makeStages([
         { id: 'chi_ant_01', crop: 'Chilli', disease: 'Anthracnose Dieback', url: '/samples/dataset/chilli/chilli_anthracnose___dieback_01.jpg', stage: isTe ? 'ప్రారంభ దశ (Tip Dieback)' : 'Tip Dieback' },
@@ -163,6 +174,14 @@ const getBaselineICARReferences = (crop, disease, lang = 'en') => {
         { id: 'chi_ant_03', crop: 'Chilli', disease: 'Anthracnose Dieback', url: '/samples/dataset/chilli/chilli_anthracnose___dieback_03.jpg', stage: isTe ? 'తీవ్ర దశ (Complete Twig Blight)' : 'Twig Blight' }
       ]);
     }
+    if (dLow.includes('cercospora') || dLow.includes('spot') || dLow.includes('మచ్చ')) {
+      return makeStages([
+        { id: 'chi_cls_01', crop: 'Chilli', disease: 'Cercospora Leaf Spot', url: '/samples/dataset/chilli/chilli_cercospora_leaf_spot_01.jpg', stage: isTe ? 'ప్రారంభ దశ (White Center Spot)' : 'White Center Spot' },
+        { id: 'chi_cls_02', crop: 'Chilli', disease: 'Cercospora Leaf Spot', url: '/samples/dataset/chilli/chilli_cercospora_leaf_spot_02.jpg', stage: isTe ? 'మధ్యస్థ దశ (Expanding Dark Margin)' : 'Expanding Dark Margin' },
+        { id: 'chi_cls_03', crop: 'Chilli', disease: 'Cercospora Leaf Spot', url: '/samples/dataset/chilli/chilli_cercospora_leaf_spot_03.jpg', stage: isTe ? 'తీవ్ర దశ (Extensive Defoliation)' : 'Extensive Defoliation' }
+      ]);
+    }
+    // Default Chilli: Bacterial Leaf Spot
     return makeStages([
       { id: 'chi_bs_01', crop: 'Chilli', disease: 'Bacterial Leaf Spot', url: '/samples/dataset/chilli/chilli_bacterial_leaf_spot_01.jpg', stage: isTe ? 'ప్రారంభ దశ (Dark Specks)' : 'Early Dark Specks' },
       { id: 'chi_bs_02', crop: 'Chilli', disease: 'Bacterial Leaf Spot', url: '/samples/dataset/chilli/chilli_bacterial_leaf_spot_02.jpg', stage: isTe ? 'మధ్యస్థ దశ (Spreading Spots)' : 'Spreading Spots' },
@@ -223,10 +242,17 @@ const getBaselineICARReferences = (crop, disease, lang = 'en') => {
   }
 
   // Universal Fallback (Authentic ICAR specimen trio)
+  if (cLow.includes('chilli') || cLow.includes('pepper') || cLow.includes('మిరప') || cLow.includes('capsicum')) {
+    return makeStages([
+      { id: 'chi_fb_01', crop: 'Chilli', disease: 'Leaf Curl Virus', url: '/samples/dataset/chilli/chilli_leaf_curl_virus_01.jpg', stage: isTe ? 'ప్రారంభ దశ (Early Stage)' : 'Early Stage' },
+      { id: 'chi_fb_02', crop: 'Chilli', disease: 'Healthy Foliage', url: '/samples/dataset/chilli/chilli_healthy_foliage_01.jpg', stage: isTe ? 'ఆరోగ్యకరమైన పెరుగుదల' : 'Healthy Growth' },
+      { id: 'chi_fb_03', crop: 'Chilli', disease: 'Bacterial Leaf Spot', url: '/samples/dataset/chilli/chilli_bacterial_leaf_spot_01.jpg', stage: isTe ? 'మచ్చల వ్యాప్తి' : 'Developing Spots' }
+    ]);
+  }
   return makeStages([
-    { id: 'gen_01', crop: crop || 'Agricultural Specimen', disease: disease || 'Pathology Match', url: '/samples/corn_leaf_blight.jpg', stage: isTe ? 'ప్రారంభ దశ' : 'Early Stage' },
-    { id: 'gen_02', crop: crop || 'Agricultural Specimen', disease: disease || 'Pathology Match', url: '/samples/chilli_leaf_spot.jpg', stage: isTe ? 'మధ్యస్థ దశ' : 'Mid Stage' },
-    { id: 'gen_03', crop: crop || 'Agricultural Specimen', disease: disease || 'Pathology Match', url: '/samples/dataset/tomato/tomato_early_blight_01.jpg', stage: isTe ? 'తీవ్ర దశ' : 'Advanced Stage' }
+    { id: 'gen_01', crop: crop || 'Chilli', disease: disease || 'Healthy Growth', url: '/samples/dataset/chilli/chilli_healthy_foliage_01.jpg', stage: isTe ? 'ప్రారంభ దశ' : 'Early Stage' },
+    { id: 'gen_02', crop: crop || 'Chilli', disease: disease || 'Pathology Match', url: '/samples/dataset/chilli/chilli_leaf_curl_virus_01.jpg', stage: isTe ? 'మధ్యస్థ దశ' : 'Mid Stage' },
+    { id: 'gen_03', crop: crop || 'Tomato', disease: disease || 'Target Spot', url: '/samples/dataset/tomato/tomato_early_blight_01.jpg', stage: isTe ? 'తీవ్ర దశ' : 'Advanced Stage' }
   ]);
 };
 
@@ -1427,11 +1453,15 @@ export default function DiseaseDiagnosisResults({
                 <X className="w-4 h-4" />
               </button>
             </div>
-            <div className="rounded-2xl overflow-hidden bg-black flex items-center justify-center max-h-[75vh]">
+            <div className="rounded-2xl overflow-hidden bg-black flex items-center justify-center max-h-[75vh] min-h-[220px]">
               <img
-                src={zoomImageModal.src}
+                src={zoomImageModal.src || '/samples/dataset/chilli/chilli_healthy_foliage_01.jpg'}
                 alt="Enlarged view"
-                className="max-h-[70vh] w-auto object-contain rounded-xl"
+                className="max-h-[70vh] w-auto max-w-full object-contain rounded-xl"
+                onError={(e) => {
+                  e.currentTarget.onerror = null;
+                  e.currentTarget.src = '/samples/dataset/chilli/chilli_healthy_foliage_01.jpg';
+                }}
               />
             </div>
           </div>
