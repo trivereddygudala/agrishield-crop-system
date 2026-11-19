@@ -11533,3 +11533,12 @@ ender_latency_and_hybrid_architecture_plan.md with full technical breakdown, mer
   - Created `COLLEGE_PRESENTATION_PLAYBOOK.md` covering pre-demo setup, live demonstration sequence (online precision, airplane-mode offline Edge AI, agrochemical scanner), empirical benchmarks, and top 5 defense questions/answers for evaluators.
 - **Production Build:**
   - Vite production build compiled 3,203 modules with 0 errors in 18.66s.
+
+## [2026-11-19 14:27:00] - Production Deployment of 1-Click Inference Mode Switcher (Edge AI vs Cloud Mode)
+- **Feature Implemented:**
+  - Added an interactive **AI Diagnostic Mode Switcher** inside `frontend/src/components/common/OfflineStorageModal.jsx`: allows instant 1-click toggling between `⚡ Edge AI` (Mobile Phone RAM) and `☁️ Cloud Mode` (Render Fast-Path Micro-Models).
+  - Synchronized `frontend/src/components/common/OfflineAiStatusPill.jsx` with custom window event `agrishield-engine-change`: navbar badge visually toggles between green `⚡ Edge AI` and blue `☁️ Cloud AI (Render Fast)`.
+  - When `Cloud Mode` is active, scans bypass client-side WASM inference and execute directly on the Render backend micro-model pipeline (`/api/upload` + `/api/predict`).
+- **Production Verification:**
+  - Compiled frontend via Vite (3,203 modules in 24.74s) with 0 errors.
+  - Pushed commit `ce90729` to GitHub `origin main`.
