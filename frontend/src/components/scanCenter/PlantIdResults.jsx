@@ -1799,9 +1799,13 @@ const PlantIdResults = ({ liveResult, data, previewUrl, onScanAnother, onCheckDi
             </div>
             <div className="rounded-2xl overflow-hidden bg-black flex items-center justify-center max-h-[75vh]">
               <img
-                src={zoomImageModal.src}
+                src={zoomImageModal.src || displayOriginalImg || '/samples/botanical/chilli_01.jpg'}
                 alt="Enlarged view"
                 className="max-h-[70vh] w-auto object-contain rounded-xl"
+                onError={(e) => {
+                  e.currentTarget.onerror = null;
+                  e.currentTarget.src = displayOriginalImg || '/samples/botanical/chilli_01.jpg';
+                }}
               />
             </div>
           </div>

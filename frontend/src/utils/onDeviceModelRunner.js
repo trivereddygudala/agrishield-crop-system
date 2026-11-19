@@ -286,7 +286,7 @@ const preprocessImage = async (imageSource) => {
     img = imageSource;
   } else if (typeof OffscreenCanvas !== 'undefined' && imageSource instanceof OffscreenCanvas) {
     img = imageSource;
-  } else if (imageSource && typeof imageSource.getContext === 'function') {
+  } else if (imageSource && (typeof imageSource.getContext === 'function' || imageSource.tagName === 'CANVAS')) {
     img = imageSource;
   } else if (typeof HTMLImageElement !== 'undefined' && imageSource instanceof HTMLImageElement) {
     img = imageSource;
@@ -298,6 +298,25 @@ const preprocessImage = async (imageSource) => {
       img = await loadImageElement(objectUrl);
     } finally {
       URL.revokeObjectURL(objectUrl);
+    }
+  } else if (imageSource && typeof imageSource === 'object') {
+    // Handle composite preview/file wrappers
+    const possibleSrc = imageSource.src || imageSource.imageSrc || imageSource.previewUrl || imageSource.dataUrl || imageSource.url;
+    const possibleFile = imageSource.file || imageSource.blob;
+
+    if (possibleFile instanceof Blob || possibleFile instanceof File) {
+      const objectUrl = URL.createObjectURL(possibleFile);
+      try {
+        img = await loadImageElement(objectUrl);
+      } finally {
+        URL.revokeObjectURL(objectUrl);
+      }
+    } else if (typeof possibleSrc === 'string') {
+      img = await loadImageElement(possibleSrc);
+    } else if (typeof imageSource.getContext === 'function') {
+      img = imageSource;
+    } else {
+      throw new Error('Unsupported image input type for on-device inference');
     }
   } else {
     throw new Error('Unsupported image input type for on-device inference');

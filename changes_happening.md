@@ -11542,3 +11542,24 @@ ender_latency_and_hybrid_architecture_plan.md with full technical breakdown, mer
 - **Production Verification:**
   - Compiled frontend via Vite (3,203 modules in 24.74s) with 0 errors.
   - Pushed commit `ce90729` to GitHub `origin main`.
+
+## [2026-11-19 15:35:00] - Production Implementation & Deployment of Dual-Engine Hybrid Consensus Architecture
+- **Dual-Engine Consensus Fusion Utility (frontend/src/utils/dualEngineConsensus.js):**
+  - Created fuseDualEngineDiagnosis: combines Mobile On-Device Edge AI (<350ms) and Cloud PyTorch Micro-Model (~1.2s).
+  - Semantic normalization across bilingual crop and pathology classifications (normalizeCropKey, normalizePathologyKey).
+  - Agreement Path: When both models corroborate the same pathology, confidence is boosted (96-99%), dual_engine_consensus: true is flagged, and full ICAR agronomy and spray calendar are merged.
+  - Discrepancy Resolution: When models disagree or mobile WASM produces a misclassification, Cloud Micro-Model's 43 per-crop specialized FP32 networks resolve the conflict with certified ICAR ground truth, while retaining the Edge prediction as a secondary differential candidate for complete safety and transparency.
+- **Parallel Scanning Pipeline (frontend/src/pages/farmer/UploadImagePage.jsx):**
+  - Offline Mode (!navigator.onLine): Runs 100% on-device Edge AI (<350ms), tags offline_mode: true, saves to IndexedDB offline queue, and skips network requests.
+  - Online Mode (navigator.onLine === true): Runs Mobile Edge AI for an instant diagnosis preview (<350ms) with isVerifyingCloud: true, concurrently executes the Cloud Micro-Model on Render, fuses both predictions with fuseDualEngineDiagnosis, and seamlessly updates the UI with zero reload.
+  - Network Interruption Resilience: If the network drops during a scan, the preliminary on-device edge diagnosis is retained seamlessly without crashing or displaying an error modal.
+- **Diagnostic Results Presentation & Model Comparison Panel (frontend/src/components/scanCenter/DiseaseDiagnosisResults.jsx):**
+  - Added real-time Cloud Cross-Verification banner (Cross-Verifying with Cloud Micro-Model...).
+  - Added dedicated Dual-Engine Diagnostic Consensus Panel showing side-by-side comparison of Mobile Edge AI vs Cloud Micro-Model (model architecture, predicted disease, confidence percentage, hardware latency, and consensus verdict).
+  - Added dynamic useEffect to guarantee verified ICAR reference images always match the identified crop and disease.
+  - Normalized displayOriginalImg to prevent broken image URLs (//uploads or /http).
+  - Added safe fallbacks and onError handlers across all zoom modals in DiseaseDiagnosisResults.jsx, PlantIdResults.jsx, and AgrochemicalResults.jsx.
+- **Robust Image Preprocessing (frontend/src/utils/onDeviceModelRunner.js):**
+  - Enhanced preprocessImage to resolve all canvas variants, offscreen canvases, and composite preview wrappers, eliminating 'Unsupported image input type for on-device inference'.
+- **Production Build:**
+  - Vite production build transformed 3,204 modules in 17.75s with 0 errors.

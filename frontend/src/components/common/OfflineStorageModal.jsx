@@ -91,9 +91,13 @@ export const OfflineStorageModal = ({ isOpen, onClose }) => {
       });
       refreshData();
     } catch (err) {
+      let friendlyError = err.message || 'Diagnostic benchmark failed';
+      if (/could not be initialized|Unable to obtain model binary/i.test(friendlyError)) {
+        friendlyError = 'Neural model binary not yet cached in phone storage. Tap "Download High-Precision Model" above to download the offline weights.';
+      }
       setTestResult({
         success: false,
-        error: err.message || 'Diagnostic benchmark failed'
+        error: friendlyError
       });
     } finally {
       setTestingModel(false);

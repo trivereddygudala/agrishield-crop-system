@@ -25,6 +25,7 @@ import {
   isOnDeviceInferenceSupported,
   preloadOnDeviceModel
 } from '../../utils/onDeviceModelRunner';
+import { fuseDualEngineDiagnosis } from '../../utils/dualEngineConsensus';
 import { CURATED_FARM_PHOTOS } from '../../services/photoService';
 
 // Diagnostic Modules metadata for overview and fresh sub-pages
@@ -495,7 +496,10 @@ const UploadImagePage = () => {
 
         if (offlineResult) {
           scanStore.setTabState(currentTab, {
-            liveResult: offlineResult,
+            liveResult: {
+              ...offlineResult,
+              offline_mode: true
+            },
             hasScanned: true,
             loading: false,
             errorMsg: ''
@@ -516,70 +520,34 @@ const UploadImagePage = () => {
 
     scanStore.setTabState(currentTab, { loading: true, errorMsg: '' });
 
-    // 0. On-Device Edge AI Acceleration (<150ms instant mobile diagnosis, 0 Render RAM load)
+    // 0. Dual-Engine Parallel Acceleration (<350ms instant mobile preview)
     const isEdgeAiEnabled = typeof window !== 'undefined' ? localStorage.getItem('agrishield_edge_ai_enabled') !== 'false' : true;
+    let initialEdgeResult = null;
+
     if (isEdgeAiEnabled && currentTab === 'disease-diag' && isOnDeviceInferenceSupported() && selectedFile) {
       try {
         const onDeviceResult = await runOnDeviceInference(selectedFile, {
           language: activeLang,
           cropFilter: selectedCropFilter
         });
-        if (onDeviceResult && onDeviceResult.confidence >= 35.0) {
+        if (onDeviceResult && onDeviceResult.confidence >= 25.0) {
+          initialEdgeResult = onDeviceResult;
+          // Optimistically display instant on-device diagnosis with cloud verification flag
           scanStore.setTabState(currentTab, {
-            liveResult: onDeviceResult,
+            liveResult: {
+              ...onDeviceResult,
+              isVerifyingCloud: true
+            },
             hasScanned: true,
             loading: false,
             errorMsg: ''
           });
 
-          // Invalidate cache and broadcast scan completion
+          // Invalidate cache and broadcast preliminary scan
           try {
             window._cachedPredictionHistory = null;
             window.dispatchEvent(new CustomEvent('agrishield-new-scan', { detail: onDeviceResult }));
           } catch (_) {}
-
-          // Background fire-and-forget sync to archive the scan record in database without freezing the UI
-          // Uses lightweight zero-RAM endpoint (never loads PyTorch on Render server)
-          // Phase 4 Concurrency Jitter & Compression: Smooth out simultaneous 30-student bursts
-          (async () => {
-            try {
-              await new Promise(r => setTimeout(r, Math.floor(Math.random() * 2000)));
-              let fileForBg = selectedFile;
-              try {
-                const comp = await compressImageForUpload(selectedFile, { maxDimension: 640, quality: 0.70, maxSizeKB: 100 });
-                if (comp?.file) fileForBg = comp.file;
-              } catch (_) {}
-              const bgForm = new FormData();
-              bgForm.append('file', fileForBg);
-              const bgUpload = await API.post('/api/upload', bgForm);
-              if (bgUpload?.data?.image_path) {
-                await API.post('/api/predict/archive-ondevice', {
-                  image_path: bgUpload.data.image_path,
-                  crop_name: onDeviceResult.crop_name,
-                  canonical_crop_name: onDeviceResult.canonical_crop_name,
-                  disease_name: onDeviceResult.disease_name,
-                  canonical_disease_name: onDeviceResult.canonical_disease_name,
-                  confidence: onDeviceResult.confidence,
-                  prediction_status: onDeviceResult.prediction_status,
-                  symptoms: onDeviceResult.symptoms,
-                  farmer_friendly_advice: onDeviceResult.farmer_friendly_advice,
-                  organic_treatment: onDeviceResult.organic_treatment,
-                  chemical_treatment: onDeviceResult.chemical_treatment,
-                  prevention_methods: onDeviceResult.prevention_methods,
-                  top_predictions: onDeviceResult.top_predictions,
-                  disease_severity: onDeviceResult.disease_severity,
-                  language: activeLang,
-                  farm_id: activeFarm?.id || activeFarm?._id || undefined,
-                  farm_name: activeFarm?.farm_name || activeFarm?.name || undefined,
-                  prediction_time_ms: onDeviceResult.prediction_time_ms
-                });
-              }
-            } catch (bgSyncErr) {
-              console.debug('Background scan archive note:', bgSyncErr);
-            }
-          })();
-
-          return;
         }
       } catch (onDeviceErr) {
         console.warn('On-Device inference fallback to server:', onDeviceErr);
@@ -808,8 +776,25 @@ const UploadImagePage = () => {
       }
 
       const predictRes = await API.post(endpoint, payload);
+      let combinedResult = predictRes.data;
+
+      // When online, combine and compare both Mobile Edge and Cloud Micro-Model results
+      if (initialEdgeResult && currentTab === 'disease-diag') {
+        try {
+          combinedResult = fuseDualEngineDiagnosis({
+            edgeResult: initialEdgeResult,
+            cloudResult: predictRes.data,
+            activeLang,
+            userCropFilter: selectedCropFilter
+          });
+        } catch (fuseErr) {
+          console.warn("Dual-engine consensus fusion fallback:", fuseErr);
+          combinedResult = predictRes.data;
+        }
+      }
+
       scanStore.setTabState(currentTab, {
-        liveResult: predictRes.data,
+        liveResult: combinedResult,
         hasScanned: true,
         loading: false
       });
@@ -817,12 +802,12 @@ const UploadImagePage = () => {
       // Instantly invalidate stale history cache and notify global components
       try {
         window._cachedPredictionHistory = null;
-        window.dispatchEvent(new CustomEvent('agrishield-new-scan', { detail: predictRes.data }));
+        window.dispatchEvent(new CustomEvent('agrishield-new-scan', { detail: combinedResult }));
       } catch (_) {}
 
       // Dispatch real-time in-app notification popup and sound chime for diagnosis result
       try {
-        const diagData = predictRes.data || {};
+        const diagData = combinedResult || {};
         const diseaseName = diagData.disease_name || diagData.class_name || diagData.common_name || 'Diagnosis Complete';
         const isHealthy = (diseaseName || '').toLowerCase().includes('healthy');
         const confPercent = diagData.confidence ? Math.round(diagData.confidence * 100) : null;
@@ -845,6 +830,20 @@ const UploadImagePage = () => {
       }
     } catch (err) {
       console.warn("Backend error during scan:", err);
+
+      // If on-device edge AI already generated a valid result, retain it with offline flag
+      if (initialEdgeResult && currentTab === 'disease-diag') {
+        scanStore.setTabState(currentTab, {
+          liveResult: {
+            ...initialEdgeResult,
+            isVerifyingCloud: false,
+            offline_mode: true
+          },
+          hasScanned: true,
+          loading: false
+        });
+        return;
+      }
 
       // If connection was lost, server unreachable (502/503/504), or network timed out, seamlessly execute on-device offline diagnosis
       const status = err.response ? err.response.status : null;

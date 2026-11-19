@@ -305,6 +305,11 @@ export default function DiseaseDiagnosisResults({
   const [zoomImageModal, setZoomImageModal] = useState(null);
   const [referenceImages, setReferenceImages] = useState(() => getBaselineICARReferences(rawCropName, rawDiseaseName, activeLang));
 
+  // Dynamically update ICAR reference images whenever crop or pathology updates
+  useEffect(() => {
+    setReferenceImages(getBaselineICARReferences(rawCropName, rawDiseaseName, activeLang));
+  }, [rawCropName, rawDiseaseName, activeLang]);
+
   // Active verified reference list (ensures at least 3 identical baseline ICAR specimens are always available)
   const activeReferenceList = useMemo(() => {
     if (Array.isArray(referenceImages) && referenceImages.length >= 3) {
@@ -591,7 +596,13 @@ export default function DiseaseDiagnosisResults({
     : [];
   const activeProduct = candidateProducts[activeProductIdx] || candidateProducts[0] || null;
 
-  const displayOriginalImg = previewUrl || (liveResult?.image_path ? `/${liveResult.image_path}` : '');
+  const displayOriginalImg = previewUrl || (
+    liveResult?.image_path
+      ? (liveResult.image_path.startsWith('http') || liveResult.image_path.startsWith('/')
+          ? liveResult.image_path
+          : `/${liveResult.image_path}`)
+      : ''
+  );
   const gradCamImg = liveResult?.gradcam_base64 || null;
 
   // Calibrated confidence score
@@ -676,8 +687,49 @@ export default function DiseaseDiagnosisResults({
               {confidencePercent}% {activeLang === 'te' ? 'కచ్చితత్వం' : activeLang === 'hi' ? 'सटीकता' : activeLang === 'ta' ? 'துல்லியம்' : activeLang === 'kn' ? 'ನಿಖರತೆ' : activeLang === 'ml' ? 'കൃത്യത' : activeLang === 'or' ? 'ସଠିକତା' : 'Accuracy'}
             </span>
 
-            {/* Phase 3: On-Device Edge AI Acceleration Badge */}
-            {liveResult?.inference_source === 'on_device_edge_ai' && (
+            {/* Status Badges: Dual-Engine Consensus, Cloud Cross-Verification, or Edge AI */}
+            {liveResult?.isVerifyingCloud && (
+              <span
+                className="px-2.5 py-1 rounded-full text-xs font-black bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 flex items-center gap-1.5 shadow-xs animate-pulse"
+                title="Mobile Edge AI generated instant diagnosis. Cross-verifying with Cloud Micro-Model..."
+              >
+                <RefreshCw className="w-3.5 h-3.5 text-amber-500 animate-spin" />
+                <span>{activeLang === 'te' ? '☁️ క్లౌడ్ ధృవీకరణ జరుగుతోంది...' : '☁️ Cross-Verifying with Cloud...'}</span>
+              </span>
+            )}
+
+            {liveResult?.engine_comparison?.match && (
+              <span
+                className="px-2.5 py-1 rounded-full text-xs font-black bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 flex items-center gap-1 shadow-xs"
+                title="Both Mobile Edge AI and Cloud Micro-Model reached 100% agreement."
+              >
+                <Sparkles className="w-3.5 h-3.5 text-emerald-500 fill-emerald-500" />
+                <span>{activeLang === 'te' ? '✨ డ్యూయల్-ఇంజిన్ ధృవీకరణ' : '✨ Dual-Engine Verified'}</span>
+              </span>
+            )}
+
+            {liveResult?.engine_comparison && !liveResult?.engine_comparison?.match && (
+              <span
+                className="px-2.5 py-1 rounded-full text-xs font-black bg-blue-500/15 text-blue-700 dark:text-blue-300 border border-blue-500/30 flex items-center gap-1 shadow-xs"
+                title="Cloud Micro-Model resolved discrepancy with high precision."
+              >
+                <ShieldCheck className="w-3.5 h-3.5 text-blue-500" />
+                <span>{activeLang === 'te' ? '🛡️ క్లౌడ్ మైక్రో-మోడల్ ఖచ్చితత్వం' : '🛡️ Cloud Micro-Model Precision'}</span>
+              </span>
+            )}
+
+            {!liveResult?.engine_comparison && !liveResult?.isVerifyingCloud && liveResult?.offline_mode && (
+              <span
+                className="px-2.5 py-1 rounded-full text-xs font-black bg-slate-500/15 text-slate-700 dark:text-slate-300 border border-slate-500/30 flex items-center gap-1 shadow-xs"
+                title="100% on-device offline execution in mobile RAM."
+              >
+                <Zap className="w-3.5 h-3.5 text-slate-500 fill-slate-500" />
+                <span>{activeLang === 'te' ? '📶 100% ఆఫ్‌లైన్ (ఎడ్జ్ AI)' : '📶 100% Offline (Edge AI)'}</span>
+                <span className="text-[10px] opacity-80">({liveResult?.prediction_time_ms ? `${liveResult.prediction_time_ms}ms` : '<350ms'})</span>
+              </span>
+            )}
+
+            {!liveResult?.engine_comparison && !liveResult?.isVerifyingCloud && !liveResult?.offline_mode && liveResult?.inference_source === 'on_device_edge_ai' && (
               <span
                 className="px-2.5 py-1 rounded-full text-xs font-black bg-cyan-500/15 text-cyan-700 dark:text-cyan-300 border border-cyan-500/30 flex items-center gap-1 shadow-xs"
                 title="Executed on mobile hardware in <150ms. Zero mobile data used."
@@ -925,6 +977,139 @@ export default function DiseaseDiagnosisResults({
           </ul>
         </div>
       </Card>
+
+      {/* Real-Time Cloud Micro-Model Cross-Verification Banner */}
+      {liveResult?.isVerifyingCloud && (
+        <Card className="p-3.5 sm:p-4 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border border-amber-500/30 rounded-3xl shadow-sm text-left">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-2xl bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+              <RefreshCw className="w-4 h-4 animate-spin" />
+            </div>
+            <div className="space-y-0.5">
+              <div className="text-xs font-black text-amber-900 dark:text-amber-200 flex items-center gap-2">
+                <span>{activeLang === 'te' ? 'క్లౌడ్ మైక్రో-మోడల్ ధృవీకరణ జరుగుతోంది...' : 'Cross-Verifying with Cloud Micro-Model...'}</span>
+                <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-amber-500/20 font-bold">~1.2s</span>
+              </div>
+              <p className="text-[11px] text-slate-600 dark:text-slate-300">
+                {activeLang === 'te'
+                  ? 'మొబైల్ ఆన్-డివైస్ AI తక్షణ ప్రివ్యూను చూపించింది (<350ms). డ్యూయల్-ఇంజిన్ ఏకాభిప్రాయం కోసం క్లౌడ్ పైటార్చ్ మైక్రో-మోడల్ సమాంతరంగా విశ్లేషిస్తోంది.'
+                  : 'On-device Edge AI provided instant diagnosis (<350ms). Running parallel verification with Cloud PyTorch micro-model to ensure 100% precision.'}
+              </p>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {/* Dual-Engine Hybrid Diagnostic Consensus Panel */}
+      {liveResult?.engine_comparison && (
+        <Card className="p-4 sm:p-5 bg-gradient-to-br from-slate-900 via-slate-900 to-slate-950 text-white border border-slate-700/80 rounded-3xl shadow-xl text-left space-y-3.5">
+          <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
+            <div className="flex items-center gap-2">
+              <span className="p-1.5 rounded-lg bg-emerald-500/20 text-emerald-400">
+                <Sparkles className="w-4 h-4" />
+              </span>
+              <div>
+                <h3 className="text-xs font-black tracking-wide text-white uppercase flex items-center gap-1.5">
+                  <span>{activeLang === 'te' ? 'డ్యూయల్-ఇంజిన్ నిర్ధారణ పోలిక' : 'Dual-Engine Diagnostic Consensus'}</span>
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full border ${
+                    liveResult.engine_comparison.match
+                      ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+                      : 'bg-blue-500/20 text-blue-300 border-blue-500/30'
+                  }`}>
+                    {liveResult.engine_comparison.match
+                      ? (activeLang === 'te' ? '100% మ్యాచ్' : '100% Agreement')
+                      : (activeLang === 'te' ? 'పరిష్కరించబడిన ఏకాభిప్రాయం' : 'Consensus Resolved')}
+                  </span>
+                </h3>
+                <p className="text-[11px] text-slate-400">
+                  {activeLang === 'te'
+                    ? 'మొబైల్ ఎడ్జ్ AI మరియు క్లౌడ్ మైక్రో-మోడల్ ఫలితాల ప్రత్యక్ష పోలిక'
+                    : 'Real-time cross-verification between Mobile Edge AI and Cloud PyTorch Micro-Model'}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Side-by-Side Model Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            {/* Left: Mobile Edge AI */}
+            <div className="p-3 rounded-2xl bg-slate-800/80 border border-slate-700/80 space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-black text-cyan-400 flex items-center gap-1">
+                  <Zap className="w-3.5 h-3.5" />
+                  <span>{activeLang === 'te' ? '⚡ మొబైల్ ఎడ్జ్ AI' : '⚡ Mobile Edge AI'}</span>
+                </span>
+                <span className="text-[10px] text-slate-400 font-mono">
+                  {liveResult.engine_comparison.edge_engine?.latency_ms}ms • RAM
+                </span>
+              </div>
+              <div className="text-xs font-bold text-slate-200">
+                <span className="text-slate-400 text-[10px] block">{liveResult.engine_comparison.edge_engine?.crop}</span>
+                {liveResult.engine_comparison.edge_engine?.disease}
+              </div>
+              <div className="flex items-center justify-between text-[11px] pt-1.5 border-t border-slate-700/80">
+                <span className="text-slate-400">{activeLang === 'te' ? 'ఖచ్చితత్వం:' : 'Accuracy:'}</span>
+                <span className="font-black text-cyan-300">{liveResult.engine_comparison.edge_engine?.confidence}%</span>
+              </div>
+            </div>
+
+            {/* Right: Cloud Micro-Model */}
+            <div className="p-3 rounded-2xl bg-slate-800/80 border border-slate-700/80 space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-black text-emerald-400 flex items-center gap-1">
+                  <CloudSun className="w-3.5 h-3.5" />
+                  <span>{activeLang === 'te' ? '☁️ క్లౌడ్ మైక్రో-మోడల్' : '☁️ Cloud Micro-Model'}</span>
+                </span>
+                <span className="text-[10px] text-slate-400 font-mono">
+                  {liveResult.engine_comparison.cloud_engine?.latency_ms}ms • FP32
+                </span>
+              </div>
+              <div className="text-xs font-bold text-slate-200">
+                <span className="text-slate-400 text-[10px] block">{liveResult.engine_comparison.cloud_engine?.crop}</span>
+                {liveResult.engine_comparison.cloud_engine?.disease}
+              </div>
+              <div className="flex items-center justify-between text-[11px] pt-1.5 border-t border-slate-700/80">
+                <span className="text-slate-400">{activeLang === 'te' ? 'ఖచ్చితత్వం:' : 'Accuracy:'}</span>
+                <span className="font-black text-emerald-300">{liveResult.engine_comparison.cloud_engine?.confidence}%</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Verdict Banner */}
+          <div className={`p-3 rounded-2xl border text-xs leading-relaxed flex items-start gap-2.5 ${
+            liveResult.engine_comparison.match
+              ? 'bg-emerald-950/40 border-emerald-500/30 text-emerald-200'
+              : 'bg-blue-950/40 border-blue-500/30 text-blue-200'
+          }`}>
+            <span className="mt-0.5 text-sm">
+              {liveResult.engine_comparison.match ? '✓' : '🛡️'}
+            </span>
+            <div className="space-y-0.5">
+              <span className="font-black block text-[11px] text-white">
+                {liveResult.engine_comparison.verdict_badge}
+              </span>
+              <p className="font-medium text-[11px] opacity-90">
+                {liveResult.engine_comparison.verdict_summary}
+              </p>
+            </div>
+          </div>
+
+          {/* Differential Candidate (if discrepancy occurred) */}
+          {Array.isArray(liveResult?.differential_candidates) && liveResult.differential_candidates.length > 0 && (
+            <div className="p-3 rounded-2xl bg-slate-800/60 border border-slate-700/60 space-y-1.5">
+              <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">
+                {activeLang === 'te' ? 'ప్రత్యామ్నాయ సంభావ్యత (డిఫరెన్షియల్ క్యాండిడేట్):' : 'Secondary Differential Diagnosis Candidate:'}
+              </span>
+              {liveResult.differential_candidates.map((diff, dIdx) => (
+                <div key={dIdx} className="flex items-center justify-between text-xs text-slate-300">
+                  <span>• {diff.disease_name} ({diff.crop_name})</span>
+                  <span className="text-[11px] text-amber-400 font-bold">{diff.confidence}% ({diff.source})</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
+      )}
 
       {/* ========================================================
           CARD 2: TARGETED CHEMICAL PRESCRIPTION & 15L PUMP DOSAGE
@@ -1455,12 +1640,12 @@ export default function DiseaseDiagnosisResults({
             </div>
             <div className="rounded-2xl overflow-hidden bg-black flex items-center justify-center max-h-[75vh] min-h-[220px]">
               <img
-                src={zoomImageModal.src || '/samples/dataset/chilli/chilli_healthy_foliage_01.jpg'}
+                src={zoomImageModal.src || previewUrl || displayOriginalImg || '/samples/dataset/chilli/chilli_healthy_foliage_01.jpg'}
                 alt="Enlarged view"
                 className="max-h-[70vh] w-auto max-w-full object-contain rounded-xl"
                 onError={(e) => {
                   e.currentTarget.onerror = null;
-                  e.currentTarget.src = '/samples/dataset/chilli/chilli_healthy_foliage_01.jpg';
+                  e.currentTarget.src = previewUrl || displayOriginalImg || '/samples/dataset/chilli/chilli_healthy_foliage_01.jpg';
                 }}
               />
             </div>

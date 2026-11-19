@@ -1105,9 +1105,13 @@ const AgrochemicalResults = ({ data = {}, previewUrl, onScanAnother }) => {
             </div>
             <div className="rounded-2xl overflow-hidden bg-black flex items-center justify-center max-h-[75vh]">
               <img
-                src={zoomImageModal.src}
+                src={zoomImageModal.src || displayOriginalImg || '/samples/agrochemicals/crop_guard_plus.png'}
                 alt="Enlarged view"
                 className="max-h-[70vh] w-auto object-contain rounded-xl"
+                onError={(e) => {
+                  e.currentTarget.onerror = null;
+                  e.currentTarget.src = displayOriginalImg || '/samples/agrochemicals/crop_guard_plus.png';
+                }}
               />
             </div>
           </div>
