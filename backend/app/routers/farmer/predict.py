@@ -1969,18 +1969,45 @@ async def predict_pytorch_endpoint(
 
             # If not offloaded or workers offline, execute locally on server threadpool
             if not prediction_result:
+                # Auto-Crop Context Triage: If user didn't choose a chip, infer from filename or farm profile
+                if not active_crop_filter:
+                    try:
+                        from backend.app.services.crop_micro_model_service import detect_crop_from_context
+                        active_farm_crops = []
+                        if current_user and db is not None:
+                            try:
+                                from backend.app.services.farm_profile_service import FarmProfileService
+                                farm_doc = await FarmProfileService.get_active_farm(db, user_id_val)
+                                if farm_doc:
+                                    active_farm_crops = farm_doc.get("crops") or [farm_doc.get("crop_name")]
+                            except Exception:
+                                pass
+                        detected_slug = detect_crop_from_context(
+                            filename=effective_image_path,
+                            farm_crops=active_farm_crops
+                        )
+                        if detected_slug:
+                            active_crop_filter = detected_slug
+                            logger.info(f"[AUTO-CROP TRIAGE] Inferred crop '{detected_slug}' from context to route to micro-model")
+                    except Exception as ctx_err:
+                        logger.debug(f"Crop triage note: {ctx_err}")
+
                 # 1. Check for dedicated per-crop micro-model (43 supported crops)
                 if active_crop_filter:
                     try:
                         from backend.app.services.crop_micro_model_service import is_crop_supported, run_crop_micro_inference
                         if is_crop_supported(active_crop_filter):
+                            # Resolve target language for zero-latency bilingual output
+                            user_pref_l = (current_user.get("preferred_language") if current_user else None) or "en"
+                            req_l = (getattr(req, "language", None) or user_pref_l).lower()[:2]
                             prediction_result = await asyncio.to_thread(
                                 run_crop_micro_inference,
                                 active_crop_filter,
-                                effective_image_path
+                                effective_image_path,
+                                req_l
                             )
                             if prediction_result:
-                                logger.info(f"Specialized micro-model executed for '{active_crop_filter}'")
+                                logger.info(f"Specialized micro-model executed for '{active_crop_filter}' (lang={req_l})")
                     except Exception as mm_err:
                         logger.warning(f"Crop micro-model fallback to generic model: {mm_err}")
 
@@ -2558,44 +2585,54 @@ async def predict_pytorch_endpoint(
         prediction_result["translations"] = {}
 
         translated_via_nvidia = False
-        try:
-            from backend.app.services.nvidia_service import nvidia_service
-            if nvidia_service.client:
-                fields_to_translate = {
-                    "crop_name": prediction_result["crop_name"],
-                    "disease_name": prediction_result["disease_name"],
-                    "symptoms": symptoms,
-                    "severity": severity,
-                    "organic_treatment": organic_treatment,
-                    "chemical_treatment": chemical_treatment,
-                    "prevention_methods": prevention_methods,
-                    "possible_causes": possible_causes,
-                    "farmer_friendly_advice": farmer_friendly_advice,
-                    "safety_precautions": prediction_result.get("safety_precautions", "None")
-                }
+        # Phase 3: Zero-Latency Pre-Compiled Bilingual Fast-Path for Micro-Models (<0.001s)
+        if is_micro_model_active:
+            trans_crop = get_farmer_crop_translation(prediction_result.get("crop_name"), target_lang) or prediction_result.get("crop_name")
+            trans_dis = get_farmer_disease_translation(prediction_result.get("disease_name"), target_lang) or prediction_result.get("disease_name")
+            prediction_result["crop_name"] = trans_crop
+            prediction_result["disease_name"] = trans_dis
+            prediction_result["localized_crop"] = trans_crop
+            prediction_result["localized_disease"] = trans_dis
+            translated_via_nvidia = True
+        else:
+            try:
+                from backend.app.services.nvidia_service import nvidia_service
+                if nvidia_service.client:
+                    fields_to_translate = {
+                        "crop_name": prediction_result["crop_name"],
+                        "disease_name": prediction_result["disease_name"],
+                        "symptoms": symptoms,
+                        "severity": severity,
+                        "organic_treatment": organic_treatment,
+                        "chemical_treatment": chemical_treatment,
+                        "prevention_methods": prevention_methods,
+                        "possible_causes": possible_causes,
+                        "farmer_friendly_advice": farmer_friendly_advice,
+                        "safety_precautions": prediction_result.get("safety_precautions", "None")
+                    }
 
-                translated_fields = await asyncio.wait_for(
-                    nvidia_service.translate_diagnosis(fields_to_translate, target_lang),
-                    timeout=2.0
-                )
-                if translated_fields:
-                    trans_crop = get_farmer_crop_translation(translated_fields.get("crop_name", prediction_result["crop_name"]), target_lang)
-                    trans_dis = get_farmer_disease_translation(translated_fields.get("disease_name", prediction_result["disease_name"]), target_lang)
-                    prediction_result["crop_name"] = trans_crop
-                    prediction_result["disease_name"] = trans_dis
-                    prediction_result["localized_crop"] = trans_crop
-                    prediction_result["localized_disease"] = trans_dis
-                    symptoms = translated_fields.get("symptoms", symptoms)
-                    severity = translated_fields.get("severity", severity)
-                    organic_treatment = translated_fields.get("organic_treatment", organic_treatment)
-                    chemical_treatment = translated_fields.get("chemical_treatment", chemical_treatment)
-                    prevention_methods = translated_fields.get("prevention_methods", prevention_methods)
-                    possible_causes = translated_fields.get("possible_causes", possible_causes)
-                    farmer_friendly_advice = translated_fields.get("farmer_friendly_advice", farmer_friendly_advice)
-                    prediction_result["safety_precautions"] = translated_fields.get("safety_precautions", prediction_result.get("safety_precautions", "None"))
-                    translated_via_nvidia = True
-        except Exception as tx_err:
-            print("NVIDIA translation failed, falling back to deep_translator:", tx_err)
+                    translated_fields = await asyncio.wait_for(
+                        nvidia_service.translate_diagnosis(fields_to_translate, target_lang),
+                        timeout=2.0
+                    )
+                    if translated_fields:
+                        trans_crop = get_farmer_crop_translation(translated_fields.get("crop_name", prediction_result["crop_name"]), target_lang)
+                        trans_dis = get_farmer_disease_translation(translated_fields.get("disease_name", prediction_result["disease_name"]), target_lang)
+                        prediction_result["crop_name"] = trans_crop
+                        prediction_result["disease_name"] = trans_dis
+                        prediction_result["localized_crop"] = trans_crop
+                        prediction_result["localized_disease"] = trans_dis
+                        symptoms = translated_fields.get("symptoms", symptoms)
+                        severity = translated_fields.get("severity", severity)
+                        organic_treatment = translated_fields.get("organic_treatment", organic_treatment)
+                        chemical_treatment = translated_fields.get("chemical_treatment", chemical_treatment)
+                        prevention_methods = translated_fields.get("prevention_methods", prevention_methods)
+                        possible_causes = translated_fields.get("possible_causes", possible_causes)
+                        farmer_friendly_advice = translated_fields.get("farmer_friendly_advice", farmer_friendly_advice)
+                        prediction_result["safety_precautions"] = translated_fields.get("safety_precautions", prediction_result.get("safety_precautions", "None"))
+                        translated_via_nvidia = True
+            except Exception as tx_err:
+                print("NVIDIA translation failed, falling back to deep_translator:", tx_err)
 
         if not translated_via_nvidia:
             try:
@@ -2737,42 +2774,46 @@ async def predict_pytorch_endpoint(
 
             if target_lang != "en" and advisor_data:
                 translated_advisor_via_nvidia = False
-                try:
-                    from backend.app.services.nvidia_service import nvidia_service
-                    if nvidia_service.client:
-                        advisor_fields = {
-                            "organic_treatment": advisor_data.get("treatment", {}).get("organic", []),
-                            "chemical_treatment": advisor_data.get("treatment", {}).get("chemical", []) if is_confirmed_disease else [],
-                            "prevention": advisor_data.get("prevention", []),
-                            "tips": advisor_data.get("tips", []),
-                            "severity_level": advisor_data.get("severity", {}).get("level", ""),
-                            "severity_description": advisor_data.get("severity", {}).get("description", ""),
-                            "spray_best_time": advisor_data.get("spray", {}).get("best_time", ""),
-                            "spray_wind_warning": advisor_data.get("spray", {}).get("wind_warning", "")
-                        }
-                        translated_advisor = await asyncio.wait_for(
-                            nvidia_service.translate_diagnosis(advisor_fields, target_lang),
-                            timeout=2.0
-                        )
-                        if translated_advisor:
-                            advisor_data["treatment"]["organic"] = translated_advisor.get("organic_treatment", advisor_data["treatment"]["organic"])
-                            if is_confirmed_disease:
-                                advisor_data["treatment"]["chemical"] = translated_advisor.get("chemical_treatment", advisor_data["treatment"]["chemical"])
-                            else:
-                                advisor_data["treatment"]["chemical"] = []
-                            advisor_data["prevention"] = translated_advisor.get("prevention", advisor_data["prevention"])
-                            advisor_data["tips"] = translated_advisor.get("tips", advisor_data["tips"])
-                            if "level" in advisor_data.get("severity", {}):
-                                advisor_data["severity"]["level"] = translated_advisor.get("severity_level", advisor_data["severity"]["level"])
-                            if "description" in advisor_data.get("severity", {}):
-                                advisor_data["severity"]["description"] = translated_advisor.get("severity_description", advisor_data["severity"]["description"])
-                            if "best_time" in advisor_data.get("spray", {}):
-                                advisor_data["spray"]["best_time"] = translated_advisor.get("spray_best_time", advisor_data["spray"]["best_time"])
-                            if "wind_warning" in advisor_data.get("spray", {}):
-                                advisor_data["spray"]["wind_warning"] = translated_advisor.get("spray_wind_warning", advisor_data["spray"]["wind_warning"])
-                            translated_advisor_via_nvidia = True
-                except Exception as tx_adv_err:
-                    print("NVIDIA advisor translation failed, falling back to deep_translator:", tx_adv_err)
+                if is_micro_model_active:
+                    # Phase 3 Fast-Path: Pre-compiled local ICAR advisory eliminates 15s translation delays
+                    translated_advisor_via_nvidia = True
+                else:
+                    try:
+                        from backend.app.services.nvidia_service import nvidia_service
+                        if nvidia_service.client:
+                            advisor_fields = {
+                                "organic_treatment": advisor_data.get("treatment", {}).get("organic", []),
+                                "chemical_treatment": advisor_data.get("treatment", {}).get("chemical", []) if is_confirmed_disease else [],
+                                "prevention": advisor_data.get("prevention", []),
+                                "tips": advisor_data.get("tips", []),
+                                "severity_level": advisor_data.get("severity", {}).get("level", ""),
+                                "severity_description": advisor_data.get("severity", {}).get("description", ""),
+                                "spray_best_time": advisor_data.get("spray", {}).get("best_time", ""),
+                                "spray_wind_warning": advisor_data.get("spray", {}).get("wind_warning", "")
+                            }
+                            translated_advisor = await asyncio.wait_for(
+                                nvidia_service.translate_diagnosis(advisor_fields, target_lang),
+                                timeout=2.0
+                            )
+                            if translated_advisor:
+                                advisor_data["treatment"]["organic"] = translated_advisor.get("organic_treatment", advisor_data["treatment"]["organic"])
+                                if is_confirmed_disease:
+                                    advisor_data["treatment"]["chemical"] = translated_advisor.get("chemical_treatment", advisor_data["treatment"]["chemical"])
+                                else:
+                                    advisor_data["treatment"]["chemical"] = []
+                                advisor_data["prevention"] = translated_advisor.get("prevention", advisor_data["prevention"])
+                                advisor_data["tips"] = translated_advisor.get("tips", advisor_data["tips"])
+                                if "level" in advisor_data.get("severity", {}):
+                                    advisor_data["severity"]["level"] = translated_advisor.get("severity_level", advisor_data["severity"]["level"])
+                                if "description" in advisor_data.get("severity", {}):
+                                    advisor_data["severity"]["description"] = translated_advisor.get("severity_description", advisor_data["severity"]["description"])
+                                if "best_time" in advisor_data.get("spray", {}):
+                                    advisor_data["spray"]["best_time"] = translated_advisor.get("spray_best_time", advisor_data["spray"]["best_time"])
+                                if "wind_warning" in advisor_data.get("spray", {}):
+                                    advisor_data["spray"]["wind_warning"] = translated_advisor.get("spray_wind_warning", advisor_data["spray"]["wind_warning"])
+                                translated_advisor_via_nvidia = True
+                    except Exception as tx_adv_err:
+                        print("NVIDIA advisor translation failed, falling back to deep_translator:", tx_adv_err)
 
                 if not translated_advisor_via_nvidia:
                     try:
@@ -2827,30 +2868,39 @@ async def predict_pytorch_endpoint(
     # Generate a customized 7-day spray and treatment schedule (Confirmed disease only)
     prescription_calendar = []
     if is_confirmed_disease:
-        try:
-            from backend.app.services.nvidia_service import nvidia_service
-            from backend.app.services.farm_profile_service import FarmProfileService
-            active_farm = await FarmProfileService.get_active_farm(db, user_id_val) if current_user else None
-            irrigation = active_farm.get("irrigation_method", "Drip") if active_farm else "Drip"
-
-            prescription_calendar = await asyncio.wait_for(
-                nvidia_service.generate_prescription_calendar(
-                    crop_name=prediction_result["crop_name"],
-                    disease_name=prediction_result["disease_name"],
-                    severity=severity,
-                    irrigation_method=irrigation,
-                    target_lang=target_lang
-                ),
-                timeout=2.5
-            )
-        except Exception as cal_err:
-            logger.info(f"Prescription calendar fast fallback ({cal_err or 'timeout'}); applying instant ICAR treatment schedule.")
+        if is_micro_model_active:
+            # Phase 3 Fast-Path: Instant 0ms ICAR Calendar lookup without waiting for NVIDIA timeout
             try:
                 from backend.app.services.nvidia_service import nvidia_service
                 clean_lang = (target_lang.split("-")[0] if target_lang else "en").lower()
                 prescription_calendar = nvidia_service._generate_mock_calendar(prediction_result["disease_name"], clean_lang)
             except Exception:
                 prescription_calendar = []
+        else:
+            try:
+                from backend.app.services.nvidia_service import nvidia_service
+                from backend.app.services.farm_profile_service import FarmProfileService
+                active_farm = await FarmProfileService.get_active_farm(db, user_id_val) if current_user else None
+                irrigation = active_farm.get("irrigation_method", "Drip") if active_farm else "Drip"
+
+                prescription_calendar = await asyncio.wait_for(
+                    nvidia_service.generate_prescription_calendar(
+                        crop_name=prediction_result["crop_name"],
+                        disease_name=prediction_result["disease_name"],
+                        severity=severity,
+                        irrigation_method=irrigation,
+                        target_lang=target_lang
+                    ),
+                    timeout=2.5
+                )
+            except Exception as cal_err:
+                logger.info(f"Prescription calendar fast fallback ({cal_err or 'timeout'}); applying instant ICAR treatment schedule.")
+                try:
+                    from backend.app.services.nvidia_service import nvidia_service
+                    clean_lang = (target_lang.split("-")[0] if target_lang else "en").lower()
+                    prescription_calendar = nvidia_service._generate_mock_calendar(prediction_result["disease_name"], clean_lang)
+                except Exception:
+                    prescription_calendar = []
 
     # Financial matching and VAR Analysis
     financial_metrics = None

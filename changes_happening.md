@@ -11487,3 +11487,18 @@ vidia_service.py):**
   - Fixed property mapping in AgrochemicalResults.jsx so snake_case product_name and active_ingredients from on-device scanner are recognized without falling back to "Certified Agricultural Product".
 - **Production Build & Verification:**
   - Vite production build successfully compiled 3,203 modules with zero errors in 19.43s.
+## [2026-11-19 13:05:00] - Render Latency Optimization, Memory Reduction & Hybrid Architecture Implementation Plan
+- **Diagnostic Completed:** Full structural inspection of ackend/app/routers/farmer/predict.py, ackend/app/services/crop_micro_model_service.py, models/per_crop/, and UploadImagePage.jsx.
+- **Identified 5 Latency & Memory Bottlenecks:**
+  1. Render free-tier cold sleep container provisioning (50s-80s).
+  2. Monolithic 1252-class PyTorch model + GradCAM++ execution on 0.1 vCPU (15s-25s).
+  3. Sequential HTTP DeepTranslator scraping across 8 diagnostic fields (15s-35s).
+  4. External NVIDIA/Gemini cloud AI API calls and timeouts (5s-15s).
+  5. Serial Uvicorn queueing and 512MB RAM ceiling leading to Linux OOM SIGKILL during 20-30 concurrent scans.
+- **Architectural Solution Designed (3-Tier Hybrid Architecture):**
+  1. **Tier 1 (Frontline Defense - Mobile Client Edge AI):** PWA on-device WASM SIMD inference using mobile phone RAM (<400ms latency, 0MB Render RAM load). Handles 20-30 concurrent evaluators during college presentation without server queueing.
+  2. **Tier 2 (Server Micro-Model Fast-Path):** Utilizes the 43 existing per-crop models in models/per_crop/ (~2.3MB each, <80ms inference, ~25MB RAM). Implements LRU cache (max 2 active models) to lock server RAM strictly below 180MB.
+  3. **Tier 3 (Zero-Latency Pre-Compiled Bilingual Catalogs):** Leverages classes.json and disease_catalog.json with pre-compiled ICAR treatments, dropping translation time from 25s to 0.001s.
+  4. **Presentation Anti-Sleep Protocol:** Documented keep-alive pinger hitting /api/health every 10 minutes to eliminate 60s cold boots on presentation day.
+- **Artifact Published:** Created 
+ender_latency_and_hybrid_architecture_plan.md with full technical breakdown, mermaid diagrams, latency tables, and college viva defense points.

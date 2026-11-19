@@ -195,6 +195,23 @@ function ThemeInitializer({ children }) {
 
 function AppRoutesWithBoundary() {
   const location = useLocation();
+
+  // Phase 1: Automated Background Keep-Alive Ping (Anti-Sleep for Render Free-Tier)
+  React.useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const pingWarmup = () => {
+      if (navigator.onLine) {
+        try {
+          const base = getApiBaseUrl();
+          fetch(`${base}/health/warmup`, { method: 'GET', keepalive: true }).catch(() => {});
+        } catch (_) {}
+      }
+    };
+    pingWarmup();
+    const interval = setInterval(pingWarmup, 420000); // 7 minutes
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <ErrorBoundary locationKey={location.pathname}>
       <Routes>
