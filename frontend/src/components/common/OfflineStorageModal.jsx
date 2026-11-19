@@ -29,6 +29,17 @@ export const OfflineStorageModal = ({ isOpen, onClose }) => {
   const [testResult, setTestResult] = useState(null);
   const [downloading, setDownloading] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState(0);
+  const [edgeAiEnabled, setEdgeAiEnabled] = useState(() => {
+    return typeof window !== 'undefined' ? localStorage.getItem('agrishield_edge_ai_enabled') !== 'false' : true;
+  });
+
+  const handleToggleEngine = (enableEdge) => {
+    setEdgeAiEnabled(enableEdge);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('agrishield_edge_ai_enabled', enableEdge ? 'true' : 'false');
+      window.dispatchEvent(new CustomEvent('agrishield-engine-change', { detail: { edgeAiEnabled: enableEdge } }));
+    }
+  };
 
   const refreshData = async () => {
     try {
@@ -141,6 +152,31 @@ export const OfflineStorageModal = ({ isOpen, onClose }) => {
 
           {/* Modal Content */}
           <div className="p-6 space-y-4 overflow-y-auto">
+            {/* Primary Inference Mode Toggle */}
+            <div className="p-3.5 rounded-2xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block">AI Diagnostic Mode</span>
+                <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                  {edgeAiEnabled ? '⚡ Edge AI: Mobile Phone RAM (<350ms, 0 Render Load)' : '☁️ Cloud Render: Fast-Path 2.3MB Micro-Models (<1.5s)'}
+                </span>
+              </div>
+              <div className="flex items-center gap-1 bg-white dark:bg-slate-900 p-1 rounded-xl border border-slate-200 dark:border-slate-700 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => handleToggleEngine(true)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${edgeAiEnabled ? 'bg-emerald-600 text-white shadow-xs' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                >
+                  ⚡ Edge AI
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleToggleEngine(false)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${!edgeAiEnabled ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                >
+                  ☁️ Cloud Mode
+                </button>
+              </div>
+            </div>
             {/* Status Card */}
             <div className="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 flex items-start gap-3">
               <ShieldCheck className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />

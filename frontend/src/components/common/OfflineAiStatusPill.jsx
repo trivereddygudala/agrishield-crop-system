@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Zap, CheckCircle2, RotateCcw } from 'lucide-react';
+import { Zap, CheckCircle2, RotateCcw, Cloud } from 'lucide-react';
 import {
   subscribeModelDownloadProgress,
   isFullModelCached,
@@ -17,6 +17,9 @@ export const OfflineAiStatusPill = ({ className = '' }) => {
   });
   const [isCached, setIsCached] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
+  const [isEdgeAiEnabled, setIsEdgeAiEnabled] = useState(() => {
+    return typeof window !== 'undefined' ? localStorage.getItem('agrishield_edge_ai_enabled') !== 'false' : true;
+  });
 
   useEffect(() => {
     // Check initial cache state
@@ -30,7 +33,17 @@ export const OfflineAiStatusPill = ({ className = '' }) => {
       }
     });
 
-    return () => unsubscribe();
+    const handleEngineChange = (e) => {
+      if (e.detail?.edgeAiEnabled !== undefined) {
+        setIsEdgeAiEnabled(e.detail.edgeAiEnabled);
+      }
+    };
+    window.addEventListener('agrishield-engine-change', handleEngineChange);
+
+    return () => {
+      unsubscribe();
+      window.removeEventListener('agrishield-engine-change', handleEngineChange);
+    };
   }, []);
 
   const isDownloading = downloadState.status === 'downloading';
@@ -41,21 +54,34 @@ export const OfflineAiStatusPill = ({ className = '' }) => {
         onClick={() => setModalOpen(true)}
         type="button"
         title={
-          isDownloading
+          !isEdgeAiEnabled
+            ? 'Cloud Mode: Fast-Path 2.3MB Micro-Models on Render Server'
+            : isDownloading
             ? `Downloading High-Precision 87MB AI Model: ${downloadState.percent}%`
             : isCached
             ? 'Edge AI Ready: 100% Offline & RAM-Only (Zero Render Compute)'
             : 'Edge AI: Tap to View Offline Storage & Model Setup'
         }
         className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-semibold border transition-all select-none ${
-          isDownloading
+          !isEdgeAiEnabled
+            ? 'bg-blue-50/80 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-900/60'
+            : isDownloading
             ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-800 animate-pulse'
             : isCached
             ? 'bg-emerald-50/80 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800 hover:bg-emerald-100 dark:hover:bg-emerald-900/60'
             : 'bg-slate-50 dark:bg-slate-800/60 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800'
         } ${className}`}
       >
-        {isDownloading ? (
+        {!isEdgeAiEnabled ? (
+          <>
+            <Cloud className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
+            <span className="hidden sm:inline">Cloud AI</span>
+            <span className="hidden xl:inline text-[10px] uppercase font-bold text-blue-600/80 dark:text-blue-400/80">
+              (Render Fast)
+            </span>
+            <span className="sm:hidden">Cloud AI</span>
+          </>
+        ) : isDownloading ? (
           <>
             <RotateCcw className="w-3.5 h-3.5 animate-spin text-blue-600 dark:text-blue-400 shrink-0" />
             <span className="font-mono">{downloadState.percent}%</span>
