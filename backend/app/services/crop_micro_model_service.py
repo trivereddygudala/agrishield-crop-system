@@ -20,10 +20,10 @@ except Exception:
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 PER_CROP_DIR = os.path.join(BASE_DIR, "models", "per_crop")
 
-# LRU Cache with Max 2 active models in RAM to lock memory strictly < 180MB (Render Free-tier safety)
+# LRU Cache with Max 1 active model in RAM to lock memory strictly < 150MB (Render Free-tier safety)
 import threading
 _MODEL_LOCK = threading.Lock()
-MAX_ACTIVE_MODELS = 2
+MAX_ACTIVE_MODELS = 1
 _CACHED_MODELS: OrderedDict[str, Any] = OrderedDict()
 _CACHED_METADATA: Dict[str, Dict[str, Any]] = {}
 
@@ -119,13 +119,13 @@ def detect_crop_from_context(
     Intelligent context resolver: If user didn't choose a filter chip, determines crop
     from filename, path tokens, or farmer's registered profile crops to leverage micro-models.
     """
-    # 1. Check user explicit filter first
+    # 1. Check user explicit filter first (highest priority)
     if user_filter:
         slug = normalize_crop_slug(user_filter)
         if slug and is_crop_supported(slug):
             return slug
 
-    # 2. Check filename and path tokens
+    # 2. Check filename and path tokens (e.g. chilli_leaf.jpg, tomato_spot.png)
     if filename:
         clean_fn = os.path.basename(filename).lower().replace("-", "_").replace(".", "_")
         for token in clean_fn.split("_"):
@@ -134,14 +134,7 @@ def detect_crop_from_context(
                 if slug and is_crop_supported(slug):
                     return slug
 
-    # 3. Check farmer registered farm crops
-    if farm_crops and isinstance(farm_crops, list):
-        for c in farm_crops:
-            if isinstance(c, str):
-                slug = normalize_crop_slug(c)
-                if slug and is_crop_supported(slug):
-                    return slug
-
+    # Note: Never silently inherit unrelated profile crops when the user did not specify one
     return None
 
 

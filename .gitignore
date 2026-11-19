@@ -122,6 +122,12 @@ benchmarks/**/*.png
 # Antigravity Brain Vault (Local Privacy & Recovery)
 brain_vault/
 
+# Browser Automation & Screenshots
+chrome_cdp_profile_*/
+chrome_temp_profile/
+live_*.png
+AgriShield_Incubator_Evidence/
+
 # Firebase Cache
 .firebase/
 

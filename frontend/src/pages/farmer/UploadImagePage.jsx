@@ -23,8 +23,10 @@ import {
   runOnDevicePlantIdentification,
   runOnDeviceAgrochemicalScan,
   isOnDeviceInferenceSupported,
-  preloadOnDeviceModel
+  preloadOnDeviceModel,
+  isOfflineModelCached
 } from '../../utils/onDeviceModelRunner';
+import QuickCropSelectorModal from '../../components/scanCenter/QuickCropSelectorModal';
 import { fuseDualEngineDiagnosis } from '../../utils/dualEngineConsensus';
 import { CURATED_FARM_PHOTOS } from '../../services/photoService';
 
@@ -236,12 +238,9 @@ const UploadImagePage = () => {
     }
   }, [routeTab, searchParams]);
 
-  // Auto-link active farm crop to scanner to boost accuracy to 98%+
-  React.useEffect(() => {
-    if (activeFarm?.crop_name && !scanStore.state.selectedCropFilter) {
-      scanStore.setState({ selectedCropFilter: activeFarm.crop_name });
-    }
-  }, [activeFarm?.crop_name]);
+  // Farmer explicitly designates crop filter or is prompted via Option A to prevent cross-crop mismatches
+  const [showCropPromptModal, setShowCropPromptModal] = useState(false);
+  const [pendingScanArgs, setPendingScanArgs] = useState(null);
 
   const handleTabChange = (tab) => {
     scanStore.setState({ activeTab: tab, errorMsg: '' });
@@ -445,16 +444,41 @@ const UploadImagePage = () => {
 
     if (loading) return;
 
+    // Option A: If disease-diag tab and no crop filter is selected, prompt farmer with 1-tap selector
+    if (currentTab === 'disease-diag' && !selectedCropFilter) {
+      setPendingScanArgs(multipartData);
+      setShowCropPromptModal(true);
+      return;
+    }
+
+    await executeScanPipeline(multipartData, selectedCropFilter);
+  };
+
+  const executeScanPipeline = async (multipartData = {}, cropFilterOverride = null) => {
+    const activeCropFilter = cropFilterOverride !== null ? cropFilterOverride : selectedCropFilter;
+
     // Check if offline before initiating network requests
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
       scanStore.setTabState(currentTab, { loading: true, errorMsg: '' });
       try {
+        const isCachedLocally = await isOfflineModelCached();
+        if (!isCachedLocally) {
+          scanStore.setTabState(currentTab, {
+            loading: false,
+            errorMsg: t(
+              'scan_page.offline_model_not_downloaded',
+              '📡 Offline Field Mode: The offline AI model has not been downloaded to your phone yet. Please connect to mobile data/Wi-Fi to scan online, or download the model (87MB) from the "More" tab (ఇతర సేవలు) for 100% offline field use.'
+            )
+          });
+          return;
+        }
+
         let offlineResult = null;
         if (currentTab === 'disease-diag' && isOnDeviceInferenceSupported() && selectedFile) {
           try {
             offlineResult = await runOnDeviceInference(selectedFile, {
               language: activeLang,
-              cropFilter: selectedCropFilter
+              cropFilter: activeCropFilter
             });
           } catch (_) {}
         } else if (currentTab === 'plant-id' && isOnDeviceInferenceSupported() && selectedFile) {
@@ -476,7 +500,7 @@ const UploadImagePage = () => {
         if (!offlineResult && currentTab === 'disease-diag' && previewUrl) {
           offlineResult = await diagnoseOfflineLeaf({
             imageSrc: previewUrl,
-            cropFilter: selectedCropFilter,
+            cropFilter: activeCropFilter,
             language: activeLang
           });
         } else if (!offlineResult && currentTab === 'plant-id' && previewUrl) {
@@ -489,7 +513,7 @@ const UploadImagePage = () => {
         await queueOfflineScan({
           file: selectedFile,
           tabId: currentTab,
-          cropFilter: selectedCropFilter,
+          cropFilter: activeCropFilter,
           language: activeLang,
           offlineTriage: offlineResult
         });
@@ -515,39 +539,44 @@ const UploadImagePage = () => {
       } catch (queueErr) {
         console.error("Failed to run offline diagnosis or queue scan:", queueErr);
         scanStore.setTabState(currentTab, { loading: false });
+        return;
       }
     }
 
     scanStore.setTabState(currentTab, { loading: true, errorMsg: '' });
 
-    // 0. Dual-Engine Parallel Acceleration (<350ms instant mobile preview)
+    // 0. Dual-Engine Parallel Acceleration (<350ms instant mobile preview ONLY if model is cached in IndexedDB)
     const isEdgeAiEnabled = typeof window !== 'undefined' ? localStorage.getItem('agrishield_edge_ai_enabled') !== 'false' : true;
     let initialEdgeResult = null;
 
     if (isEdgeAiEnabled && currentTab === 'disease-diag' && isOnDeviceInferenceSupported() && selectedFile) {
       try {
-        const onDeviceResult = await runOnDeviceInference(selectedFile, {
-          language: activeLang,
-          cropFilter: selectedCropFilter
-        });
-        if (onDeviceResult && onDeviceResult.confidence >= 25.0) {
-          initialEdgeResult = onDeviceResult;
-          // Optimistically display instant on-device diagnosis with cloud verification flag
-          scanStore.setTabState(currentTab, {
-            liveResult: {
-              ...onDeviceResult,
-              isVerifyingCloud: true
-            },
-            hasScanned: true,
-            loading: false,
-            errorMsg: ''
+        const isCachedLocally = await isOfflineModelCached();
+        if (isCachedLocally) {
+          const onDeviceResult = await runOnDeviceInference(selectedFile, {
+            language: activeLang,
+            cropFilter: activeCropFilter
           });
+          if (onDeviceResult && onDeviceResult.confidence >= 25.0) {
+            initialEdgeResult = onDeviceResult;
+            scanStore.setTabState(currentTab, {
+              liveResult: {
+                ...onDeviceResult,
+                isVerifyingCloud: true
+              },
+              hasScanned: true,
+              loading: false,
+              errorMsg: ''
+            });
 
-          // Invalidate cache and broadcast preliminary scan
-          try {
-            window._cachedPredictionHistory = null;
-            window.dispatchEvent(new CustomEvent('agrishield-new-scan', { detail: onDeviceResult }));
-          } catch (_) {}
+            // Invalidate cache and broadcast preliminary scan
+            try {
+              window._cachedPredictionHistory = null;
+              window.dispatchEvent(new CustomEvent('agrishield-new-scan', { detail: onDeviceResult }));
+            } catch (_) {}
+          }
+        } else {
+          console.info('On-device model not cached; routing directly to fast cloud micro-model.');
         }
       } catch (onDeviceErr) {
         console.warn('On-Device inference fallback to server:', onDeviceErr);
@@ -739,7 +768,7 @@ const UploadImagePage = () => {
       };
 
       if (activeTab === 'disease-diag') {
-        payload.crop_filter = selectedCropFilter || undefined;
+        payload.crop_filter = activeCropFilter || undefined;
         if (rootImagePath) payload.image_root_path = rootImagePath;
         if (stemImagePath) payload.image_stem_path = stemImagePath;
         if (multipartData.wiltCondition && multipartData.wiltCondition !== 'none') {
@@ -785,7 +814,7 @@ const UploadImagePage = () => {
             edgeResult: initialEdgeResult,
             cloudResult: predictRes.data,
             activeLang,
-            userCropFilter: selectedCropFilter
+            userCropFilter: activeCropFilter
           });
         } catch (fuseErr) {
           console.warn("Dual-engine consensus fusion fallback:", fuseErr);
@@ -1405,6 +1434,18 @@ const UploadImagePage = () => {
           )}
         </div>
       )}
+
+      {/* Option A: Quick Crop Family Selector Modal */}
+      <QuickCropSelectorModal
+        isOpen={showCropPromptModal}
+        onClose={() => setShowCropPromptModal(false)}
+        onSelectCrop={(cropValue) => {
+          scanStore.setState({ selectedCropFilter: cropValue });
+          setShowCropPromptModal(false);
+          executeScanPipeline(pendingScanArgs || {}, cropValue);
+        }}
+        activeLang={activeLang}
+      />
     </motion.div>
   );
 };

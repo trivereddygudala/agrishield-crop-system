@@ -151,8 +151,13 @@ export const preloadOnDeviceModel = async (options = {}) => {
         } catch (_) {}
       }
 
-      // If neither is cached in IndexedDB, fetch from network
+      // If neither is cached in IndexedDB, only fetch from network if explicitly permitted (e.g. from More tab modal)
       if (!modelBuffer) {
+        if (!options.allowNetworkFetch && !forceFullModel) {
+          console.info('[On-Device AI] Model not present in IndexedDB cache. Skipping download during scan to preserve bandwidth & speed.');
+          return false;
+        }
+
         // If forceFullModel requested or online and willing to download full
         if (forceFullModel) {
           try {

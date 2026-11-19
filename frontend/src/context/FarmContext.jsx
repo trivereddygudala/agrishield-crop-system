@@ -6,9 +6,25 @@ const FarmContext = createContext(null);
 
 export const FarmProvider = ({ children }) => {
   const { user, updateProfile } = useAuth();
-  const [farms, setFarms] = useState([]);
+  const [farms, setFarms] = useState(() => {
+    try {
+      if (typeof localStorage !== 'undefined') {
+        const cached = localStorage.getItem('agrishield_cached_farms');
+        return cached ? JSON.parse(cached) : [];
+      }
+    } catch (_) {}
+    return [];
+  });
   const [archivedFarms, setArchivedFarms] = useState([]);
-  const [activeFarm, setActiveFarmState] = useState(null);
+  const [activeFarm, setActiveFarmState] = useState(() => {
+    try {
+      if (typeof localStorage !== 'undefined') {
+        const cachedActive = localStorage.getItem('agrishield_cached_active_farm');
+        return cachedActive ? JSON.parse(cachedActive) : null;
+      }
+    } catch (_) {}
+    return null;
+  });
   const [loading, setLoading] = useState(false);
   const userId = user?.id || user?._id;
   const isFetchingRef = React.useRef(false);
@@ -61,16 +77,45 @@ export const FarmProvider = ({ children }) => {
         }
       }
 
-      setFarms(farmList);
-      setArchivedFarms(archivedList);
-      setActiveFarmState(currentActive);
-      if (currentActive) {
+      if (farmList.length > 0) {
+        setFarms(farmList);
         try {
+          localStorage.setItem('agrishield_cached_farms', JSON.stringify(farmList));
+        } catch (_) {}
+      } else {
+        // If fetch returned empty (e.g. offline field mode), hydrate from local cache
+        try {
+          const cached = localStorage.getItem('agrishield_cached_farms');
+          if (cached) {
+            const parsed = JSON.parse(cached);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              setFarms(parsed);
+              if (!currentActive) currentActive = parsed[0];
+            }
+          }
+        } catch (_) {}
+      }
+
+      setArchivedFarms(archivedList);
+      if (currentActive) {
+        setActiveFarmState(currentActive);
+        try {
+          localStorage.setItem('agrishield_cached_active_farm', JSON.stringify(currentActive));
           localStorage.setItem('agrishield_active_farm_id', String(currentActive.id || currentActive._id));
         } catch (_) {}
       }
     } catch (error) {
       console.error("Error refreshing farms context:", error);
+      // Retain offline cached farms so UI never blanks out
+      try {
+        const cached = localStorage.getItem('agrishield_cached_farms');
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setFarms(parsed);
+          }
+        }
+      } catch (_) {}
     } finally {
       setLoading(false);
       isFetchingRef.current = false;

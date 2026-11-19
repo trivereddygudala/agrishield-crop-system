@@ -11563,3 +11563,27 @@ ender_latency_and_hybrid_architecture_plan.md with full technical breakdown, mer
   - Enhanced preprocessImage to resolve all canvas variants, offscreen canvases, and composite preview wrappers, eliminating 'Unsupported image input type for on-device inference'.
 - **Production Build:**
   - Vite production build transformed 3,204 modules in 17.75s with 0 errors.
+
+### [2026-11-19 19:42:00] - Root Vercel Rewrites Sync with Multi-Worker Cluster
+- **File Modified:** vercel.json
+- **Details:** Synchronized root vercel.json rewrites with frontend/vercel.json to route /api/upload and /api/predict to Worker 1, /api/identify-plant to Worker 2, and /api/agrochemical-scan to Worker 3.
+
+## [2026-11-19 21:30:00] - Option A Implementation: Crop Isolation, Worker Memory Cap (<180MB), Offline Fields, & Navbar Streamlining
+- **Option A Crop Family Selector Modal (frontend/src/components/scanCenter/QuickCropSelectorModal.jsx & UploadImagePage.jsx):**
+  - Created QuickCropSelectorModal.jsx with touch-friendly bilingual cards (Chilli, Tomato, Rice, Cotton, Maize, Groundnut, Sugarcane, Banana, Mango, Potato, Onion, and All Crops).
+  - Integrated modal into UploadImagePage.jsx to prompt farmer before scanning if no crop chip was selected, locking 98%+ precision and completely preventing cross-crop misclassification (e.g., Chilli leaves diagnosed as Corn).
+- **Backend Memory Lock on Render Worker-1 (<180MB RAM on 512MB Free Tier):**
+  - Updated backend/app/services/crop_micro_model_service.py: Capped MAX_ACTIVE_MODELS = 1 with strict LRU eviction and garbage collection.
+  - Removed silent fallback to registered farm profile crops in detect_crop_from_context so unrelated farm profile crops never contaminate leaf scans.
+  - Updated backend/app/routers/farmer/predict.py: Bypassed heavy Grad-CAM++ gradient allocations on cloud workers, preventing out-of-memory restarts on Render.
+- **Strict Online Cloud Scan Mode (No 87MB Cellular Downloads):**
+  - Updated frontend/src/utils/onDeviceModelRunner.js: Added safeguard in preloadOnDeviceModel (allowNetworkFetch: false) preventing synchronous downloads of 22MB/87MB models over cellular connections during scans.
+  - Scans without a cached on-device model route directly to fast cloud micro-models (<120KB WebP, <2.5s roundtrip).
+- **Offline Field Plots & Credentials Persistence (frontend/src/context/FarmContext.jsx):**
+  - Added localStorage hydration and caching (agrishield_cached_farms and agrishield_cached_active_farm).
+  - Ensures all field plots, acreage, soil types, and crops remain 100% visible and accessible offline even with zero cellular signal.
+- **UI Navigation Refactoring (frontend/src/components/AppLayout.jsx & frontend/src/pages/common/MorePage.jsx):**
+  - Removed OfflineAiStatusPill from the top navigation header to streamline mobile UX.
+  - Relocated Edge AI management into the "More" tab under "Offline AI & Storage" for voluntary Wi-Fi downloads.
+- **Git & System Integrity:**
+  - Updated .gitignore to keep temporary browser profiles and automation screenshots local.

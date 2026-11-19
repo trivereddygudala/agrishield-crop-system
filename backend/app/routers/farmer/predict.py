@@ -1969,35 +1969,22 @@ async def predict_pytorch_endpoint(
 
             # If not offloaded or workers offline, execute locally on server threadpool
             if not prediction_result:
-                # Auto-Crop Context Triage: If user didn't choose a chip, infer from filename or farm profile
+                # Auto-Crop Context Triage: Check filename/token hints only (Never blindly inherit farm profile)
                 if not active_crop_filter:
                     try:
                         from backend.app.services.crop_micro_model_service import detect_crop_from_context
-                        active_farm_crops = []
-                        if current_user and db is not None:
-                            try:
-                                from backend.app.services.farm_profile_service import FarmProfileService
-                                farm_doc = await FarmProfileService.get_active_farm(db, user_id_val)
-                                if farm_doc:
-                                    active_farm_crops = farm_doc.get("crops") or [farm_doc.get("crop_name")]
-                            except Exception:
-                                pass
-                        detected_slug = detect_crop_from_context(
-                            filename=effective_image_path,
-                            farm_crops=active_farm_crops
-                        )
+                        detected_slug = detect_crop_from_context(filename=effective_image_path)
                         if detected_slug:
                             active_crop_filter = detected_slug
-                            logger.info(f"[AUTO-CROP TRIAGE] Inferred crop '{detected_slug}' from context to route to micro-model")
+                            logger.info(f"[AUTO-CROP TRIAGE] Inferred crop '{detected_slug}' from filename tokens")
                     except Exception as ctx_err:
                         logger.debug(f"Crop triage note: {ctx_err}")
 
-                # 1. Check for dedicated per-crop micro-model (43 supported crops)
+                # 1. Primary Path: Dedicated per-crop micro-model (43 supported crops, ~2.3MB each, <25ms, <20MB RAM)
                 if active_crop_filter:
                     try:
                         from backend.app.services.crop_micro_model_service import is_crop_supported, run_crop_micro_inference
                         if is_crop_supported(active_crop_filter):
-                            # Resolve target language for zero-latency bilingual output
                             user_pref_l = (current_user.get("preferred_language") if current_user else None) or "en"
                             req_l = (getattr(req, "language", None) or user_pref_l).lower()[:2]
                             prediction_result = await asyncio.to_thread(
@@ -2009,14 +1996,18 @@ async def predict_pytorch_endpoint(
                             if prediction_result:
                                 logger.info(f"Specialized micro-model executed for '{active_crop_filter}' (lang={req_l})")
                     except Exception as mm_err:
-                        logger.warning(f"Crop micro-model fallback to generic model: {mm_err}")
+                        logger.warning(f"Crop micro-model fallback: {mm_err}")
 
-                # 2. General 1252-Class PyTorch Pipeline Fallback
+                # 2. General Fallback: Memory-Capped (<50MB ONNX Runtime, no backward autograd gradients)
                 if not prediction_result:
+                    # On cloud workers (Render 512MB ceiling), disable heavy Grad-CAM++ gradient graph allocations
+                    is_cloud_worker = bool(os.environ.get("RENDER") or os.environ.get("IS_PREDICTION_WORKER") or "worker" in os.environ.get("RENDER_SERVICE_NAME", "").lower())
+                    safe_explainer = None if is_cloud_worker else (req.explainer_type or "gradcam++")
+                    
                     prediction_result = await asyncio.to_thread(
                         predict_crop_disease,
                         effective_image_path,
-                        req.explainer_type or "gradcam++",
+                        safe_explainer,
                         **kwargs
                     )
         except Exception as e:

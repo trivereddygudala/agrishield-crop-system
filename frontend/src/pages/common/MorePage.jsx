@@ -37,6 +37,7 @@ import {
 import LanguageSelectModal from '../../components/common/LanguageSelectModal';
 import { getLanguageByCode } from '../../data/languages';
 import LogoutOverlay from '../../components/animations/LogoutOverlay';
+import OfflineStorageModal from '../../components/common/OfflineStorageModal';
 
 const SectionHeader = ({ title, first = false }) => (
   <p className={`text-[10.5px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 px-1 mb-2.5 ${first ? 'mt-0' : 'mt-6'}`}>
@@ -78,6 +79,7 @@ const MorePage = () => {
   const isEquipmentProvider = user?.role === 'provider' || user?.role === 'equipment_provider' || user?.profile_type === 'provider' || user?.account_type === 'provider';
   const [aboutOpen, setAboutOpen] = useState(false);
   const [languageModalOpen, setLanguageModalOpen] = useState(false);
+  const [offlineModalOpen, setOfflineModalOpen] = useState(false);
   const [showLogoutOverlay, setShowLogoutOverlay] = useState(false);
 
   const currentLangObj = getLanguageByCode(i18n.language);
@@ -587,6 +589,23 @@ const MorePage = () => {
               {FARMING_TOOLS.map((item) => <MenuCard key={item.path} {...item} onClick={item.onClick || navigate} />)}
             </div>
 
+            {/* Offline AI Model Management */}
+            <SectionHeader title={isTe ? '⚡ ఆఫ్‌లైన్ AI & స్టోరేజ్' : '⚡ Offline AI & Storage'} />
+            <div className="flex flex-col gap-2.5">
+              <MenuCard
+                icon={Cpu}
+                label={isTe ? 'ఆఫ్‌లైన్ AI మోడల్ మేనేజ్‌మెంట్ (87MB)' : 'Offline AI Model Management (87MB)'}
+                description={isTe
+                  ? 'ఇంటర్నెట్ లేని పొలాల్లో 100% ఆఫ్‌లైన్ స్కాన్ కోసం ఐచ్ఛిక హై-ప్రెసిషన్ మోడల్ డౌన్‌లోడ్'
+                  : 'Optional 87MB neural model download for 100% offline foliar scans in remote fields'}
+                onClick={() => setOfflineModalOpen(true)}
+                iconColor="text-emerald-600 dark:text-emerald-400"
+                iconBg="bg-emerald-100 dark:bg-emerald-950/70 border border-emerald-300 dark:border-emerald-800"
+                accent="border-l-emerald-500"
+                badge={isTe ? 'ఐచ్ఛికం (Optional)' : 'Optional'}
+              />
+            </div>
+
             {hardwareMode && (
               <>
                 <SectionHeader title={t('more.sections.hardware', '🔧 Hardware & Devices')} />
@@ -698,6 +717,11 @@ const MorePage = () => {
         <LanguageSelectModal
           isOpen={languageModalOpen}
           onClose={() => setLanguageModalOpen(false)}
+        />
+        {/* ── Offline AI Storage Modal ── */}
+        <OfflineStorageModal
+          isOpen={offlineModalOpen}
+          onClose={() => setOfflineModalOpen(false)}
         />
       </div>
     </>
