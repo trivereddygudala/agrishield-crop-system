@@ -12,7 +12,7 @@ export const FarmProvider = ({ children }) => {
         const cached = localStorage.getItem('agrishield_cached_farms');
         return cached ? JSON.parse(cached) : [];
       }
-    } catch (_) {}
+    } catch (_) { }
     return [];
   });
   const [archivedFarms, setArchivedFarms] = useState([]);
@@ -22,7 +22,7 @@ export const FarmProvider = ({ children }) => {
         const cachedActive = localStorage.getItem('agrishield_cached_active_farm');
         return cachedActive ? JSON.parse(cachedActive) : null;
       }
-    } catch (_) {}
+    } catch (_) { }
     return null;
   });
   const [loading, setLoading] = useState(false);
@@ -73,7 +73,7 @@ export const FarmProvider = ({ children }) => {
         currentActive = farmList[0];
         const primaryId = currentActive.id || currentActive._id;
         if (primaryId) {
-          API.post(`/api/farms/${primaryId}/select`).catch(() => {});
+          API.post(`/api/farms/${primaryId}/select`).catch(() => { });
         }
       }
 
@@ -81,7 +81,7 @@ export const FarmProvider = ({ children }) => {
         setFarms(farmList);
         try {
           localStorage.setItem('agrishield_cached_farms', JSON.stringify(farmList));
-        } catch (_) {}
+        } catch (_) { }
       } else {
         // If fetch returned empty (e.g. offline field mode), hydrate from local cache
         try {
@@ -93,7 +93,7 @@ export const FarmProvider = ({ children }) => {
               if (!currentActive) currentActive = parsed[0];
             }
           }
-        } catch (_) {}
+        } catch (_) { }
       }
 
       setArchivedFarms(archivedList);
@@ -102,7 +102,7 @@ export const FarmProvider = ({ children }) => {
         try {
           localStorage.setItem('agrishield_cached_active_farm', JSON.stringify(currentActive));
           localStorage.setItem('agrishield_active_farm_id', String(currentActive.id || currentActive._id));
-        } catch (_) {}
+        } catch (_) { }
       }
     } catch (error) {
       console.error("Error refreshing farms context:", error);
@@ -115,7 +115,7 @@ export const FarmProvider = ({ children }) => {
             setFarms(parsed);
           }
         }
-      } catch (_) {}
+      } catch (_) { }
     } finally {
       setLoading(false);
       isFetchingRef.current = false;
@@ -140,7 +140,7 @@ export const FarmProvider = ({ children }) => {
         try {
           localStorage.setItem('agrishield_active_farm_id', String(farmId));
           window.dispatchEvent(new CustomEvent('agrishield-active-farm-changed', { detail: farmDoc }));
-        } catch (_) {}
+        } catch (_) { }
         // Force refresh user context to update farm_profile_completed if needed
         if (user && !user.farm_profile_completed) {
           await updateProfile({ farm_profile_completed: true, active_farm_id: farmId });
@@ -162,7 +162,7 @@ export const FarmProvider = ({ children }) => {
       const newFarm = res.data;
       setFarms(prev => [...prev, newFarm]);
       setActiveFarmState(newFarm);
-      
+
       // Update user auth profile context
       if (user) {
         await updateProfile({ farm_profile_completed: true, active_farm_id: newFarm.id || newFarm._id });
@@ -187,7 +187,7 @@ export const FarmProvider = ({ children }) => {
         try {
           localStorage.setItem('agrishield_active_farm_id', String(farmId));
           window.dispatchEvent(new CustomEvent('agrishield-active-farm-changed', { detail: updatedFarm }));
-        } catch (_) {}
+        } catch (_) { }
       }
       return updatedFarm;
     } catch (error) {
@@ -203,7 +203,7 @@ export const FarmProvider = ({ children }) => {
     try {
       await API.delete(`/api/farms/${farmId}`);
       setFarms(prev => prev.filter(f => f.id !== farmId && f._id !== farmId));
-      
+
       // If deleted farm was active, set active to another or clear it
       if (activeFarm && (activeFarm.id === farmId || activeFarm._id === farmId)) {
         const remaining = farms.filter(f => f.id !== farmId && f._id !== farmId);
@@ -266,7 +266,7 @@ export const FarmProvider = ({ children }) => {
 export const useFarm = () => {
   const context = useContext(FarmContext);
   if (!context) {
-    return { farms: [], activeFarm: null, loading: false, refreshFarms: () => {}, selectActiveFarm: () => {} };
+    return { farms: [], activeFarm: null, loading: false, refreshFarms: () => { }, selectActiveFarm: () => { } };
   }
   return context;
 };

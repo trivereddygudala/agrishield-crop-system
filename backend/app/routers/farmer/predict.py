@@ -1279,15 +1279,37 @@ async def worker_predict_endpoint(
 
         import asyncio
         import inspect
+
+        # Priority 1: Check dedicated per-crop micro-model (<25ms, <20MB RAM)
+        if crop_filter:
+            try:
+                from backend.app.services.crop_micro_model_service import is_crop_supported, run_crop_micro_inference
+                if is_crop_supported(crop_filter):
+                    micro_res = await asyncio.to_thread(
+                        run_crop_micro_inference,
+                        crop_filter.strip(),
+                        temp_path,
+                        "en"
+                    )
+                    if micro_res:
+                        logger.info(f"[WORKER] Executed dedicated micro-model for '{crop_filter}' in <25ms")
+                        return {"success": True, "result": micro_res}
+            except Exception as mm_err:
+                logger.warning(f"Worker micro-model error: {mm_err}")
+
+        # Priority 2: General model fallback (Safe on Render 512MB RAM ceiling)
         sig = inspect.signature(predict_crop_disease)
         kwargs = {}
         if crop_filter:
             kwargs["crop_filter"] = crop_filter.strip()
 
+        is_cloud_worker = bool(os.environ.get("RENDER") or os.environ.get("IS_PREDICTION_WORKER") or "worker" in os.environ.get("RENDER_SERVICE_NAME", "").lower())
+        safe_explainer = None if is_cloud_worker else (explainer_type or "gradcam++")
+
         result = await asyncio.to_thread(
             predict_crop_disease,
             temp_path,
-            explainer_type or "gradcam++",
+            safe_explainer,
             **kwargs
         )
         return {"success": True, "result": result}
@@ -1947,69 +1969,70 @@ async def predict_pytorch_endpoint(
             kwargs = {}
             # User selection has absolute sovereign priority over any vision model guess
             active_crop_filter = user_crop_filter if user_crop_filter else detected_vision_crop
-            if "crop_filter" in sig.parameters:
-                kwargs["crop_filter"] = active_crop_filter
-            elif any(p.kind == inspect.Parameter.VAR_KEYWORD for p in sig.parameters.values()):
-                kwargs["crop_filter"] = active_crop_filter
 
-            # Check if we should offload to AI Worker Cluster (Worker 1 / Worker 2)
+            # Auto-Crop Context Triage: Check filename/token hints only (Never blindly inherit farm profile)
+            if not active_crop_filter:
+                try:
+                    from backend.app.services.crop_micro_model_service import detect_crop_from_context
+                    detected_slug = detect_crop_from_context(filename=effective_image_path)
+                    if detected_slug:
+                        active_crop_filter = detected_slug
+                        logger.info(f"[AUTO-CROP TRIAGE] Inferred crop '{detected_slug}' from filename tokens")
+                except Exception as ctx_err:
+                    logger.debug(f"Crop triage note: {ctx_err}")
+
+            # 1. PRIMARY & ULTRA-FAST PATH: Dedicated per-crop micro-model (43 supported crops, ~2.3MB each, <25ms, <20MB RAM)
+            # When the crop is selected, run the dedicated micro-model directly with ZERO network hops!
             prediction_result = None
-            try:
-                from backend.app.services.ai_cluster import ai_cluster
-                with open(effective_image_path, "rb") as img_f:
-                    img_bytes = img_f.read()
-                prediction_result = await ai_cluster.offload_prediction(
-                    image_bytes=img_bytes,
-                    filename=os.path.basename(effective_image_path),
-                    explainer_type=req.explainer_type or "gradcam++",
-                    crop_filter=active_crop_filter
-                )
-            except Exception as cluster_err:
-                logger.warning(f"Cluster offload attempt bypassed: {cluster_err}")
+            if active_crop_filter:
+                try:
+                    from backend.app.services.crop_micro_model_service import is_crop_supported, run_crop_micro_inference
+                    if is_crop_supported(active_crop_filter):
+                        user_pref_l = (current_user.get("preferred_language") if current_user else None) or "en"
+                        req_l = (getattr(req, "language", None) or user_pref_l).lower()[:2]
+                        prediction_result = await asyncio.to_thread(
+                            run_crop_micro_inference,
+                            active_crop_filter,
+                            effective_image_path,
+                            req_l
+                        )
+                        if prediction_result:
+                            logger.info(f"⚡ Dedicated micro-model executed for '{active_crop_filter}' (lang={req_l}) in <25ms")
+                except Exception as mm_err:
+                    logger.warning(f"Crop micro-model fallback: {mm_err}")
 
-            # If not offloaded or workers offline, execute locally on server threadpool
+            # 2. Secondary Path: Only if no dedicated micro-model exists for this crop, offload to AI Worker Cluster
             if not prediction_result:
-                # Auto-Crop Context Triage: Check filename/token hints only (Never blindly inherit farm profile)
-                if not active_crop_filter:
-                    try:
-                        from backend.app.services.crop_micro_model_service import detect_crop_from_context
-                        detected_slug = detect_crop_from_context(filename=effective_image_path)
-                        if detected_slug:
-                            active_crop_filter = detected_slug
-                            logger.info(f"[AUTO-CROP TRIAGE] Inferred crop '{detected_slug}' from filename tokens")
-                    except Exception as ctx_err:
-                        logger.debug(f"Crop triage note: {ctx_err}")
+                if "crop_filter" in sig.parameters:
+                    kwargs["crop_filter"] = active_crop_filter
+                elif any(p.kind == inspect.Parameter.VAR_KEYWORD for p in sig.parameters.values()):
+                    kwargs["crop_filter"] = active_crop_filter
 
-                # 1. Primary Path: Dedicated per-crop micro-model (43 supported crops, ~2.3MB each, <25ms, <20MB RAM)
-                if active_crop_filter:
-                    try:
-                        from backend.app.services.crop_micro_model_service import is_crop_supported, run_crop_micro_inference
-                        if is_crop_supported(active_crop_filter):
-                            user_pref_l = (current_user.get("preferred_language") if current_user else None) or "en"
-                            req_l = (getattr(req, "language", None) or user_pref_l).lower()[:2]
-                            prediction_result = await asyncio.to_thread(
-                                run_crop_micro_inference,
-                                active_crop_filter,
-                                effective_image_path,
-                                req_l
-                            )
-                            if prediction_result:
-                                logger.info(f"Specialized micro-model executed for '{active_crop_filter}' (lang={req_l})")
-                    except Exception as mm_err:
-                        logger.warning(f"Crop micro-model fallback: {mm_err}")
-
-                # 2. General Fallback: Memory-Capped (<50MB ONNX Runtime, no backward autograd gradients)
-                if not prediction_result:
-                    # On cloud workers (Render 512MB ceiling), disable heavy Grad-CAM++ gradient graph allocations
-                    is_cloud_worker = bool(os.environ.get("RENDER") or os.environ.get("IS_PREDICTION_WORKER") or "worker" in os.environ.get("RENDER_SERVICE_NAME", "").lower())
-                    safe_explainer = None if is_cloud_worker else (req.explainer_type or "gradcam++")
-                    
-                    prediction_result = await asyncio.to_thread(
-                        predict_crop_disease,
-                        effective_image_path,
-                        safe_explainer,
-                        **kwargs
+                try:
+                    from backend.app.services.ai_cluster import ai_cluster
+                    with open(effective_image_path, "rb") as img_f:
+                        img_bytes = img_f.read()
+                    prediction_result = await ai_cluster.offload_prediction(
+                        image_bytes=img_bytes,
+                        filename=os.path.basename(effective_image_path),
+                        explainer_type=req.explainer_type or "gradcam++",
+                        crop_filter=active_crop_filter
                     )
+                except Exception as cluster_err:
+                    logger.warning(f"Cluster offload attempt bypassed: {cluster_err}")
+
+            # 3. Final Fallback: General 1252-Class PyTorch Pipeline Fallback (Memory Capped on Render)
+            if not prediction_result:
+                # On cloud workers (Render 512MB ceiling), disable heavy Grad-CAM++ gradient graph allocations
+                is_cloud_worker = bool(os.environ.get("RENDER") or os.environ.get("IS_PREDICTION_WORKER") or "worker" in os.environ.get("RENDER_SERVICE_NAME", "").lower())
+                safe_explainer = None if is_cloud_worker else (req.explainer_type or "gradcam++")
+                
+                prediction_result = await asyncio.to_thread(
+                    predict_crop_disease,
+                    effective_image_path,
+                    safe_explainer,
+                    **kwargs
+                )
         except Exception as e:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

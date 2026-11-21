@@ -5,16 +5,16 @@ import { motion, AnimatePresence } from 'framer-motion';
 import NavbarSceneRenderer from './animations/NavbarSceneRenderer';
 import { getUserReadNotificationIds } from '../utils/notificationStorage';
 import { useNavbarTheme } from '../hooks/useNavbarTheme';
-import { 
-  Leaf, 
+import {
+  Leaf,
   Menu,
-  Camera, 
-  X, 
-  LayoutDashboard, 
-  History, 
-  User, 
-  Settings as SettingsIcon, 
-  LogOut, 
+  Camera,
+  X,
+  LayoutDashboard,
+  History,
+  User,
+  Settings as SettingsIcon,
+  LogOut,
   ChevronRight,
   ChevronLeft,
   ChevronDown,
@@ -52,7 +52,7 @@ import {
   Sparkles,
   Users,
   HardDrive,
-  Sliders, 
+  Sliders,
   UploadCloud,
   Radio,
   Clock,
@@ -72,9 +72,9 @@ import { SUPPORTED_LANGUAGES } from '../data/languages';
 import { popDeviceNotification } from '../utils/deviceNotification';
 
 // Import primitive UI helpers for backwards compatibility
-import { 
-  Button as UIPrimitiveButton, 
-  Card as UIPrimitiveCard, 
+import {
+  Button as UIPrimitiveButton,
+  Card as UIPrimitiveCard,
   Badge as UIPrimitiveBadge,
   Alert as UIPrimitiveAlert,
   Skeleton as UIPrimitiveSkeleton,
@@ -84,26 +84,26 @@ import {
 // Priority colour helpers for notification system
 const PRIORITY_COLORS = {
   Critical: { bg: 'bg-rose-100 dark:bg-rose-950/60', text: 'text-rose-700 dark:text-rose-300', dot: 'bg-rose-500', border: 'border-rose-200' },
-  High:     { bg: 'bg-amber-100 dark:bg-amber-950/60', text: 'text-amber-700 dark:text-amber-300', dot: 'bg-amber-500', border: 'border-amber-200' },
-  Medium:   { bg: 'bg-orange-100 dark:bg-orange-950/60', text: 'text-orange-700 dark:text-orange-300', dot: 'bg-orange-500', border: 'border-orange-200' },
-  Low:      { bg: 'bg-emerald-100 dark:bg-emerald-950/60', text: 'text-emerald-700 dark:text-emerald-300', dot: 'bg-emerald-500', border: 'border-emerald-200' },
+  High: { bg: 'bg-amber-100 dark:bg-amber-950/60', text: 'text-amber-700 dark:text-amber-300', dot: 'bg-amber-500', border: 'border-amber-200' },
+  Medium: { bg: 'bg-orange-100 dark:bg-orange-950/60', text: 'text-orange-700 dark:text-orange-300', dot: 'bg-orange-500', border: 'border-orange-200' },
+  Low: { bg: 'bg-emerald-100 dark:bg-emerald-950/60', text: 'text-emerald-700 dark:text-emerald-300', dot: 'bg-emerald-500', border: 'border-emerald-200' },
 };
 
 const CATEGORY_ICONS = {
-  disease:        AlertTriangle,
-  weather:        CloudRain,
-  soil:           Droplets,
-  irrigation:     Droplets,
-  battery:        BatteryWarning,
-  device:         WifiOff,
-  system:         Activity,
+  disease: AlertTriangle,
+  weather: CloudRain,
+  soil: Droplets,
+  irrigation: Droplets,
+  battery: BatteryWarning,
+  device: WifiOff,
+  system: Activity,
   recommendation: Activity,
-  Disease:    AlertTriangle,
-  Weather:    CloudRain,
+  Disease: AlertTriangle,
+  Weather: CloudRain,
   Irrigation: Droplets,
-  Battery:    BatteryWarning,
-  Device:     WifiOff,
-  System:     Activity,
+  Battery: BatteryWarning,
+  Device: WifiOff,
+  System: Activity,
 };
 
 import { timeAgo, formatDateTime } from '../utils/dateUtils';
@@ -215,10 +215,10 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
   const location = useLocation();
   const { t, i18n } = useTranslation();
   const { activeFarm, farms, setActiveFarm, createFarm, profileCompleted } = useFarm();
-  
+
   // Global WebSocket Context hook - authoritative owner of real-time state and unread count
   const { connectionStatus, lastMessageTime, lastTelemetry, deviceStatusMap, unreadCount, setUnreadCount, refreshUnreadCount, latestAlert } = useWebSocket();
-  
+
   // Local states
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -243,7 +243,7 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
     try {
       const cached = JSON.parse(localStorage.getItem('agrishield_preferred_languages'));
       if (Array.isArray(cached) && cached.length > 0) return cached.slice(0, 3);
-    } catch (_) {}
+    } catch (_) { }
     if (user?.preferred_languages && Array.isArray(user.preferred_languages) && user.preferred_languages.length > 0) {
       return user.preferred_languages.slice(0, 3);
     }
@@ -258,7 +258,7 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
         try {
           const cached = JSON.parse(localStorage.getItem('agrishield_preferred_languages'));
           if (Array.isArray(cached) && cached.length > 0) setPreferredLanguages(cached.slice(0, 3));
-        } catch (_) {}
+        } catch (_) { }
       }
     };
     window.addEventListener('agrishield-preferred-languages-updated', handlePrefChange);
@@ -270,7 +270,7 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
     i18n.changeLanguage(clean);
     localStorage.setItem('i18nextLng', clean);
     if (user && updateProfile) {
-      updateProfile({ preferred_language: clean }).catch(() => {});
+      updateProfile({ preferred_language: clean }).catch(() => { });
     }
     window.dispatchEvent(new CustomEvent('agrishield-language-changed', { detail: { language: clean } }));
   };
@@ -329,7 +329,7 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
       gain.connect(ctx.destination);
       osc.start();
       osc.stop(ctx.currentTime + 0.35);
-    } catch (_) {}
+    } catch (_) { }
   }, []);
 
   const fetchUnreadCount = useCallback(async () => {
@@ -364,7 +364,7 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
       try {
         const legacy = JSON.parse(localStorage.getItem('agrishield_read_notifications') || '[]');
         if (Array.isArray(legacy)) legacy.forEach(id => localReadIds.add(String(id)));
-      } catch (_) {}
+      } catch (_) { }
 
       alertData = alertData.map(a => {
         const aId = String(a.notification_id || a.id || a._id || '');
@@ -546,7 +546,7 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
           if (event.data) handleIncomingNotif(event.data);
         };
       }
-    } catch (_) {}
+    } catch (_) { }
 
     return () => {
       window.removeEventListener('agrishield_new_notification', onCustomEvent);
@@ -564,9 +564,9 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
             API.post('/api/notifications/register-fcm', {
               token: res.token,
               device_type: deviceType
-            }).catch(() => {});
+            }).catch(() => { });
           }
-        }).catch(() => {});
+        }).catch(() => { });
       });
     }
   }, [user]);
@@ -676,515 +676,510 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
   return (
     <>
       <header className="fixed top-0 left-0 right-0 z-50 w-full h-16 border-b border-slate-200/80 dark:border-slate-800 bg-white/95 dark:bg-[#050911]/95 backdrop-blur-xl transition-colors">
-      <div className="flex h-16 items-center justify-between px-2.5 sm:px-6 lg:px-8 w-full gap-2 sm:gap-4">
-        
-        {/* Left Section: Menu, Brand, Breadcrumb — Hamburger hidden on mobile layout */}
-        <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-shrink">
-          <button 
-            type="button" 
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="hidden lg:flex p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800/80 border border-slate-200/80 dark:border-slate-800 transition-all"
-            title="Toggle Menu"
-            aria-label="Toggle Navigation Menu"
-          >
-            <Menu className="h-5 w-5" />
-          </button>
-          
-          <Link to={getHomeRoute()} className="flex items-center gap-2 group min-w-0">
-            <div className="bg-emerald-600 text-white p-2 rounded-xl shadow-sm shadow-emerald-600/20 group-hover:scale-105 transition-transform shrink-0">
-              <Leaf className="h-5 w-5" />
-            </div>
-            {/* Desktop Brand Title */}
-            <span className="font-bold text-slate-900 dark:text-slate-100 tracking-tight hidden sm:inline text-lg shrink-0">
-              AgriShield <span className="text-emerald-600 dark:text-emerald-400 font-normal">AI</span>
-            </span>
-            {/* Mobile Dynamic Animated Title - Responsive Truncation */}
-            <span className="sm:hidden overflow-hidden h-7 relative flex items-center min-w-0 max-w-[110px] xs:max-w-[150px]">
-              <AnimatePresence mode="wait">
-                <motion.span
-                  key={location.pathname}
-                  initial={{ y: -15, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  exit={{ y: 15, opacity: 0 }}
-                  transition={{ duration: 0.22, ease: "easeOut" }}
-                  className="font-bold text-slate-900 dark:text-slate-100 tracking-tight text-xs xs:text-sm block truncate"
-                >
-                  {(() => {
-                    const path = location.pathname;
-                    if (path.startsWith('/admin')) return t('nav.admin_panel', 'Admin Control Panel');
-                    if (path === '/dashboard') return t('nav.dashboard', 'Home');
-                    if (path === '/upload' || path === '/result' || path.startsWith('/scan')) return t('nav.scan_crop', 'AI Crop Doctor');
-                    if (path === '/history') return t('nav.scan_history', 'Scan History');
-                    if (path === '/analytics') return t('nav.analytics', 'Sensor Analytics');
-                    if (path === '/market') return t('nav.market', 'Market');
-                    if (path === '/farm') return t('nav.farm', 'My Farm');
-                    if (path === '/notifications') return t('nav.notifications', 'Alerts');
-                    if (path === '/settings') return t('nav.settings', 'Settings');
-                    if (path === '/profile') return t('nav.profile', 'My Profile');
-                    if (path === '/devices') return t('nav.devices', 'Devices');
-                    if (path === '/node-control') return t('nav.node_control', 'Node Control');
-                    if (path === '/sdcard') return t('nav.sd_card', 'MicroSD Storage');
-                    if (path === '/assistant') return t('nav.assistant', 'AgriShield Chat Assistant');
-                    if (path === '/crop-advisory') return t('nav.crop_advisory', 'Crop Advisory');
-                    if (path === '/more') return t('nav.more_short', 'More');
-                    return 'AgriShield';
-                  })()}
-                </motion.span>
-              </AnimatePresence>
-            </span>
-          </Link>
- 
-          {/* Breadcrumb Hierarchy */}
-          <div className="hidden md:block ml-4 pl-4 border-l border-slate-200 dark:border-slate-800">
-            <Breadcrumbs />
-          </div>
-        </div>
- 
-        {/* Dynamic Animation Scene (Center) */}
-        {showNavbarScene && (
-          <div className="hidden lg:flex flex-1 min-w-0 justify-center px-4">
-            <NavbarSceneRenderer theme={theme} isCompact={location.pathname !== '/dashboard'} />
-          </div>
-        )}
- 
-        {/* Right Section: Actions, Theme, Notifications, User */}
-        <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
-          {user && (
-            <>
-              {/* Active Farm Switcher Dropdown - STRICTLY HIDDEN ON ADMIN TO PREVENT FARM LEAKS */}
-              {profileCompleted && farms.length > 0 && !location.pathname.startsWith('/admin') && user?.role?.toLowerCase() !== 'admin' && (
-                <div className="relative hidden sm:block">
-                  <button
-                    onClick={() => setDropdownOpen(!dropdownOpen)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200/80 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/80 transition-all font-semibold text-xs text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-900"
+        <div className="flex h-16 items-center justify-between px-2.5 sm:px-6 lg:px-8 w-full gap-2 sm:gap-4">
+
+          {/* Left Section: Menu, Brand, Breadcrumb — Hamburger hidden on mobile layout */}
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-shrink">
+            <button
+              type="button"
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="hidden lg:flex p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800/80 border border-slate-200/80 dark:border-slate-800 transition-all"
+              title="Toggle Menu"
+              aria-label="Toggle Navigation Menu"
+            >
+              <Menu className="h-5 w-5" />
+            </button>
+
+            <Link to={getHomeRoute()} className="flex items-center gap-2 group min-w-0">
+              <div className="bg-emerald-600 text-white p-2 rounded-xl shadow-sm shadow-emerald-600/20 group-hover:scale-105 transition-transform shrink-0">
+                <Leaf className="h-5 w-5" />
+              </div>
+              {/* Desktop Brand Title */}
+              <span className="font-bold text-slate-900 dark:text-slate-100 tracking-tight hidden sm:inline text-lg shrink-0">
+                AgriShield <span className="text-emerald-600 dark:text-emerald-400 font-normal">AI</span>
+              </span>
+              {/* Mobile Dynamic Animated Title - Responsive Truncation */}
+              <span className="sm:hidden overflow-hidden h-7 relative flex items-center min-w-0 max-w-[110px] xs:max-w-[150px]">
+                <AnimatePresence mode="wait">
+                  <motion.span
+                    key={location.pathname}
+                    initial={{ y: -15, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    exit={{ y: 15, opacity: 0 }}
+                    transition={{ duration: 0.22, ease: "easeOut" }}
+                    className="font-bold text-slate-900 dark:text-slate-100 tracking-tight text-xs xs:text-sm block truncate"
                   >
-                    <Sprout className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                    <span className="max-w-[100px] truncate">{activeFarm ? activeFarm.farm_name : t('nav.select_farm', 'Select Farm')}</span>
-                    <ChevronDown className="h-3 w-3 text-slate-400" />
-                  </button>
-                  
-                  {dropdownOpen && (
-                    <>
-                      <div className="fixed inset-0 z-10" onClick={() => setDropdownOpen(false)} />
-                      <div className="absolute right-0 mt-2 z-20 w-52 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl p-1.5 space-y-1">
-                        <p className="text-[10px] text-slate-400 font-bold px-2 py-1 uppercase tracking-wider">{t('nav.switch_farm', 'Switch Active Farm')}</p>
-                        {farms.map((f) => (
+                    {(() => {
+                      const path = location.pathname;
+                      if (path.startsWith('/admin')) return t('nav.admin_panel', 'Admin Control Panel');
+                      if (path === '/dashboard') return t('nav.dashboard', 'Home');
+                      if (path === '/upload' || path === '/result' || path.startsWith('/scan')) return t('nav.scan_crop', 'AI Crop Doctor');
+                      if (path === '/history') return t('nav.scan_history', 'Scan History');
+                      if (path === '/analytics') return t('nav.analytics', 'Sensor Analytics');
+                      if (path === '/market') return t('nav.market', 'Market');
+                      if (path === '/farm') return t('nav.farm', 'My Farm');
+                      if (path === '/notifications') return t('nav.notifications', 'Alerts');
+                      if (path === '/settings') return t('nav.settings', 'Settings');
+                      if (path === '/profile') return t('nav.profile', 'My Profile');
+                      if (path === '/devices') return t('nav.devices', 'Devices');
+                      if (path === '/node-control') return t('nav.node_control', 'Node Control');
+                      if (path === '/sdcard') return t('nav.sd_card', 'MicroSD Storage');
+                      if (path === '/assistant') return t('nav.assistant', 'AgriShield Chat Assistant');
+                      if (path === '/crop-advisory') return t('nav.crop_advisory', 'Crop Advisory');
+                      if (path === '/more') return t('nav.more_short', 'More');
+                      return 'AgriShield';
+                    })()}
+                  </motion.span>
+                </AnimatePresence>
+              </span>
+            </Link>
+
+            {/* Breadcrumb Hierarchy */}
+            <div className="hidden md:block ml-4 pl-4 border-l border-slate-200 dark:border-slate-800">
+              <Breadcrumbs />
+            </div>
+          </div>
+
+          {/* Dynamic Animation Scene (Center) */}
+          {showNavbarScene && (
+            <div className="hidden lg:flex flex-1 min-w-0 justify-center px-4">
+              <NavbarSceneRenderer theme={theme} isCompact={location.pathname !== '/dashboard'} />
+            </div>
+          )}
+
+          {/* Right Section: Actions, Theme, Notifications, User */}
+          <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+            {user && (
+              <>
+                {/* Active Farm Switcher Dropdown - STRICTLY HIDDEN ON ADMIN TO PREVENT FARM LEAKS */}
+                {profileCompleted && farms.length > 0 && !location.pathname.startsWith('/admin') && user?.role?.toLowerCase() !== 'admin' && (
+                  <div className="relative hidden sm:block">
+                    <button
+                      onClick={() => setDropdownOpen(!dropdownOpen)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200/80 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/80 transition-all font-semibold text-xs text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-900"
+                    >
+                      <Sprout className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                      <span className="max-w-[100px] truncate">{activeFarm ? activeFarm.farm_name : t('nav.select_farm', 'Select Farm')}</span>
+                      <ChevronDown className="h-3 w-3 text-slate-400" />
+                    </button>
+
+                    {dropdownOpen && (
+                      <>
+                        <div className="fixed inset-0 z-10" onClick={() => setDropdownOpen(false)} />
+                        <div className="absolute right-0 mt-2 z-20 w-52 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl p-1.5 space-y-1">
+                          <p className="text-[10px] text-slate-400 font-bold px-2 py-1 uppercase tracking-wider">{t('nav.switch_farm', 'Switch Active Farm')}</p>
+                          {farms.map((f) => (
+                            <button
+                              key={f.id}
+                              onClick={() => {
+                                setActiveFarm(f.id);
+                                setDropdownOpen(false);
+                              }}
+                              className={`w-full flex items-center justify-between px-3 py-2 text-left rounded-xl text-xs font-semibold transition-all ${activeFarm && activeFarm.id === f.id
+                                  ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/80 dark:text-emerald-300 font-bold border border-emerald-200 dark:border-emerald-800/60'
+                                  : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
+                                }`}
+                            >
+                              <span className="truncate">{f.farm_name}</span>
+                              {activeFarm && activeFarm.id === f.id && <span className="text-[10px] text-emerald-600 dark:text-emerald-400">●</span>}
+                            </button>
+                          ))}
+                          <div className="h-[1px] bg-slate-200 dark:bg-slate-800 my-1"></div>
                           <button
-                            key={f.id}
-                            onClick={() => {
-                              setActiveFarm(f.id);
-                              setDropdownOpen(false);
+                            onClick={async () => {
+                              try {
+                                setDropdownOpen(false);
+                                await createFarm({ farm_name: `New Farm Sector ${farms.length + 1}` });
+                                navigate('/farm');
+                              } catch (e) {
+                                console.error(e);
+                              }
                             }}
-                            className={`w-full flex items-center justify-between px-3 py-2 text-left rounded-xl text-xs font-semibold transition-all ${
-                              activeFarm && activeFarm.id === f.id
-                                ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/80 dark:text-emerald-300 font-bold border border-emerald-200 dark:border-emerald-800/60'
-                                : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
-                            }`}
+                            className="w-full flex items-center justify-center gap-2 px-3 py-2 text-center rounded-xl text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition-all border border-dashed border-emerald-200 dark:border-emerald-800/60"
                           >
-                            <span className="truncate">{f.farm_name}</span>
-                            {activeFarm && activeFarm.id === f.id && <span className="text-[10px] text-emerald-600 dark:text-emerald-400">●</span>}
+                            <span className="text-[14px]">+</span> {t('nav.add_field', 'Add New Field')}
                           </button>
-                        ))}
-                        <div className="h-[1px] bg-slate-200 dark:bg-slate-800 my-1"></div>
-                        <button
-                          onClick={async () => {
-                            try {
-                              setDropdownOpen(false);
-                              await createFarm({ farm_name: `New Farm Sector ${farms.length + 1}` });
-                              navigate('/farm');
-                            } catch (e) {
-                              console.error(e);
-                            }
-                          }}
-                          className="w-full flex items-center justify-center gap-2 px-3 py-2 text-center rounded-xl text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition-all border border-dashed border-emerald-200 dark:border-emerald-800/60"
-                        >
-                          <span className="text-[14px]">+</span> {t('nav.add_field', 'Add New Field')}
-                        </button>
-                      </div>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
+
+                {/* ESP32 Hardware Status Bar: WiFi | Bluetooth | Battery - Shown ONLY when Hardware Mode is ON */}
+                {hardwareMode && (
+                  <div className="hidden lg:flex items-center gap-1 px-1 py-1 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/40">
+                    {/* WiFi Signal Indicator */}
+                    <div className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-semibold transition-colors ${displayedNodeStatus.online
+                        ? 'text-emerald-600 dark:text-emerald-400'
+                        : 'text-rose-500 dark:text-rose-400'
+                      }`} title={displayedNodeStatus.online ? `WiFi: ${displayedNodeStatus.rssi || '?'} dBm` : 'WiFi Disconnected'}>
+                      {displayedNodeStatus.online ? (
+                        <>
+                          <Wifi className="w-3.5 h-3.5" />
+                          <span>{displayedNodeStatus.rssi !== null ? `${displayedNodeStatus.rssi}` : ''}</span>
+                        </>
+                      ) : (
+                        <WifiOff className="w-3.5 h-3.5" />
+                      )}
+                    </div>
+
+                    <span className="w-px h-4 bg-slate-200 dark:bg-slate-700" />
+
+                    {/* Bluetooth Status Indicator */}
+                    <div className={`flex items-center px-1.5 py-1 rounded-lg transition-colors ${displayedNodeStatus.bluetoothConnected
+                        ? 'text-blue-500 dark:text-blue-400'
+                        : 'text-slate-400 dark:text-slate-600'
+                      }`} title={displayedNodeStatus.bluetoothConnected ? 'Bluetooth Connected' : 'Bluetooth Idle'}>
+                      {displayedNodeStatus.bluetoothConnected ? (
+                        <Bluetooth className="w-3.5 h-3.5" />
+                      ) : (
+                        <BluetoothOff className="w-3.5 h-3.5" />
+                      )}
+                    </div>
+
+                    <span className="w-px h-4 bg-slate-200 dark:bg-slate-700" />
+
+                    {/* Battery Percentage Indicator */}
+                    {(() => {
+                      const pct = displayedNodeStatus.batteryPercent;
+                      const charging = displayedNodeStatus.batteryCharging;
+                      let BattIcon = Battery;
+                      let color = 'text-slate-400 dark:text-slate-500';
+                      if (charging) {
+                        BattIcon = BatteryCharging;
+                        color = 'text-amber-500 dark:text-amber-400';
+                      } else if (pct !== null) {
+                        if (pct >= 75) { BattIcon = BatteryFull; color = 'text-emerald-500 dark:text-emerald-400'; }
+                        else if (pct >= 40) { BattIcon = BatteryMedium; color = 'text-amber-500 dark:text-amber-400'; }
+                        else if (pct >= 10) { BattIcon = BatteryLow; color = 'text-orange-500 dark:text-orange-400'; }
+                        else { BattIcon = BatteryWarning; color = 'text-rose-500 dark:text-rose-400'; }
+                      }
+                      return (
+                        <div className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-semibold ${color}`}
+                          title={pct !== null ? `Battery: ${pct}%${charging ? ' (Charging)' : ''}` : 'Battery N/A'}>
+                          <BattIcon className="w-4 h-4" />
+                          <span>{pct !== null ? `${pct}%` : '--'}</span>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                )}
+
+                {/* Real-time WebSocket Status Indicator Badge */}
+                <div className="flex items-center gap-1.5 px-2 py-1 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/40 text-[11px] font-semibold transition-all">
+                  {connectionStatus === 'connected' && (
+                    <>
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+                      <span className="text-emerald-700 dark:text-emerald-300 hidden sm:inline">{t('nav.live_ws', 'Live WS')}</span>
+                      {lastMessageTime && <span className="text-[10px] text-slate-400 dark:text-slate-500 font-normal hidden xl:inline">({lastMessageTime})</span>}
+                    </>
+                  )}
+                  {connectionStatus === 'reconnecting' && (
+                    <>
+                      <UIPrimitiveSpinner size="xs" className="text-amber-500 shrink-0" />
+                      <span className="text-amber-700 dark:text-amber-300 hidden sm:inline">{t('nav.reconnecting', 'Reconnecting...')}</span>
+                    </>
+                  )}
+                  {connectionStatus === 'offline' && (
+                    <>
+                      <span className="w-2 h-2 rounded-full bg-slate-400 dark:bg-slate-600 shrink-0" />
+                      <span className="text-slate-500 dark:text-slate-400 hidden sm:inline">{t('nav.rest_mode', 'REST')}</span>
+                    </>
+                  )}
+                  {connectionStatus === 'error' && (
+                    <>
+                      <AlertTriangle className="w-3.5 h-3.5 text-rose-500 shrink-0 animate-bounce" />
+                      <span className="text-rose-600 dark:text-rose-400 hidden sm:inline">{t('nav.ws_error', 'WS Error')}</span>
                     </>
                   )}
                 </div>
-              )}
 
-              {/* ESP32 Hardware Status Bar: WiFi | Bluetooth | Battery - Shown ONLY when Hardware Mode is ON */}
-              {hardwareMode && (
-                <div className="hidden lg:flex items-center gap-1 px-1 py-1 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/40">
-                  {/* WiFi Signal Indicator */}
-                  <div className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-semibold transition-colors ${
-                    displayedNodeStatus.online 
-                      ? 'text-emerald-600 dark:text-emerald-400' 
-                      : 'text-rose-500 dark:text-rose-400'
-                  }`} title={displayedNodeStatus.online ? `WiFi: ${displayedNodeStatus.rssi || '?'} dBm` : 'WiFi Disconnected'}>
-                    {displayedNodeStatus.online ? (
-                      <>
-                        <Wifi className="w-3.5 h-3.5" />
-                        <span>{displayedNodeStatus.rssi !== null ? `${displayedNodeStatus.rssi}` : ''}</span>
-                      </>
-                    ) : (
-                      <WifiOff className="w-3.5 h-3.5" />
-                    )}
-                  </div>
+                {/* Admin Panel Direct Access Badge Button - STRICTLY FOR ADMIN ONLY */}
+                {user?.role?.toLowerCase() === 'admin' && (
+                  <Link
+                    to="/admin"
+                    className="flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-extrabold text-xs shadow-md shadow-amber-500/20 transition-all cursor-pointer whitespace-nowrap"
+                    title={t('nav.admin_panel', 'Admin Control Panel')}
+                  >
+                    <ShieldCheck className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">{t('nav.admin_panel', 'Admin Panel')}</span>
+                  </Link>
+                )}
 
-                  <span className="w-px h-4 bg-slate-200 dark:bg-slate-700" />
-
-                  {/* Bluetooth Status Indicator */}
-                  <div className={`flex items-center px-1.5 py-1 rounded-lg transition-colors ${
-                    displayedNodeStatus.bluetoothConnected 
-                      ? 'text-blue-500 dark:text-blue-400' 
-                      : 'text-slate-400 dark:text-slate-600'
-                  }`} title={displayedNodeStatus.bluetoothConnected ? 'Bluetooth Connected' : 'Bluetooth Idle'}>
-                    {displayedNodeStatus.bluetoothConnected ? (
-                      <Bluetooth className="w-3.5 h-3.5" />
-                    ) : (
-                      <BluetoothOff className="w-3.5 h-3.5" />
-                    )}
-                  </div>
-
-                  <span className="w-px h-4 bg-slate-200 dark:bg-slate-700" />
-
-                  {/* Battery Percentage Indicator */}
-                  {(() => {
-                    const pct = displayedNodeStatus.batteryPercent;
-                    const charging = displayedNodeStatus.batteryCharging;
-                    let BattIcon = Battery;
-                    let color = 'text-slate-400 dark:text-slate-500';
-                    if (charging) {
-                      BattIcon = BatteryCharging;
-                      color = 'text-amber-500 dark:text-amber-400';
-                    } else if (pct !== null) {
-                      if (pct >= 75) { BattIcon = BatteryFull; color = 'text-emerald-500 dark:text-emerald-400'; }
-                      else if (pct >= 40) { BattIcon = BatteryMedium; color = 'text-amber-500 dark:text-amber-400'; }
-                      else if (pct >= 10) { BattIcon = BatteryLow; color = 'text-orange-500 dark:text-orange-400'; }
-                      else { BattIcon = BatteryWarning; color = 'text-rose-500 dark:text-rose-400'; }
-                    }
-                    return (
-                      <div className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-semibold ${color}`}
-                           title={pct !== null ? `Battery: ${pct}%${charging ? ' (Charging)' : ''}` : 'Battery N/A'}>
-                        <BattIcon className="w-4 h-4" />
-                        <span>{pct !== null ? `${pct}%` : '--'}</span>
-                      </div>
-                    );
-                  })()}
+                {/* Live Time Display - Hidden on smaller screens */}
+                <div className="hidden xl:flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/40 text-xs font-bold text-slate-700 dark:text-slate-200 font-mono shadow-sm transition-all hover:border-emerald-500/30">
+                  <Clock className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 animate-pulse shrink-0" />
+                  <span className="tabular-nums tracking-wide">{currentTime || '--:--:--'}</span>
                 </div>
-              )}
-
-              {/* Real-time WebSocket Status Indicator Badge */}
-              <div className="flex items-center gap-1.5 px-2 py-1 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/40 text-[11px] font-semibold transition-all">
-                {connectionStatus === 'connected' && (
-                  <>
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
-                    <span className="text-emerald-700 dark:text-emerald-300 hidden sm:inline">{t('nav.live_ws', 'Live WS')}</span>
-                    {lastMessageTime && <span className="text-[10px] text-slate-400 dark:text-slate-500 font-normal hidden xl:inline">({lastMessageTime})</span>}
-                  </>
-                )}
-                {connectionStatus === 'reconnecting' && (
-                  <>
-                    <UIPrimitiveSpinner size="xs" className="text-amber-500 shrink-0" />
-                    <span className="text-amber-700 dark:text-amber-300 hidden sm:inline">{t('nav.reconnecting', 'Reconnecting...')}</span>
-                  </>
-                )}
-                {connectionStatus === 'offline' && (
-                  <>
-                    <span className="w-2 h-2 rounded-full bg-slate-400 dark:bg-slate-600 shrink-0" />
-                    <span className="text-slate-500 dark:text-slate-400 hidden sm:inline">{t('nav.rest_mode', 'REST')}</span>
-                  </>
-                )}
-                {connectionStatus === 'error' && (
-                  <>
-                    <AlertTriangle className="w-3.5 h-3.5 text-rose-500 shrink-0 animate-bounce" />
-                    <span className="text-rose-600 dark:text-rose-400 hidden sm:inline">{t('nav.ws_error', 'WS Error')}</span>
-                  </>
-                )}
-              </div>
-
-              {/* Admin Panel Direct Access Badge Button - STRICTLY FOR ADMIN ONLY */}
-              {user?.role?.toLowerCase() === 'admin' && (
-                <Link
-                  to="/admin"
-                  className="flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-extrabold text-xs shadow-md shadow-amber-500/20 transition-all cursor-pointer whitespace-nowrap"
-                  title={t('nav.admin_panel', 'Admin Control Panel')}
-                >
-                  <ShieldCheck className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">{t('nav.admin_panel', 'Admin Panel')}</span>
-                </Link>
-              )}
-
-              {/* Live Time Display - Hidden on smaller screens */}
-              <div className="hidden xl:flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/40 text-xs font-bold text-slate-700 dark:text-slate-200 font-mono shadow-sm transition-all hover:border-emerald-500/30">
-                <Clock className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 animate-pulse shrink-0" />
-                <span className="tabular-nums tracking-wide">{currentTime || '--:--:--'}</span>
-              </div>
 
 
 
 
-              {/* Visual Scene Canvas Toggle — Hidden on mobile layout */}
-              <button
-                type="button"
-                onClick={toggleNavbarScene}
-                className="hidden lg:flex p-2 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors relative"
-                title={showNavbarScene ? "Hide Visual Scene Animations" : "Show Visual Scene Animations"}
-                aria-label="Toggle Visual Scene"
-              >
-                <Sparkles className={`w-4 h-4 transition-all duration-300 ${
-                  showNavbarScene 
-                    ? 'text-emerald-500 dark:text-emerald-400 animate-pulse' 
-                    : 'text-slate-400 dark:text-slate-600 scale-95 opacity-60'
-                }`} />
-                {showNavbarScene && (
-                  <span className="absolute top-1 right-1 flex h-1.5 w-1.5">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500" />
-                  </span>
-                )}
-              </button>
-
-              {/* Language selector removed from navbar — users change language via Profile → Settings → Languages page */}
-
-              {/* Theme Dark / Light Toggle */}
-              <button
-                type="button"
-                onClick={toggleDarkMode}
-                className="p-2 min-w-[40px] min-h-[40px] flex items-center justify-center text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
-                title={isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
-                aria-label="Toggle Theme"
-              >
-                {isDarkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-slate-600" />}
-              </button>
-
-              {/* Notification Bell Dropdown */}
-              <div className="relative" ref={bellRef}>
+                {/* Visual Scene Canvas Toggle — Hidden on mobile layout */}
                 <button
-                  onClick={handleBellClick}
-                  className="relative p-2 min-w-[40px] min-h-[40px] flex items-center justify-center text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
-                  title="Notifications"
-                  aria-label="Notifications"
+                  type="button"
+                  onClick={toggleNavbarScene}
+                  className="hidden lg:flex p-2 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors relative"
+                  title={showNavbarScene ? "Hide Visual Scene Animations" : "Show Visual Scene Animations"}
+                  aria-label="Toggle Visual Scene"
                 >
-                  {unreadCount > 0 ? <BellRing size={18} className="text-emerald-600 dark:text-emerald-400 animate-pulse" /> : <Bell size={18} />}
-                  {unreadCount > 0 && (
-                    <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-60" />
-                      <span className="relative inline-flex rounded-full h-4 w-4 bg-rose-500 text-white text-[9px] font-bold items-center justify-center">
-                        {unreadCount > 9 ? '9+' : unreadCount}
-                      </span>
+                  <Sparkles className={`w-4 h-4 transition-all duration-300 ${showNavbarScene
+                      ? 'text-emerald-500 dark:text-emerald-400 animate-pulse'
+                      : 'text-slate-400 dark:text-slate-600 scale-95 opacity-60'
+                    }`} />
+                  {showNavbarScene && (
+                    <span className="absolute top-1 right-1 flex h-1.5 w-1.5">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                      <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500" />
                     </span>
                   )}
                 </button>
 
-                {bellOpen && (
-                  <div className="absolute right-0 mt-2 z-50 w-[calc(100vw-24px)] max-w-sm sm:w-80 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl overflow-hidden">
-                    <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50">
-                      <span className="font-bold text-xs text-slate-800 dark:text-slate-200">{t('nav.notifications', 'Notifications')}</span>
-                      <Link to="/notifications" onClick={() => setBellOpen(false)} className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold hover:underline">
-                        {t('nav.view_all_inbox', 'View All Inbox')}
-                      </Link>
-                    </div>
-                    <div className="max-h-72 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/60">
-                      {recentAlerts.length === 0 ? (
-                        <div className="py-8 text-center text-slate-400 text-xs">
-                          <Bell className="mx-auto mb-2 opacity-30" size={24} />
-                          {t('nav.no_notifications', 'No notifications yet')}
-                        </div>
-                      ) : (
-                        recentAlerts.map((alert) => {
-                          const alertId = alert.notification_id || alert.id || alert._id;
-                          const isRead = alert.read === true || alert.is_read === true;
-                          const pc = PRIORITY_COLORS[alert.priority] || PRIORITY_COLORS.Low;
-                          const CatIcon = CATEGORY_ICONS[alert.category] || Activity;
-                          return (
-                            <div
-                              key={alertId}
-                              onClick={() => {
-                                if (alert.action_url) {
-                                  navigate(alert.action_url);
-                                  setBellOpen(false);
-                                }
-                              }}
-                              className={`px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer ${
-                                !isRead
-                                  ? 'border-l-4 border-emerald-500 bg-emerald-50/20 dark:bg-emerald-950/20'
-                                  : 'opacity-85 border-l-4 border-transparent'
-                              }`}
-                            >
-                              <div className="flex items-start gap-2.5">
-                                <span className={`mt-0.5 flex-shrink-0 p-1.5 rounded-lg ${pc.bg}`}>
-                                  <CatIcon size={13} className={pc.text} />
-                                </span>
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-1.5">
-                                    {!isRead && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0 animate-pulse" />}
-                                    <p className={`text-xs ${!isRead ? 'font-bold text-slate-900 dark:text-slate-100' : 'font-medium text-slate-700 dark:text-slate-300'} truncate`}>
-                                      {alert.title}
-                                    </p>
-                                  </div>
-                                  <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed mt-0.5 line-clamp-2">
-                                    {alert.message}
-                                  </p>
-                                  <div className="flex items-center justify-between mt-1">
-                                    <span className="text-[10px] text-slate-400">{timeAgo(alert.created_at || alert.timestamp)}</span>
-                                    <span className={`text-[9px] font-bold uppercase px-1.5 py-0.5 rounded ${pc.bg} ${pc.text}`}>
-                                      {alert.priority || 'Normal'}
-                                    </span>
-                                  </div>
-                                </div>
-                                {!isRead && (
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleMarkRead(alertId);
-                                    }}
-                                    className="flex-shrink-0 text-slate-400 hover:text-emerald-600 p-1.5 min-w-[32px] min-h-[32px] flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                                    title="Mark read"
-                                  >
-                                    <CheckCheck size={14} />
-                                  </button>
-                                )}
-                              </div>
-                            </div>
-                          );
-                        })
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-              
-              {/* User Profile Dropdown Menu */}
-              <div className="relative" ref={userMenuRef}>
+                {/* Language selector removed from navbar — users change language via Profile → Settings → Languages page */}
+
+                {/* Theme Dark / Light Toggle */}
                 <button
-                  onClick={() => setUserMenuOpen(!userMenuOpen)}
-                  className="flex items-center gap-1.5 group p-1 min-w-[40px] min-h-[40px] justify-center rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-                  aria-label="User Profile Menu"
+                  type="button"
+                  onClick={toggleDarkMode}
+                  className="p-2 min-w-[40px] min-h-[40px] flex items-center justify-center text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
+                  title={isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
+                  aria-label="Toggle Theme"
                 >
-                  <div className="bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 h-8 w-8 rounded-xl flex items-center justify-center font-bold text-xs border border-emerald-200 dark:border-emerald-800 shrink-0">
-                    {user.name ? user.name.charAt(0).toUpperCase() : 'F'}
-                  </div>
-                  <ChevronDown className="w-3.5 h-3.5 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-200 transition-colors" />
+                  {isDarkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-slate-600" />}
                 </button>
 
-                {userMenuOpen && (
-                  <div className="absolute right-0 mt-2 z-50 w-56 max-w-[calc(100vw-24px)] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl p-2 space-y-1">
-                    <div className="px-3 py-2 border-b border-slate-100 dark:border-slate-800">
-                      <p className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate">{user.name}</p>
-                      <p className="text-[11px] text-slate-400 truncate">{user.email}</p>
+                {/* Notification Bell Dropdown */}
+                <div className="relative" ref={bellRef}>
+                  <button
+                    onClick={handleBellClick}
+                    className="relative p-2 min-w-[40px] min-h-[40px] flex items-center justify-center text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
+                    title="Notifications"
+                    aria-label="Notifications"
+                  >
+                    {unreadCount > 0 ? <BellRing size={18} className="text-emerald-600 dark:text-emerald-400 animate-pulse" /> : <Bell size={18} />}
+                    {unreadCount > 0 && (
+                      <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-60" />
+                        <span className="relative inline-flex rounded-full h-4 w-4 bg-rose-500 text-white text-[9px] font-bold items-center justify-center">
+                          {unreadCount > 9 ? '9+' : unreadCount}
+                        </span>
+                      </span>
+                    )}
+                  </button>
+
+                  {bellOpen && (
+                    <div className="absolute right-0 mt-2 z-50 w-[calc(100vw-24px)] max-w-sm sm:w-80 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl overflow-hidden">
+                      <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50">
+                        <span className="font-bold text-xs text-slate-800 dark:text-slate-200">{t('nav.notifications', 'Notifications')}</span>
+                        <Link to="/notifications" onClick={() => setBellOpen(false)} className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold hover:underline">
+                          {t('nav.view_all_inbox', 'View All Inbox')}
+                        </Link>
+                      </div>
+                      <div className="max-h-72 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/60">
+                        {recentAlerts.length === 0 ? (
+                          <div className="py-8 text-center text-slate-400 text-xs">
+                            <Bell className="mx-auto mb-2 opacity-30" size={24} />
+                            {t('nav.no_notifications', 'No notifications yet')}
+                          </div>
+                        ) : (
+                          recentAlerts.map((alert) => {
+                            const alertId = alert.notification_id || alert.id || alert._id;
+                            const isRead = alert.read === true || alert.is_read === true;
+                            const pc = PRIORITY_COLORS[alert.priority] || PRIORITY_COLORS.Low;
+                            const CatIcon = CATEGORY_ICONS[alert.category] || Activity;
+                            return (
+                              <div
+                                key={alertId}
+                                onClick={() => {
+                                  if (alert.action_url) {
+                                    navigate(alert.action_url);
+                                    setBellOpen(false);
+                                  }
+                                }}
+                                className={`px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer ${!isRead
+                                    ? 'border-l-4 border-emerald-500 bg-emerald-50/20 dark:bg-emerald-950/20'
+                                    : 'opacity-85 border-l-4 border-transparent'
+                                  }`}
+                              >
+                                <div className="flex items-start gap-2.5">
+                                  <span className={`mt-0.5 flex-shrink-0 p-1.5 rounded-lg ${pc.bg}`}>
+                                    <CatIcon size={13} className={pc.text} />
+                                  </span>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-1.5">
+                                      {!isRead && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0 animate-pulse" />}
+                                      <p className={`text-xs ${!isRead ? 'font-bold text-slate-900 dark:text-slate-100' : 'font-medium text-slate-700 dark:text-slate-300'} truncate`}>
+                                        {alert.title}
+                                      </p>
+                                    </div>
+                                    <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed mt-0.5 line-clamp-2">
+                                      {alert.message}
+                                    </p>
+                                    <div className="flex items-center justify-between mt-1">
+                                      <span className="text-[10px] text-slate-400">{timeAgo(alert.created_at || alert.timestamp)}</span>
+                                      <span className={`text-[9px] font-bold uppercase px-1.5 py-0.5 rounded ${pc.bg} ${pc.text}`}>
+                                        {alert.priority || 'Normal'}
+                                      </span>
+                                    </div>
+                                  </div>
+                                  {!isRead && (
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleMarkRead(alertId);
+                                      }}
+                                      className="flex-shrink-0 text-slate-400 hover:text-emerald-600 p-1.5 min-w-[32px] min-h-[32px] flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                                      title="Mark read"
+                                    >
+                                      <CheckCheck size={14} />
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })
+                        )}
+                      </div>
                     </div>
+                  )}
+                </div>
 
-                    <Link
-                      to="/profile"
-                      onClick={() => setUserMenuOpen(false)}
-                      className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-                    >
-                      <User className="w-3.5 h-3.5 text-slate-400" />
-                      <span>{user?.role?.toLowerCase() === 'admin' ? t('nav.admin_profile', 'Admin Profile & Security') : user?.role?.toLowerCase() === 'equipment_provider' ? t('nav.provider_profile', 'My Profile') : t('nav.profile', 'User Profile')}</span>
-                    </Link>
-
-                    {user?.role?.toLowerCase() !== 'admin' && user?.role?.toLowerCase() !== 'equipment_provider' && (
-                      <Link
-                        to="/farm"
-                        onClick={() => setUserMenuOpen(false)}
-                        className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-                      >
-                        <Sprout className="w-3.5 h-3.5 text-emerald-500" />
-                        <span>{t('nav.farm_operations', 'My Farm & Operations')}</span>
-                      </Link>
-                    )}
-
-                    {user?.role?.toLowerCase() !== 'equipment_provider' && (
-                      <Link
-                        to="/notifications"
-                        onClick={() => setUserMenuOpen(false)}
-                        className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-                      >
-                        <Bell className="w-3.5 h-3.5 text-slate-400" />
-                        <span>{t('nav.notification_inbox', 'Notification Inbox')}</span>
-                      </Link>
-                    )}
-
-                    {user?.role?.toLowerCase() !== 'equipment_provider' && (
-                      <Link
-                        to="/settings"
-                        onClick={() => setUserMenuOpen(false)}
-                        className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-                      >
-                        <SettingsIcon className="w-3.5 h-3.5 text-slate-400" />
-                        <span>{t('nav.settings', 'Settings')}</span>
-                      </Link>
-                    )}
-
-                    {(user?.role?.toLowerCase() === 'admin') && (
-                      <Link
-                        to="/admin"
-                        onClick={() => setUserMenuOpen(false)}
-                        className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/50 transition-colors border border-amber-200 dark:border-amber-900/50 my-1"
-                      >
-                        <ShieldCheck className="w-3.5 h-3.5 text-amber-500" />
-                        <span>{t('nav.admin_panel', 'Admin Control Panel')}</span>
-                      </Link>
-                    )}
-
-                    <div className="border-t border-slate-100 dark:border-slate-800 pt-1 mt-1">
-                      <button
-                        onClick={() => {
-                          setUserMenuOpen(false);
-                          handleLogout();
-                        }}
-                        className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/50 transition-colors cursor-pointer"
-                      >
-                        <LogOut className="w-3.5 h-3.5" />
-                        <span>{t('nav.log_out', 'Log Out')}</span>
-                      </button>
+                {/* User Profile Dropdown Menu */}
+                <div className="relative" ref={userMenuRef}>
+                  <button
+                    onClick={() => setUserMenuOpen(!userMenuOpen)}
+                    className="flex items-center gap-1.5 group p-1 min-w-[40px] min-h-[40px] justify-center rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                    aria-label="User Profile Menu"
+                  >
+                    <div className="bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 h-8 w-8 rounded-xl flex items-center justify-center font-bold text-xs border border-emerald-200 dark:border-emerald-800 shrink-0">
+                      {user.name ? user.name.charAt(0).toUpperCase() : 'F'}
                     </div>
-                  </div>
-                )}
-              </div>
-            </>
-          )}
+                    <ChevronDown className="w-3.5 h-3.5 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-200 transition-colors" />
+                  </button>
+
+                  {userMenuOpen && (
+                    <div className="absolute right-0 mt-2 z-50 w-56 max-w-[calc(100vw-24px)] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl p-2 space-y-1">
+                      <div className="px-3 py-2 border-b border-slate-100 dark:border-slate-800">
+                        <p className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate">{user.name}</p>
+                        <p className="text-[11px] text-slate-400 truncate">{user.email}</p>
+                      </div>
+
+                      <Link
+                        to="/profile"
+                        onClick={() => setUserMenuOpen(false)}
+                        className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                      >
+                        <User className="w-3.5 h-3.5 text-slate-400" />
+                        <span>{user?.role?.toLowerCase() === 'admin' ? t('nav.admin_profile', 'Admin Profile & Security') : user?.role?.toLowerCase() === 'equipment_provider' ? t('nav.provider_profile', 'My Profile') : t('nav.profile', 'User Profile')}</span>
+                      </Link>
+
+                      {user?.role?.toLowerCase() !== 'admin' && user?.role?.toLowerCase() !== 'equipment_provider' && (
+                        <Link
+                          to="/farm"
+                          onClick={() => setUserMenuOpen(false)}
+                          className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                        >
+                          <Sprout className="w-3.5 h-3.5 text-emerald-500" />
+                          <span>{t('nav.farm_operations', 'My Farm & Operations')}</span>
+                        </Link>
+                      )}
+
+                      {user?.role?.toLowerCase() !== 'equipment_provider' && (
+                        <Link
+                          to="/notifications"
+                          onClick={() => setUserMenuOpen(false)}
+                          className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                        >
+                          <Bell className="w-3.5 h-3.5 text-slate-400" />
+                          <span>{t('nav.notification_inbox', 'Notification Inbox')}</span>
+                        </Link>
+                      )}
+
+                      {user?.role?.toLowerCase() !== 'equipment_provider' && (
+                        <Link
+                          to="/settings"
+                          onClick={() => setUserMenuOpen(false)}
+                          className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                        >
+                          <SettingsIcon className="w-3.5 h-3.5 text-slate-400" />
+                          <span>{t('nav.settings', 'Settings')}</span>
+                        </Link>
+                      )}
+
+                      {(user?.role?.toLowerCase() === 'admin') && (
+                        <Link
+                          to="/admin"
+                          onClick={() => setUserMenuOpen(false)}
+                          className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/50 transition-colors border border-amber-200 dark:border-amber-900/50 my-1"
+                        >
+                          <ShieldCheck className="w-3.5 h-3.5 text-amber-500" />
+                          <span>{t('nav.admin_panel', 'Admin Control Panel')}</span>
+                        </Link>
+                      )}
+
+                      <div className="border-t border-slate-100 dark:border-slate-800 pt-1 mt-1">
+                        <button
+                          onClick={() => {
+                            setUserMenuOpen(false);
+                            handleLogout();
+                          }}
+                          className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/50 transition-colors cursor-pointer"
+                        >
+                          <LogOut className="w-3.5 h-3.5" />
+                          <span>{t('nav.log_out', 'Log Out')}</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
         </div>
-      </div>
 
-      {/* Floating Live Alert Toast Notification (Responsive for mobile & desktop) */}
-      <AnimatePresence>
-        {liveAlert && (
-          <motion.div
-            initial={{ opacity: 0, y: 30, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 20, scale: 0.95 }}
-            className="fixed bottom-20 inset-x-4 sm:inset-x-auto sm:bottom-6 sm:right-6 sm:max-w-sm z-[110] bg-white/95 dark:bg-slate-900/95 border border-emerald-500/30 dark:border-emerald-500/30 rounded-2xl shadow-2xl p-4 flex items-start gap-3 backdrop-blur-xl"
-          >
-            <div className="flex-shrink-0 p-2.5 bg-emerald-100 dark:bg-emerald-950/80 rounded-xl text-emerald-600 dark:text-emerald-400">
-              <BellRing size={20} className="animate-pulse" />
-            </div>
-            <div className="flex-grow min-w-0 pr-1">
-              <div className="flex items-center gap-1.5 mb-0.5">
-                <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-                <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
-                  {liveAlert.category === 'booking' || liveAlert.type === 'booking_chat' 
-                    ? (i18n.language === 'te' ? '💬 వ్యవసాయ సందేశం' : '💬 Farm Message') 
-                    : t('nav.live_alert_tag', 'AI Diagnosis Alert')}
-                </span>
-              </div>
-              <h4 className="text-xs font-black text-slate-900 dark:text-slate-100 leading-snug">{liveAlert.title}</h4>
-              <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-1 line-clamp-2 leading-relaxed">{liveAlert.message}</p>
-              <Link 
-                to={liveAlert.action_url || "/notifications"} 
-                onClick={() => setLiveAlert(null)}
-                className="inline-flex items-center gap-1 text-[11px] font-black text-emerald-600 dark:text-emerald-400 hover:underline mt-2"
-              >
-                <span>{t('nav.view_details', 'View Full Details')}</span>
-                <span>&rarr;</span>
-              </Link>
-            </div>
-            <button 
-              onClick={() => setLiveAlert(null)} 
-              className="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer shrink-0"
-              aria-label="Dismiss notification"
+        {/* Floating Live Alert Toast Notification (Responsive for mobile & desktop) */}
+        <AnimatePresence>
+          {liveAlert && (
+            <motion.div
+              initial={{ opacity: 0, y: 30, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 20, scale: 0.95 }}
+              className="fixed bottom-20 inset-x-4 sm:inset-x-auto sm:bottom-6 sm:right-6 sm:max-w-sm z-[110] bg-white/95 dark:bg-slate-900/95 border border-emerald-500/30 dark:border-emerald-500/30 rounded-2xl shadow-2xl p-4 flex items-start gap-3 backdrop-blur-xl"
             >
-              <X size={16} />
-            </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </header>
+              <div className="flex-shrink-0 p-2.5 bg-emerald-100 dark:bg-emerald-950/80 rounded-xl text-emerald-600 dark:text-emerald-400">
+                <BellRing size={20} className="animate-pulse" />
+              </div>
+              <div className="flex-grow min-w-0 pr-1">
+                <div className="flex items-center gap-1.5 mb-0.5">
+                  <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+                  <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+                    {liveAlert.category === 'booking' || liveAlert.type === 'booking_chat'
+                      ? (i18n.language === 'te' ? '💬 వ్యవసాయ సందేశం' : '💬 Farm Message')
+                      : t('nav.live_alert_tag', 'AI Diagnosis Alert')}
+                  </span>
+                </div>
+                <h4 className="text-xs font-black text-slate-900 dark:text-slate-100 leading-snug">{liveAlert.title}</h4>
+                <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-1 line-clamp-2 leading-relaxed">{liveAlert.message}</p>
+                <Link
+                  to={liveAlert.action_url || "/notifications"}
+                  onClick={() => setLiveAlert(null)}
+                  className="inline-flex items-center gap-1 text-[11px] font-black text-emerald-600 dark:text-emerald-400 hover:underline mt-2"
+                >
+                  <span>{t('nav.view_details', 'View Full Details')}</span>
+                  <span>&rarr;</span>
+                </Link>
+              </div>
+              <button
+                onClick={() => setLiveAlert(null)}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer shrink-0"
+                aria-label="Dismiss notification"
+              >
+                <X size={16} />
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </header>
     </>
   );
 };
@@ -1369,7 +1364,7 @@ export const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
       {/* Mobile Drawer Overlay Backdrop */}
       <AnimatePresence>
         {sidebarOpen && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -1379,9 +1374,8 @@ export const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
         )}
       </AnimatePresence>
 
-      <aside className={`fixed top-16 bottom-0 left-0 z-40 w-64 border-r border-slate-200/90 dark:border-slate-800 bg-white/95 dark:bg-[#0a0f1d]/95 backdrop-blur-xl pt-2 transition-transform duration-300 flex flex-col justify-between ${
-        sidebarOpen ? 'translate-x-0 shadow-xl' : '-translate-x-full'
-      }`}>
+      <aside className={`fixed top-16 bottom-0 left-0 z-40 w-64 border-r border-slate-200/90 dark:border-slate-800 bg-white/95 dark:bg-[#0a0f1d]/95 backdrop-blur-xl pt-2 transition-transform duration-300 flex flex-col justify-between ${sidebarOpen ? 'translate-x-0 shadow-xl' : '-translate-x-full'
+        }`}>
         <nav aria-label="Main Navigation" className="flex-1 px-3 py-4 overflow-y-auto space-y-6">
           {navGroups.map((group) => (
             <div key={group.title} className="space-y-1">
@@ -1392,13 +1386,13 @@ export const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
                 const Icon = item.icon;
                 const isItemAdmin = item.path.startsWith('/admin');
                 const isItemProvider = item.path.startsWith('/provider/dashboard');
-                const itemTab = isItemAdmin 
-                  ? (new URLSearchParams(item.path.split('?')[1] || '').get('tab') || 'users') 
+                const itemTab = isItemAdmin
+                  ? (new URLSearchParams(item.path.split('?')[1] || '').get('tab') || 'users')
                   : isItemProvider
                     ? (new URLSearchParams(item.path.split('?')[1] || '').get('tab') || 'fleet')
                     : null;
                 const currentProviderTab = searchParams.get('tab') || 'fleet';
-                const isActive = isItemAdmin 
+                const isActive = isItemAdmin
                   ? (currentPath === '/admin' && currentTab === itemTab)
                   : isItemProvider
                     ? (currentPath === '/provider/dashboard' && currentProviderTab === itemTab)
@@ -1412,11 +1406,10 @@ export const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
                     }}
                     aria-current={isActive ? "page" : undefined}
                     aria-label={t(item.key, item.label)}
-                    className={`relative flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold min-h-[44px] transition-all duration-200 stagger-item ${
-                      isActive 
-                        ? 'bg-emerald-600 text-white font-bold shadow-md shadow-emerald-600/25 border-l-4 border-l-emerald-300 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border dark:border-emerald-500/40 dark:border-l-4 dark:border-l-emerald-400' 
+                    className={`relative flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold min-h-[44px] transition-all duration-200 stagger-item ${isActive
+                        ? 'bg-emerald-600 text-white font-bold shadow-md shadow-emerald-600/25 border-l-4 border-l-emerald-300 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border dark:border-emerald-500/40 dark:border-l-4 dark:border-l-emerald-400'
                         : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100/90 dark:hover:bg-slate-800/80 hover:text-slate-900 dark:hover:text-white hover:translate-x-1'
-                    }`}
+                      }`}
                   >
                     <div className="flex items-center gap-3">
                       <Icon className={`h-5 w-5 transition-colors ${isActive ? 'text-white dark:text-emerald-300' : (item.color || 'text-slate-400')}`} />
@@ -1620,9 +1613,8 @@ export const BottomNav = () => {
                 `}>
                   <Icon className="w-5 h-5 drop-shadow-xs" />
                 </div>
-                <span className={`text-[10px] font-bold tracking-tight mt-0.5 ${
-                  isActive ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-600 dark:text-slate-400'
-                }`}>
+                <span className={`text-[10px] font-bold tracking-tight mt-0.5 ${isActive ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-600 dark:text-slate-400'
+                  }`}>
                   {tab.label}
                 </span>
               </Link>
@@ -1648,9 +1640,8 @@ export const BottomNav = () => {
                   </span>
                 )}
               </div>
-              <span className={`text-[10px] tracking-tight mt-1 leading-none ${
-                isActive ? 'font-extrabold text-emerald-600 dark:text-emerald-400' : 'font-medium text-slate-500 dark:text-slate-400'
-              }`}>
+              <span className={`text-[10px] tracking-tight mt-1 leading-none ${isActive ? 'font-extrabold text-emerald-600 dark:text-emerald-400' : 'font-medium text-slate-500 dark:text-slate-400'
+                }`}>
                 {tab.label}
               </span>
             </Link>
@@ -1684,7 +1675,7 @@ export const Footer = () => {
 };
 
 // Re-export primitive components for backwards compatibility across older files
-export { 
+export {
   UIPrimitiveSkeleton as Skeleton,
   UIPrimitiveBadge as Badge,
   UIPrimitiveAlert as Alert,

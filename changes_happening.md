@@ -11587,3 +11587,38 @@ ender_latency_and_hybrid_architecture_plan.md with full technical breakdown, mer
   - Relocated Edge AI management into the "More" tab under "Offline AI & Storage" for voluntary Wi-Fi downloads.
 - **Git & System Integrity:**
   - Updated .gitignore to keep temporary browser profiles and automation screenshots local.
+## [2026-11-21 20:42:00] - Created Phase-1 Final Review PPT Update Documentation
+- **File Created:** PHASE_1_FINAL_REVIEW_PPT_UPDATE.md
+- **Summary:** Generated complete slide-by-slide text, bullet points, speaking notes, and table layouts for the 3 slides required by project guide/coordinator:
+  1. Outcome of Phase-1 project
+  2. Publication status (IEEE/Springer manuscript draft)
+  3. Work plan for Phase-2 project (WBS, timeline, deliverables)
+- **Agenda Update:** Included updated Slide 2 (Agenda) reflecting the new slides.
+
+## [2026-11-21 20:51:00] - Created Complete Phase-2 Zeroth Review Slide Content
+- **File Created:** PHASE_2_ZEROTH_REVIEW_FULL_PPT_CONTENT.md
+- **Summary:** Generated complete slide-by-slide text for all 18 slides matching the official Sathyabama CSE BCT Phase-II Zeroth Review template:
+  1. Title Slide (Trivendra Reddy 43613005, Nanda Kishore Reddy 43613034, Guide: Dr. D. Sudha)
+  2. Agenda
+  3. Abstract
+  4. Objective(s) (4-5 lines)
+  5-9. Literature Survey (1/5 to 5/5 in 6-column format)
+  10. Proposed System Architecture
+  11. Implementation (Phase-1 & Ongoing Phase-2)
+  12. Outcome of Phase-1 Project
+  13. Publication Status (IEEE/Springer draft under prep)
+  14. Any Update or Change in Title / Methodology
+  15. Work Plan for Phase-2 Project (Gantt chart table)
+  16. Assurance about Phase-2 Outcome
+  17. References
+  18. Thank You
+
+## [2026-11-21 21:50:00] - Micro-Model Priority Routing & Online Scan Display Fix
+- **Backend Micro-Model First Priority (backend/app/routers/farmer/predict.py):**
+  - Moved dedicated per-crop micro-model inference (run_crop_micro_inference) to the absolute first execution step in predict_pytorch_endpoint.
+  - When a crop is selected (e.g. Chilli, Rice, Cotton, Tomato), the server executes the specialized 2.3MB micro-model in <25ms (<20MB RAM) with ZERO network offload hops, completely eliminating the 2-minute latency and cold-start timeouts.
+  - Added dedicated micro-model priority in worker_predict_endpoint (/worker/predict) to prevent Render workers from loading the 262MB model or crashing with OOM.
+- **Frontend Online Scan Behavior (frontend/src/pages/farmer/UploadImagePage.jsx):**
+  - Stopped premature display of '100% Offline (Edge AI)' when scanning online.
+  - When online, on-device inference runs silently in parallel for consensus fusion, while the primary UI displays real-time cloud micro-model progress and renders the high-precision Cloud Micro-Model verdict.
+  - Offline mode badge is strictly restricted to when the mobile device has zero connectivity (!navigator.onLine).

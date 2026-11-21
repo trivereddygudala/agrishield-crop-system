@@ -115,13 +115,13 @@ export const preloadOnDeviceModel = async (options = {}) => {
           if (cachedClasses && Array.isArray(cachedClasses) && cachedClasses.length > 0) {
             _classes = cachedClasses;
           }
-        } catch (_) {}
+        } catch (_) { }
 
         if (!_classes) {
           const resp = await fetch(CLASSES_URL);
           if (!resp.ok) throw new Error(`Failed to fetch classes: HTTP ${resp.status}`);
           _classes = await resp.json();
-          saveBufferToIDB(IDB_CLASSES_KEY, _classes).catch(() => {});
+          saveBufferToIDB(IDB_CLASSES_KEY, _classes).catch(() => { });
         }
       }
 
@@ -138,7 +138,7 @@ export const preloadOnDeviceModel = async (options = {}) => {
           modelBuffer = fullCached;
           flavor = 'fp32_full_87mb';
         }
-      } catch (_) {}
+      } catch (_) { }
 
       // If full model not yet in IndexedDB, check for INT8 cached model
       if (!modelBuffer && !forceFullModel) {
@@ -148,7 +148,7 @@ export const preloadOnDeviceModel = async (options = {}) => {
             modelBuffer = int8Cached;
             flavor = 'int8_quantized_22mb';
           }
-        } catch (_) {}
+        } catch (_) { }
       }
 
       // If neither is cached in IndexedDB, only fetch from network if explicitly permitted (e.g. from More tab modal)
@@ -175,7 +175,7 @@ export const preloadOnDeviceModel = async (options = {}) => {
             if (resp.ok) {
               modelBuffer = await resp.arrayBuffer();
               flavor = 'int8_quantized_22mb';
-              saveBufferToIDB(IDB_INT8_MODEL_KEY, modelBuffer).catch(() => {});
+              saveBufferToIDB(IDB_INT8_MODEL_KEY, modelBuffer).catch(() => { });
             }
           } catch (_) {
             // Final attempt: try full model URL
@@ -183,7 +183,7 @@ export const preloadOnDeviceModel = async (options = {}) => {
             if (fullResp.ok) {
               modelBuffer = await fullResp.arrayBuffer();
               flavor = 'fp32_full_87mb';
-              saveBufferToIDB(IDB_FULL_MODEL_KEY, modelBuffer).catch(() => {});
+              saveBufferToIDB(IDB_FULL_MODEL_KEY, modelBuffer).catch(() => { });
             }
           }
         }
@@ -197,7 +197,7 @@ export const preloadOnDeviceModel = async (options = {}) => {
       if (_session) {
         try {
           _session.release?.();
-        } catch (_) {}
+        } catch (_) { }
         _session = null;
       }
 

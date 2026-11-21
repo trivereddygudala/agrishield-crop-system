@@ -545,7 +545,7 @@ const UploadImagePage = () => {
 
     scanStore.setTabState(currentTab, { loading: true, errorMsg: '' });
 
-    // 0. Dual-Engine Parallel Acceleration (<350ms instant mobile preview ONLY if model is cached in IndexedDB)
+    // 0. Dual-Engine Parallel Acceleration (Silent on-device pre-computation ONLY if model is cached in IndexedDB)
     const isEdgeAiEnabled = typeof window !== 'undefined' ? localStorage.getItem('agrishield_edge_ai_enabled') !== 'false' : true;
     let initialEdgeResult = null;
 
@@ -559,21 +559,8 @@ const UploadImagePage = () => {
           });
           if (onDeviceResult && onDeviceResult.confidence >= 25.0) {
             initialEdgeResult = onDeviceResult;
-            scanStore.setTabState(currentTab, {
-              liveResult: {
-                ...onDeviceResult,
-                isVerifyingCloud: true
-              },
-              hasScanned: true,
-              loading: false,
-              errorMsg: ''
-            });
-
-            // Invalidate cache and broadcast preliminary scan
-            try {
-              window._cachedPredictionHistory = null;
-              window.dispatchEvent(new CustomEvent('agrishield-new-scan', { detail: onDeviceResult }));
-            } catch (_) {}
+            // Silent parallel cache for dual-engine consensus fusion upon cloud response
+            logger?.debug?.('On-device Edge AI completed silently in parallel for dual-engine consensus');
           }
         } else {
           console.info('On-device model not cached; routing directly to fast cloud micro-model.');
@@ -860,8 +847,8 @@ const UploadImagePage = () => {
     } catch (err) {
       console.warn("Backend error during scan:", err);
 
-      // If on-device edge AI already generated a valid result, retain it with offline flag
-      if (initialEdgeResult && currentTab === 'disease-diag') {
+      // If phone is truly offline (!navigator.onLine) and on-device edge AI already generated a valid result
+      if (!navigator.onLine && initialEdgeResult && currentTab === 'disease-diag') {
         scanStore.setTabState(currentTab, {
           liveResult: {
             ...initialEdgeResult,
