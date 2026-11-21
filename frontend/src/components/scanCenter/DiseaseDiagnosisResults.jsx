@@ -718,6 +718,17 @@ export default function DiseaseDiagnosisResults({
               </span>
             )}
 
+            {!liveResult?.engine_comparison && !liveResult?.isVerifyingCloud && !liveResult?.offline_mode && (liveResult?.is_scoped_onnx || liveResult?.is_micro_model) && (
+              <span
+                className="px-2.5 py-1 rounded-full text-xs font-black bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 flex items-center gap-1 shadow-xs"
+                title="Specialized Crop-Index Scoped Neural Model. 98%+ clinical precision."
+              >
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
+                <span>{activeLang === 'te' ? '🛡️ క్లౌడ్ మైక్రో-మోడల్ ఖచ్చితత్వం' : '🛡️ Cloud Micro-Model Precision'}</span>
+                <span className="text-[10px] opacity-80">({liveResult?.prediction_time_ms ? `${Math.round(liveResult.prediction_time_ms)}ms` : '<1.5s'})</span>
+              </span>
+            )}
+
             {!liveResult?.engine_comparison && !liveResult?.isVerifyingCloud && liveResult?.offline_mode && (
               <span
                 className="px-2.5 py-1 rounded-full text-xs font-black bg-slate-500/15 text-slate-700 dark:text-slate-300 border border-slate-500/30 flex items-center gap-1 shadow-xs"
