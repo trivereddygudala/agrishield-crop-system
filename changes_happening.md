@@ -11635,3 +11635,18 @@ ender_latency_and_hybrid_architecture_plan.md with full technical breakdown, mer
   - Added dedicated status badge for Crop-Scoped ONNX precision (🛡️ క్లౌడ్ మైక్రో-మోడల్ ఖచ్చితత్వం / 🛡️ Cloud Micro-Model Precision).
 - **Production Build:**
   - Vite production build compiled 3,204 modules in 22.79s with 0 errors.
+## [2026-11-22 00:15:00] - Production Deployment: Hostless Cloud API Routing & Vercel Reverse Proxy Update
+- **Vercel Reverse Proxy Rewrites (vercel.json & frontend/vercel.json):**
+  - Updated /api/upload, /api/upload/:path*, /api/predict, /api/predict/:path*, and /uploads/:path* destination endpoints to route directly to https://agrishield-backend.hostless.app.
+  - Shifted all heavy leaf upload and disease diagnosis workloads from Render Worker 1 to Hostless Cloud (1GB RAM, 0.5 vCPU, 24/7 always-on, zero cold starts).
+- **Frontend API Service Configuration (frontend/src/services/api.js):**
+  - Updated AI_WORKER_1_URL constant to https://agrishield-backend.hostless.app.
+  - Maintained cluster fallback logic for Botanical Plant Identification (Worker 2) and Agrochemical OCR (Worker 3).
+- **Production Build:**
+  - Vite production build compiled 3,204 modules in 19.77s with 0 errors.
+
+## [2026-11-22 00:18:00] - Fix Hostless Cloud Railpack Dependency Build Error
+- **Flattened Root requirements.txt:**
+  - Replaced relative reference -r backend/requirements.txt in root 
+equirements.txt with the full production package list (fastapi, uvicorn, pymongo, motor, onnxruntime, torch, torchvision, pillow, numpy, etc.).
+  - Fixed Docker / Railpack build error: ERROR: Could not open requirements file: [Errno 2] No such file or directory: '/app/backend/requirements.txt'. Railpack can now cache and install dependencies in /app directly without path resolution failures.
