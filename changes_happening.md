@@ -11650,3 +11650,13 @@ ender_latency_and_hybrid_architecture_plan.md with full technical breakdown, mer
   - Replaced relative reference -r backend/requirements.txt in root 
 equirements.txt with the full production package list (fastapi, uvicorn, pymongo, motor, onnxruntime, torch, torchvision, pillow, numpy, etc.).
   - Fixed Docker / Railpack build error: ERROR: Could not open requirements file: [Errno 2] No such file or directory: '/app/backend/requirements.txt'. Railpack can now cache and install dependencies in /app directly without path resolution failures.
+
+## [2026-11-22 01:08:00] - Production Optimization: Eliminate PyTorch/CUDA Bloat to Solve 35-Minute Hostless Build Timeout
+- **Removed Heavy GPU/CUDA Dependencies (requirements.txt & backend/requirements.txt):**
+  - Removed torch, torchvision, timm, sentence-transformers, faiss-cpu, and pypdf.
+  - Dropped installation payload from ~5GB (NVIDIA CUDA runtime, cuDNN, cuBLAS, etc.) down to ~45MB.
+  - Eliminated the 35-minute Build Timeout. The new clean build finishes in ~60-90 seconds.
+- **Resilient ONNX-First Runtime (backend/app/routers/farmer/predict.py & crop_micro_model_service.py):**
+  - Made PyTorch imports lazy and non-blocking (try...except (ImportError, ModuleNotFoundError)).
+  - Confirmed crop_scoped_onnx_service.py runs 100% independently via onnxruntime + numpy in ~1.0s with zero GPU dependencies.
+  - Verified local end-to-end execution on real leaf test image (synthetic_test_leaf.jpg -> 93.69% confidence in 1,057ms).

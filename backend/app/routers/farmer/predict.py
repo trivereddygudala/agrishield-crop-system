@@ -1999,19 +1999,22 @@ async def predict_pytorch_endpoint(
 
             # 2. Secondary Fallback: General 1252-Class PyTorch Pipeline (Memory Capped on Render)
             if not prediction_result:
-                is_cloud_worker = bool(os.environ.get("RENDER") or os.environ.get("IS_PREDICTION_WORKER") or "worker" in os.environ.get("RENDER_SERVICE_NAME", "").lower())
-                safe_explainer = None if is_cloud_worker else (req.explainer_type or "gradcam++")
-                if "crop_filter" in sig.parameters:
-                    kwargs["crop_filter"] = active_crop_filter
-                elif any(p.kind == inspect.Parameter.VAR_KEYWORD for p in sig.parameters.values()):
-                    kwargs["crop_filter"] = active_crop_filter
-                
-                prediction_result = await asyncio.to_thread(
-                    predict_crop_disease,
-                    effective_image_path,
-                    safe_explainer,
-                    **kwargs
-                )
+                try:
+                    is_cloud_worker = bool(os.environ.get("RENDER") or os.environ.get("IS_PREDICTION_WORKER") or "worker" in os.environ.get("RENDER_SERVICE_NAME", "").lower())
+                    safe_explainer = None if is_cloud_worker else (req.explainer_type or "gradcam++")
+                    if "crop_filter" in sig.parameters:
+                        kwargs["crop_filter"] = active_crop_filter
+                    elif any(p.kind == inspect.Parameter.VAR_KEYWORD for p in sig.parameters.values()):
+                        kwargs["crop_filter"] = active_crop_filter
+                    
+                    prediction_result = await asyncio.to_thread(
+                        predict_crop_disease,
+                        effective_image_path,
+                        safe_explainer,
+                        **kwargs
+                    )
+                except (ImportError, ModuleNotFoundError) as imp_err:
+                    logger.warning(f"PyTorch fallback omitted (ONNX active): {imp_err}")
         except Exception as e:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

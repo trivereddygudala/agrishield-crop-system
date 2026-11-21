@@ -4,17 +4,27 @@ import logging
 import gc
 from collections import OrderedDict
 from typing import Optional, Dict, Any, Tuple, List
-import torch
-from torchvision import transforms
 from PIL import Image
 
 logger = logging.getLogger("crop_micro_model_service")
 
-# Pin single thread to eliminate CPU thread contention on Render 0.1 vCPU
+# Safe PyTorch import (permits running on ultra-fast ONNX-only cloud nodes)
 try:
-    torch.set_num_threads(1)
-except Exception:
-    pass
+    import torch
+    from torchvision import transforms
+    try:
+        torch.set_num_threads(1)
+    except Exception:
+        pass
+    _TRANSFORMS = transforms.Compose([
+        transforms.Resize((224, 224)),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+    ])
+except (ImportError, ModuleNotFoundError):
+    torch = None
+    transforms = None
+    _TRANSFORMS = None
 
 # Base directory for per-crop models
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
@@ -26,13 +36,6 @@ _MODEL_LOCK = threading.Lock()
 MAX_ACTIVE_MODELS = 1
 _CACHED_MODELS: OrderedDict[str, Any] = OrderedDict()
 _CACHED_METADATA: Dict[str, Dict[str, Any]] = {}
-
-# Standard PyTorch normalization transforms
-_TRANSFORMS = transforms.Compose([
-    transforms.Resize((224, 224)),
-    transforms.ToTensor(),
-    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-])
 
 # Comprehensive Agricultural Crop Aliases (Telugu, Hindi, English vernacular)
 CROP_ALIASES = {
@@ -391,7 +394,7 @@ def run_crop_micro_inference(
     Returns rich diagnostic dictionary with zero-latency pre-compiled bilingual advisories.
     """
     slug = normalize_crop_slug(crop_name)
-    if not slug or not is_crop_supported(slug):
+    if not slug or not is_crop_supported(slug) or torch is None or _TRANSFORMS is None:
         return None
         
     meta = _load_crop_metadata(slug)
