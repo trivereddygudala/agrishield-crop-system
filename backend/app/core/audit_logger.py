@@ -8,18 +8,31 @@ from typing import Any, Dict
 security_logger = logging.getLogger("security_audit")
 security_logger.setLevel(logging.INFO)
 
-# Setup log directory and file handler
-log_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "logs")
-os.makedirs(log_dir, exist_ok=True)
-log_file = os.path.join(log_dir, "security_audit.log")
+# Setup log directory and file handler (resilient to container read-only filesystems)
+log_handler = None
+try:
+    log_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "logs")
+    os.makedirs(log_dir, exist_ok=True)
+    log_file = os.path.join(log_dir, "security_audit.log")
+    log_handler = logging.FileHandler(log_file, encoding="utf-8")
+except (OSError, PermissionError):
+    try:
+        # Fallback to standard temp directory writable in containerized environments (Hostless Cloud, Docker)
+        tmp_dir = os.environ.get("TMPDIR") or os.environ.get("TEMP") or "/tmp"
+        os.makedirs(tmp_dir, exist_ok=True)
+        log_file = os.path.join(tmp_dir, "security_audit.log")
+        log_handler = logging.FileHandler(log_file, encoding="utf-8")
+    except Exception:
+        # If filesystem is strictly read-only, stream directly to stdout
+        import sys
+        log_handler = logging.StreamHandler(sys.stdout)
 
-file_handler = logging.FileHandler(log_file, encoding="utf-8")
-file_handler.setLevel(logging.INFO)
-formatter = logging.formatters = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-file_handler.setFormatter(formatter)
+log_handler.setLevel(logging.INFO)
+formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+log_handler.setFormatter(formatter)
 
 if not security_logger.handlers:
-    security_logger.addHandler(file_handler)
+    security_logger.addHandler(log_handler)
 
 SENSITIVE_KEYS = {"password", "password_hash", "access_token", "refresh_token", "jwt", "api_key", "secret", "token"}
 

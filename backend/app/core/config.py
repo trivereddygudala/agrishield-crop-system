@@ -117,11 +117,19 @@ class Settings(BaseSettings):
 
     @property
     def canonical_upload_dir(self) -> str:
-        """Absolute path to the canonical backend/uploads directory."""
-        backend_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        upload_path = os.path.join(backend_dir, "uploads")
-        os.makedirs(upload_path, exist_ok=True)
-        return upload_path
+        """Absolute path to the canonical backend/uploads directory, with container fallback."""
+        try:
+            backend_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            upload_path = os.path.join(backend_dir, "uploads")
+            os.makedirs(upload_path, exist_ok=True)
+            return upload_path
+        except (OSError, PermissionError):
+            tmp_upload = os.path.join(os.environ.get("TMPDIR") or os.environ.get("TEMP") or "/tmp", "agrishield_uploads")
+            try:
+                os.makedirs(tmp_upload, exist_ok=True)
+            except Exception:
+                pass
+            return tmp_upload
 
     @property
     def is_production(self) -> bool:

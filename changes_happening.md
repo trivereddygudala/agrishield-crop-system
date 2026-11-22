@@ -11676,3 +11676,12 @@ equirements.txt with the full production package list (fastapi, uvicorn, pymongo
 - **Crop-Scoped ONNX Mocking (backend/tests/test_api.py):**
   - Added monkeypatching for crop_scoped_onnx_service.run_crop_scoped_inference in test_upload_and_prediction and test_low_confidence_rejection.
   - Ensures unit tests evaluate fast mocked responses without attempting real disk model inferences on synthetic blank images.
+
+## [2026-11-22 06:45:00] - Fix Container Read-Only Filesystem & GitHub Actions PyPI Index Splitting
+- **Read-Only Filesystem Resilience (backend/app/core/audit_logger.py, config.py, main.py):**
+  - Wrapped security_audit.log handler in try-except with progressive fallback: /app/backend/logs/ -> /tmp/security_audit.log -> StreamHandler(sys.stdout).
+  - Wrapped canonical_upload_dir and uploads directory creation with fallback to /tmp/agrishield_uploads if /app is mounted as read-only.
+  - Resolves Hostless Cloud startup crash: OSError: [Errno 30] Read-only file system: '/app/backend/logs/security_audit.log'.
+- **GitHub Actions PyPI Index Separation (.github/workflows/ci_cd.yml):**
+  - Split pip install into two distinct steps: PyTorch wheel index (download.pytorch.org/whl/cpu) for torch & torchvision, and standard PyPI for timm and test packages.
+  - Resolves CI error: Could not find a version that satisfies the requirement timm (from versions: none).

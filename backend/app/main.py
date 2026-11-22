@@ -38,7 +38,10 @@ install_credential_redaction_filter()
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 BACKEND_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 uploads_path = settings.canonical_upload_dir
-os.makedirs(uploads_path, exist_ok=True)
+try:
+    os.makedirs(uploads_path, exist_ok=True)
+except (OSError, PermissionError):
+    pass
 
 def is_ai_worker_node() -> bool:
     """
