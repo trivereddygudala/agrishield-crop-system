@@ -11793,3 +11793,15 @@ equirements.txt with the full production package list (fastapi, uvicorn, pymongo
 - **PlantIdResults.jsx:**
   - Decoupled primary reference fallback and zoom modal from user uploads, binding strictly to botanical specimens.
 - **Verification:** Production build verified with vite build (3,204 modules transformed, 0 errors).
+
+## [2026-11-22 22:55:00] - Resolved Multi-Leaf Plot Scan Button and State Binding
+- **UploadImagePage.jsx:**
+  - Added dedicated batchLoading and batchErrorMsg to reactive scanStore state to decouple batch progress from single-leaf tab states.
+  - Fixed Analyze Entire Field Plot button loading feedback: tapping the button now properly triggers spinner animation and displays Diagnosing count Field Samples.
+  - Fixed broken results display condition: changed !hasScanned || !batchResult to !batchResult, ensuring that MultiLeafResults renders immediately upon receipt of batch diagnostics instead of remaining stuck on MultiLeafUploader.
+  - Appended explicit .jpg filename to FormData uploads (safeName) preventing mobile camera captures named blob from missing required file extensions.
+  - Added synchronized error reporting and reset handling.
+- **upload_validator.py:**
+  - Enhanced sanitize_filename to accept and auto-complete filenames named blob, image, or extensionless mobile captures, automatically defaulting to .jpg rather than rejecting with HTTP 400.
+- **MultiLeafResults.jsx:**
+  - Updated image path resolution to seamlessly handle absolute HTTP/HTTPS URLs from Hostless Cloud and Render backend instances with safe fallback to baseline specimens.

@@ -222,7 +222,11 @@ export default function MultiLeafResults({ result, onReset, farmName = "My Farm 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {samples.map((s, idx) => {
             const isHealthy = s.is_healthy;
-            const imgSrc = s.image_path ? `/${s.image_path.replace(/^\/+/, '')}` : null;
+            const imgSrc = s.image_path
+              ? (s.image_path.startsWith('http://') || s.image_path.startsWith('https://')
+                  ? s.image_path
+                  : `/${s.image_path.replace(/^\/+/, '')}`)
+              : (s.previewUrl || null);
 
             return (
               <motion.div
@@ -240,7 +244,15 @@ export default function MultiLeafResults({ result, onReset, farmName = "My Farm 
                   {/* Image & Sample Tag */}
                   <div className="relative rounded-xl overflow-hidden mb-3 bg-slate-100 dark:bg-slate-900 h-36 border border-slate-200 dark:border-slate-800">
                     {imgSrc ? (
-                      <img src={imgSrc} alt={s.label} className="w-full h-full object-cover" />
+                      <img
+                        src={imgSrc}
+                        alt={s.label}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.currentTarget.onerror = null;
+                          e.currentTarget.src = '/samples/chilli_healthy.jpg';
+                        }}
+                      />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-slate-400">
                         <Bug className="w-8 h-8" />

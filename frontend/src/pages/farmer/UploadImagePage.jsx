@@ -93,6 +93,8 @@ const scanStore = {
     scanMode: 'single', // 'single' | 'multi'
     batchSamples: [],
     batchResult: null,
+    batchLoading: false,
+    batchErrorMsg: '',
     selectedCropFilter: '',
     plantType: 'crop', // 'crop' | 'tree' (for Plant ID tab)
     selectedTreeFilter: '',
@@ -157,6 +159,7 @@ const UploadImagePage = () => {
   
   const { 
     activeTab, scanMode = 'single', batchSamples = [], batchResult,
+    batchLoading = false, batchErrorMsg = '',
     selectedCropFilter,
     plantType = 'crop', selectedTreeFilter = '',
     tabs = {}
@@ -356,46 +359,63 @@ const UploadImagePage = () => {
   const handleAddBatchSample = (sample) => {
     const current = state.batchSamples || [];
     if (current.length >= 5) {
-      scanStore.setState({ errorMsg: 'Maximum 5 leaf samples allowed per plot inspection.' });
+      const msg = 'Maximum 5 leaf samples allowed per plot inspection.';
+      scanStore.setState({ batchErrorMsg: msg });
+      scanStore.setTabState('disease-diag', { errorMsg: msg });
       return;
     }
     scanStore.setState({
       batchSamples: [...current, sample],
-      errorMsg: ''
+      batchErrorMsg: ''
     });
+    scanStore.setTabState('disease-diag', { errorMsg: '' });
   };
 
   const handleRemoveBatchSample = (idx) => {
     const current = state.batchSamples || [];
     scanStore.setState({
-      batchSamples: current.filter((_, i) => i !== idx)
+      batchSamples: current.filter((_, i) => i !== idx),
+      batchErrorMsg: ''
     });
+    scanStore.setTabState('disease-diag', { errorMsg: '' });
   };
 
   const handleClearBatch = () => {
     scanStore.setState({
       batchSamples: [],
       batchResult: null,
-      errorMsg: '',
+      batchLoading: false,
+      batchErrorMsg: '',
       hasScanned: false
+    });
+    scanStore.setTabState('disease-diag', {
+      errorMsg: '',
+      loading: false
     });
   };
 
   const handleStartBatchScan = async () => {
     const samples = state.batchSamples || [];
     if (samples.length < 2) {
-      scanStore.setState({ errorMsg: 'Please select at least 2 leaf samples to calculate plot-level infection severity.' });
+      const msg = 'Please select at least 2 leaf samples to calculate plot-level infection severity.';
+      scanStore.setState({ batchErrorMsg: msg });
+      scanStore.setTabState('disease-diag', { errorMsg: msg });
       return;
     }
 
-    if (loading) return;
-    scanStore.setState({ loading: true, errorMsg: '' });
+    if (loading || batchLoading) return;
+    scanStore.setState({ batchLoading: true, batchErrorMsg: '' });
+    scanStore.setTabState('disease-diag', { loading: true, errorMsg: '' });
 
     try {
-      // 1. Concurrently upload all sampled images to backend
-      const uploadPromises = samples.map(async (s) => {
+      // 1. Concurrently upload all sampled images to backend with valid filenames
+      const uploadPromises = samples.map(async (s, sIdx) => {
         const formData = new FormData();
-        formData.append('file', s.file);
+        const rawName = s.file?.name;
+        const safeName = rawName && rawName.includes('.') && rawName !== 'blob'
+          ? rawName
+          : `plot_sample_${sIdx + 1}.jpg`;
+        formData.append('file', s.file, safeName);
         const res = await API.post('/api/upload', formData);
         return {
           imagePath: res.data.image_path,
@@ -417,13 +437,20 @@ const UploadImagePage = () => {
 
       scanStore.setState({
         batchResult: batchRes.data,
+        batchLoading: false,
+        batchErrorMsg: '',
+        hasScanned: true
+      });
+      scanStore.setTabState('disease-diag', {
         hasScanned: true,
-        loading: false
+        loading: false,
+        errorMsg: ''
       });
     } catch (err) {
       console.error("Batch scan error:", err);
       const msg = err.response?.data?.detail || "Failed to analyze multi-leaf plot. Please try again.";
-      scanStore.setState({ errorMsg: msg, loading: false });
+      scanStore.setState({ batchErrorMsg: msg, batchLoading: false });
+      scanStore.setTabState('disease-diag', { errorMsg: msg, loading: false });
     }
   };
 
@@ -1276,7 +1303,7 @@ const UploadImagePage = () => {
                 </button>
                 <button
                   type="button"
-                  onClick={() => scanStore.setState({ scanMode: 'multi', hasScanned: !!batchResult, errorMsg: '' })}
+                  onClick={() => scanStore.setState({ scanMode: 'multi', batchErrorMsg: '' })}
                   className={`px-3.5 py-2 sm:py-1.5 rounded-lg text-xs font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
                     scanMode === 'multi'
                       ? 'bg-emerald-600 text-white shadow-xs'
@@ -1300,15 +1327,15 @@ const UploadImagePage = () => {
 
           {/* Upload & Scan Component based on activeTab & scanMode */}
           {activeTab === 'disease-diag' && scanMode === 'multi' ? (
-            !hasScanned || !batchResult ? (
+            !batchResult ? (
               <MultiLeafUploader
                 samples={batchSamples}
                 onAddSample={handleAddBatchSample}
                 onRemoveSample={handleRemoveBatchSample}
                 onClearAll={handleClearBatch}
                 onStartBatchScan={handleStartBatchScan}
-                loading={loading}
-                errorMsg={errorMsg}
+                loading={batchLoading || loading}
+                errorMsg={batchErrorMsg || errorMsg}
                 selectedCropFilter={selectedCropFilter}
                 onCropFilterChange={handleCropFilterChange}
               />

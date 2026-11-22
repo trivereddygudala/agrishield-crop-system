@@ -22,7 +22,7 @@ MAGIC_BYTES = {
 
 def sanitize_filename(original_filename: str) -> str:
     """Sanitize original filename to eliminate path traversal, double extensions, and dangerous chars."""
-    if not original_filename:
+    if not original_filename or original_filename.lower().strip() in ("blob", "image", "upload", "file"):
         return f"{uuid.uuid4().hex}.jpg"
     
     # Null byte check
@@ -45,7 +45,9 @@ def sanitize_filename(original_filename: str) -> str:
                 )
 
     ext = os.path.splitext(original_filename)[1].lower()
-    if ext not in ALLOWED_EXTENSIONS:
+    if not ext:
+        ext = ".jpg"
+    elif ext not in ALLOWED_EXTENSIONS:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Unsupported file extension '{ext}'. Allowed extensions: {', '.join(ALLOWED_EXTENSIONS)}"
