@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 export const CANONICAL_MAIN_BACKEND = 'https://agrishield-crop-system.onrender.com';
-export const AI_WORKER_1_URL = 'https://agrishield-ai-worker-1.onrender.com';
+export const AI_WORKER_1_URL = 'https://agrishield-backend.hostless.app';
 export const AI_WORKER_2_URL = 'https://agrishield-ai-worker-2.onrender.com';
 export const AI_WORKER_3_URL = 'https://agrishield-ai-worker-3.onrender.com';
 

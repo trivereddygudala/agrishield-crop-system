@@ -2,23 +2,23 @@
   "rewrites": [
     {
       "source": "/api/upload",
-      "destination": "https://agrishield-ai-worker-1.onrender.com/api/upload"
+      "destination": "https://agrishield-backend.hostless.app/api/upload"
     },
     {
       "source": "/api/upload/:path*",
-      "destination": "https://agrishield-ai-worker-1.onrender.com/api/upload/:path*"
+      "destination": "https://agrishield-backend.hostless.app/api/upload/:path*"
     },
     {
       "source": "/api/predict",
-      "destination": "https://agrishield-ai-worker-1.onrender.com/api/predict"
+      "destination": "https://agrishield-backend.hostless.app/api/predict"
     },
     {
       "source": "/api/predict/:path*",
-      "destination": "https://agrishield-ai-worker-1.onrender.com/api/predict/:path*"
+      "destination": "https://agrishield-backend.hostless.app/api/predict/:path*"
     },
     {
       "source": "/uploads/:path*",
-      "destination": "https://agrishield-ai-worker-1.onrender.com/uploads/:path*"
+      "destination": "https://agrishield-backend.hostless.app/uploads/:path*"
     },
     {
       "source": "/api/identify-plant",

@@ -11685,3 +11685,13 @@ equirements.txt with the full production package list (fastapi, uvicorn, pymongo
 - **GitHub Actions PyPI Index Separation (.github/workflows/ci_cd.yml):**
   - Split pip install into two distinct steps: PyTorch wheel index (download.pytorch.org/whl/cpu) for torch & torchvision, and standard PyPI for timm and test packages.
   - Resolves CI error: Could not find a version that satisfies the requirement timm (from versions: none).
+
+## [2026-11-22 07:18:00] - Production Connection: Route Disease Diagnosis to Live Hostless Cloud Backend
+- **Vercel Reverse Proxy Rewrites (vercel.json & frontend/vercel.json):**
+  - Pointed all crop disease diagnosis routes (/api/upload, /api/upload/:path*, /api/predict, /api/predict/:path*, /uploads/:path*) directly to https://agrishield-backend.hostless.app.
+  - Shifted 100% of leaf image uploads and high-precision ONNX disease predictions away from Render Worker 1 to Hostless Cloud (1GB RAM, 0.5 CPU, zero cold starts, ~1.0s response latency).
+- **Frontend Cluster Client (frontend/src/services/api.js):**
+  - Updated AI_WORKER_1_URL constant to https://agrishield-backend.hostless.app.
+  - Preserved Render Worker 2 (/api/identify-plant) and Worker 3 (/api/agrochemical-scan, /api/crop-advisor) routes.
+- **Frontend Production Build:**
+  - Vite production build compiled 3,204 modules in 30.86s with 0 errors.
