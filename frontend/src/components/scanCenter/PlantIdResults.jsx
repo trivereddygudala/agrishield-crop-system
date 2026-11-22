@@ -1189,7 +1189,9 @@ const PlantIdResults = ({ liveResult, data, previewUrl, onScanAnother, onCheckDi
     }
 
     // 13. Universal Botanical Specimen Fallback
-    const primary = info.referenceImage || info.imageUrl || info.image_url || '/samples/botanical/tomato_plant.jpg';
+    const primary = (info.referenceImage && !info.referenceImage.includes('upload') && !info.referenceImage.startsWith('blob:'))
+      ? info.referenceImage
+      : '/samples/botanical/tomato_plant.jpg';
     return [
       { id: 'uni_01', image_url: primary, stage: isTe ? 'ఆకు స్వరూపం (Leaf Blade Anatomy)' : 'Leaf Blade Anatomy' },
       { id: 'uni_02', image_url: '/samples/dataset/tomato/tomato_healthy_leaf_01.jpg', stage: isTe ? 'పూత దశ (Flowering Stage)' : 'Flowering Stage' },
@@ -1799,12 +1801,12 @@ const PlantIdResults = ({ liveResult, data, previewUrl, onScanAnother, onCheckDi
             </div>
             <div className="rounded-2xl overflow-hidden bg-black flex items-center justify-center max-h-[75vh]">
               <img
-                src={zoomImageModal.src || displayOriginalImg || '/samples/botanical/chilli_01.jpg'}
+                src={zoomImageModal.src || '/samples/botanical/chilli_01.jpg'}
                 alt="Enlarged view"
                 className="max-h-[70vh] w-auto object-contain rounded-xl"
                 onError={(e) => {
                   e.currentTarget.onerror = null;
-                  e.currentTarget.src = displayOriginalImg || '/samples/botanical/chilli_01.jpg';
+                  e.currentTarget.src = '/samples/botanical/chilli_01.jpg';
                 }}
               />
             </div>

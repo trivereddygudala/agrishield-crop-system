@@ -11747,3 +11747,49 @@ equirements.txt with the full production package list (fastapi, uvicorn, pymongo
 - **Verification:**
   - Verified ONNX inference with end-to-end heatmap generation in 1,126ms (returning true for gradcam_base64 and heatmap_base64).
   - Verified FastAPI backend router integrity across 51 registered endpoints with 0 errors.
+
+## [2026-11-22 14:35:00] - Created Exact 19-Slide Sathyabama Zeroth Review Presentation
+- File Created: PHASE_2_ZEROTH_REVIEW_OFFICIAL_19_SLIDES.md
+- Successfully generated all 19 slides directly mapped to Sathyabama CSE Zeroth Review benchmark.
+
+## [2026-11-22 15:01:00] - Provided Simplified Formats for Slide 13 (Proposed System Algorithm)
+- Formatted Slide 13 into concise 1-line bullets, SmartArt horizontal pipeline, and 2-column layout.
+
+## [2026-11-22 15:10:00] - Updated Slide 13 in PHASE_2_ZEROTH_REVIEW_OFFICIAL_19_SLIDES.md
+- Set Slide 13 to match the exact, clean Phase-1 screenshot provided by user.
+
+## [2026-11-22 15:16:00] - Upgraded Slide 13 for Phase-2 in PHASE_2_ZEROTH_REVIEW_OFFICIAL_19_SLIDES.md
+- Replaced generic Phase-1 labels with Phase-2 engineering advancements: Dual-Pipeline Preprocessing, Per-Crop CNN Isolation, Grad-CAM++ Sub-2s Latency, and Dynamic Dosage Calculation.
+
+## [2026-11-22 15:21:00] - Formatted Slide 13 into Clean 1-Line Sentences
+- Updated Slide 13 in PHASE_2_ZEROTH_REVIEW_OFFICIAL_19_SLIDES.md with concise single-line sentences.
+
+## [2026-11-22 15:26:00] - Evaluated Proposed System Diagram
+- Advised user to replace the conceptual clip-art diagram on Slide 11 with the technical System Architecture diagram from Figure 4.1 of their Phase-1 report.
+
+## [2026-11-22 17:21:00] - Generated High-Resolution Proposed System Architecture Diagram
+- Created proposed_system_architecture.html and rendered high-resolution 1600x900 image proposed_system_architecture.png.
+- Diagram matches the exact layout of the user's uploaded diagram (5 top cards, 3 bottom cards) while replacing generic labels with exact Phase-2 engineering components (ESP32 sensors, PyTorch per-crop CNNs, Grad-CAM++, MongoDB, FastAPI, React PWA).
+
+## [2026-11-22 17:33:00] - Updated Architecture Diagram Arrow Routing
+- Redesigned SVG dashed bus connectors in proposed_system_architecture.html.
+- Re-rendered proposed_system_architecture.png with exact arrow routing (5 top stages with solid arrows, vertical dashed lines to central bus, dashed feed to Data Storage and Web Dashboard, and dashed arrows to Farmer Output).
+
+## [2026-11-22 19:15:00] - Created Zeroth Review Presentation Speech
+- File Created: ZEROTH_REVIEW_PRESENTATION_SPEECH.md
+- Created a 20-line synchronized speaking script divided 50/50 between G.V. Trivendra Reddy and K. Nanda Kishore Reddy covering greeting, Phase-1 recap, Phase-2 AI & IoT innovations, publication status, and timeline.
+
+## [2026-11-22 21:05:00] - Bound ICAR & PlantVillage Multi-Stage Reference Image Registry & Decoupled Upload Mirroring
+- **Scientific Reference Registry Created:** Compiled frontend/public/samples/icar_reference_registry.json containing 189 authentic specimens covering 63 pathologies across 15 crops (Apple, Banana, Chilli, Citrus, Corn, Cotton, Grape, Groundnut, Mango, Potato, Rice, Soybean, Sugarcane, Tomato, Wheat) mapped across 3 progressive stages (Early Stage _01, Mid Stage _02, Severe Stage _03) sourced from ICAR-IIHR/CRRI/TNAU and PlantVillage benchmarks with zero Supabase storage footprint (dual local and jsDelivr CDN routing).
+- **DiseaseDiagnosisResults.jsx:**
+  - Integrated dynamic primary lookup from /samples/icar_reference_registry.json.
+  - Removed injection of liveResult?.sample_reference_image into reference matches, preventing the farmer's uploaded scan from entering reference cards.
+  - Implemented dual-tier image fallback: automatically retries high-speed jsDelivr CDN before falling back to local dataset specimens.
+  - Decoupled zoomImageModal fallback from displayOriginalImg/previewUrl, eliminating upload mirroring when tapping to enlarge reference specimens.
+- **AgrochemicalResults.jsx:**
+  - Decoupled productDetails.image_url from activeData?.imageUrl/activeData?.image_url (which echoed user scans), binding instead to authentic bottle assets in /products/ (aguard_bottle.jpg, indofil_m45.webp, confidor_bayer.jpg, etc.).
+  - Replaced leaf spot fallbacks with authentic agrochemical bottle records.
+  - Decoupled zoom modal fallback from user uploaded bottle scans.
+- **PlantIdResults.jsx:**
+  - Decoupled primary reference fallback and zoom modal from user uploads, binding strictly to botanical specimens.
+- **Verification:** Production build verified with vite build (3,204 modules transformed, 0 errors).

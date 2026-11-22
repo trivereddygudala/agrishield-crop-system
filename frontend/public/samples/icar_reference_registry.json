@@ -1,0 +1,1859 @@
+{
+  "Apple": {
+    "apple_apple_scab": [
+      {
+        "stage": 1,
+        "stage_en": "Early Stage",
+        "stage_te": "ప్రారంభ దశ",
+        "filename": "apple_apple_scab_01.jpg",
+        "local_url": "/samples/dataset/apple/apple_apple_scab_01.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Apple/apple_apple_scab_01.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 2,
+        "stage_en": "Stage 2",
+        "stage_te": "దశ 2",
+        "filename": "apple_apple_scab_02.jpg",
+        "local_url": "/samples/dataset/apple/apple_apple_scab_02.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Apple/apple_apple_scab_02.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 3,
+        "stage_en": "Stage 3",
+        "stage_te": "దశ 3",
+        "filename": "apple_apple_scab_03.jpg",
+        "local_url": "/samples/dataset/apple/apple_apple_scab_03.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Apple/apple_apple_scab_03.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      }
+    ],
+    "apple_black_rot": [
+      {
+        "stage": 1,
+        "stage_en": "Early Stage",
+        "stage_te": "ప్రారంభ దశ",
+        "filename": "apple_black_rot_01.jpg",
+        "local_url": "/samples/dataset/apple/apple_black_rot_01.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Apple/apple_black_rot_01.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 2,
+        "stage_en": "Stage 2",
+        "stage_te": "దశ 2",
+        "filename": "apple_black_rot_02.jpg",
+        "local_url": "/samples/dataset/apple/apple_black_rot_02.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Apple/apple_black_rot_02.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 3,
+        "stage_en": "Stage 3",
+        "stage_te": "దశ 3",
+        "filename": "apple_black_rot_03.jpg",
+        "local_url": "/samples/dataset/apple/apple_black_rot_03.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Apple/apple_black_rot_03.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      }
+    ],
+    "apple_cedar_apple_rust": [
+      {
+        "stage": 1,
+        "stage_en": "Early Stage",
+        "stage_te": "ప్రారంభ దశ",
+        "filename": "apple_cedar_apple_rust_01.jpg",
+        "local_url": "/samples/dataset/apple/apple_cedar_apple_rust_01.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Apple/apple_cedar_apple_rust_01.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 2,
+        "stage_en": "Stage 2",
+        "stage_te": "దశ 2",
+        "filename": "apple_cedar_apple_rust_02.jpg",
+        "local_url": "/samples/dataset/apple/apple_cedar_apple_rust_02.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Apple/apple_cedar_apple_rust_02.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 3,
+        "stage_en": "Stage 3",
+        "stage_te": "దశ 3",
+        "filename": "apple_cedar_apple_rust_03.jpg",
+        "local_url": "/samples/dataset/apple/apple_cedar_apple_rust_03.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Apple/apple_cedar_apple_rust_03.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      }
+    ],
+    "apple_healthy_apple_leaf": [
+      {
+        "stage": 1,
+        "stage_en": "Early Stage",
+        "stage_te": "ప్రారంభ దశ",
+        "filename": "apple_healthy_apple_leaf_01.jpg",
+        "local_url": "/samples/dataset/apple/apple_healthy_apple_leaf_01.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Apple/apple_healthy_apple_leaf_01.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 2,
+        "stage_en": "Stage 2",
+        "stage_te": "దశ 2",
+        "filename": "apple_healthy_apple_leaf_02.jpg",
+        "local_url": "/samples/dataset/apple/apple_healthy_apple_leaf_02.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Apple/apple_healthy_apple_leaf_02.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 3,
+        "stage_en": "Stage 3",
+        "stage_te": "దశ 3",
+        "filename": "apple_healthy_apple_leaf_03.jpg",
+        "local_url": "/samples/dataset/apple/apple_healthy_apple_leaf_03.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Apple/apple_healthy_apple_leaf_03.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      }
+    ]
+  },
+  "Banana": {
+    "banana_black_sigatoka_leaf_streak": [
+      {
+        "stage": 1,
+        "stage_en": "Early Stage",
+        "stage_te": "ప్రారంభ దశ",
+        "filename": "banana_black_sigatoka_leaf_streak_01.jpg",
+        "local_url": "/samples/dataset/banana/banana_black_sigatoka_leaf_streak_01.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Banana/banana_black_sigatoka_leaf_streak_01.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 2,
+        "stage_en": "Stage 2",
+        "stage_te": "దశ 2",
+        "filename": "banana_black_sigatoka_leaf_streak_02.jpg",
+        "local_url": "/samples/dataset/banana/banana_black_sigatoka_leaf_streak_02.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Banana/banana_black_sigatoka_leaf_streak_02.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 3,
+        "stage_en": "Stage 3",
+        "stage_te": "దశ 3",
+        "filename": "banana_black_sigatoka_leaf_streak_03.jpg",
+        "local_url": "/samples/dataset/banana/banana_black_sigatoka_leaf_streak_03.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Banana/banana_black_sigatoka_leaf_streak_03.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      }
+    ],
+    "banana_healthy_banana_leaf": [
+      {
+        "stage": 1,
+        "stage_en": "Early Stage",
+        "stage_te": "ప్రారంభ దశ",
+        "filename": "banana_healthy_banana_leaf_01.jpg",
+        "local_url": "/samples/dataset/banana/banana_healthy_banana_leaf_01.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Banana/banana_healthy_banana_leaf_01.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 2,
+        "stage_en": "Stage 2",
+        "stage_te": "దశ 2",
+        "filename": "banana_healthy_banana_leaf_02.jpg",
+        "local_url": "/samples/dataset/banana/banana_healthy_banana_leaf_02.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Banana/banana_healthy_banana_leaf_02.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 3,
+        "stage_en": "Stage 3",
+        "stage_te": "దశ 3",
+        "filename": "banana_healthy_banana_leaf_03.jpg",
+        "local_url": "/samples/dataset/banana/banana_healthy_banana_leaf_03.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Banana/banana_healthy_banana_leaf_03.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      }
+    ],
+    "banana_panama_wilt_fusarium": [
+      {
+        "stage": 1,
+        "stage_en": "Early Stage",
+        "stage_te": "ప్రారంభ దశ",
+        "filename": "banana_panama_wilt_fusarium_01.jpg",
+        "local_url": "/samples/dataset/banana/banana_panama_wilt_fusarium_01.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Banana/banana_panama_wilt_fusarium_01.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 2,
+        "stage_en": "Stage 2",
+        "stage_te": "దశ 2",
+        "filename": "banana_panama_wilt_fusarium_02.jpg",
+        "local_url": "/samples/dataset/banana/banana_panama_wilt_fusarium_02.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Banana/banana_panama_wilt_fusarium_02.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 3,
+        "stage_en": "Stage 3",
+        "stage_te": "దశ 3",
+        "filename": "banana_panama_wilt_fusarium_03.jpg",
+        "local_url": "/samples/dataset/banana/banana_panama_wilt_fusarium_03.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Banana/banana_panama_wilt_fusarium_03.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      }
+    ],
+    "banana_yellow_sigatoka_leaf_spot": [
+      {
+        "stage": 1,
+        "stage_en": "Early Stage",
+        "stage_te": "ప్రారంభ దశ",
+        "filename": "banana_yellow_sigatoka_leaf_spot_01.jpg",
+        "local_url": "/samples/dataset/banana/banana_yellow_sigatoka_leaf_spot_01.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Banana/banana_yellow_sigatoka_leaf_spot_01.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 2,
+        "stage_en": "Stage 2",
+        "stage_te": "దశ 2",
+        "filename": "banana_yellow_sigatoka_leaf_spot_02.jpg",
+        "local_url": "/samples/dataset/banana/banana_yellow_sigatoka_leaf_spot_02.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Banana/banana_yellow_sigatoka_leaf_spot_02.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 3,
+        "stage_en": "Stage 3",
+        "stage_te": "దశ 3",
+        "filename": "banana_yellow_sigatoka_leaf_spot_03.jpg",
+        "local_url": "/samples/dataset/banana/banana_yellow_sigatoka_leaf_spot_03.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Banana/banana_yellow_sigatoka_leaf_spot_03.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      }
+    ]
+  },
+  "Chilli": {
+    "chilli_anthracnose___dieback": [
+      {
+        "stage": 1,
+        "stage_en": "Early Stage",
+        "stage_te": "ప్రారంభ దశ",
+        "filename": "chilli_anthracnose___dieback_01.jpg",
+        "local_url": "/samples/dataset/chilli/chilli_anthracnose___dieback_01.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Chilli/chilli_anthracnose___dieback_01.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 2,
+        "stage_en": "Stage 2",
+        "stage_te": "దశ 2",
+        "filename": "chilli_anthracnose___dieback_02.jpg",
+        "local_url": "/samples/dataset/chilli/chilli_anthracnose___dieback_02.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Chilli/chilli_anthracnose___dieback_02.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 3,
+        "stage_en": "Stage 3",
+        "stage_te": "దశ 3",
+        "filename": "chilli_anthracnose___dieback_03.jpg",
+        "local_url": "/samples/dataset/chilli/chilli_anthracnose___dieback_03.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Chilli/chilli_anthracnose___dieback_03.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      }
+    ],
+    "chilli_bacterial_leaf_spot": [
+      {
+        "stage": 1,
+        "stage_en": "Early Stage",
+        "stage_te": "ప్రారంభ దశ",
+        "filename": "chilli_bacterial_leaf_spot_01.jpg",
+        "local_url": "/samples/dataset/chilli/chilli_bacterial_leaf_spot_01.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Chilli/chilli_bacterial_leaf_spot_01.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 2,
+        "stage_en": "Stage 2",
+        "stage_te": "దశ 2",
+        "filename": "chilli_bacterial_leaf_spot_02.jpg",
+        "local_url": "/samples/dataset/chilli/chilli_bacterial_leaf_spot_02.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Chilli/chilli_bacterial_leaf_spot_02.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 3,
+        "stage_en": "Stage 3",
+        "stage_te": "దశ 3",
+        "filename": "chilli_bacterial_leaf_spot_03.jpg",
+        "local_url": "/samples/dataset/chilli/chilli_bacterial_leaf_spot_03.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Chilli/chilli_bacterial_leaf_spot_03.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      }
+    ],
+    "chilli_cercospora_leaf_spot": [
+      {
+        "stage": 1,
+        "stage_en": "Early Stage",
+        "stage_te": "ప్రారంభ దశ",
+        "filename": "chilli_cercospora_leaf_spot_01.jpg",
+        "local_url": "/samples/dataset/chilli/chilli_cercospora_leaf_spot_01.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Chilli/chilli_cercospora_leaf_spot_01.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 2,
+        "stage_en": "Stage 2",
+        "stage_te": "దశ 2",
+        "filename": "chilli_cercospora_leaf_spot_02.jpg",
+        "local_url": "/samples/dataset/chilli/chilli_cercospora_leaf_spot_02.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Chilli/chilli_cercospora_leaf_spot_02.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 3,
+        "stage_en": "Stage 3",
+        "stage_te": "దశ 3",
+        "filename": "chilli_cercospora_leaf_spot_03.jpg",
+        "local_url": "/samples/dataset/chilli/chilli_cercospora_leaf_spot_03.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Chilli/chilli_cercospora_leaf_spot_03.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      }
+    ],
+    "chilli_healthy_foliage": [
+      {
+        "stage": 1,
+        "stage_en": "Early Stage",
+        "stage_te": "ప్రారంభ దశ",
+        "filename": "chilli_healthy_foliage_01.jpg",
+        "local_url": "/samples/dataset/chilli/chilli_healthy_foliage_01.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Chilli/chilli_healthy_foliage_01.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 2,
+        "stage_en": "Stage 2",
+        "stage_te": "దశ 2",
+        "filename": "chilli_healthy_foliage_02.jpg",
+        "local_url": "/samples/dataset/chilli/chilli_healthy_foliage_02.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Chilli/chilli_healthy_foliage_02.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 3,
+        "stage_en": "Stage 3",
+        "stage_te": "దశ 3",
+        "filename": "chilli_healthy_foliage_03.jpg",
+        "local_url": "/samples/dataset/chilli/chilli_healthy_foliage_03.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Chilli/chilli_healthy_foliage_03.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      }
+    ],
+    "chilli_leaf_curl_virus": [
+      {
+        "stage": 1,
+        "stage_en": "Early Stage",
+        "stage_te": "ప్రారంభ దశ",
+        "filename": "chilli_leaf_curl_virus_01.jpg",
+        "local_url": "/samples/dataset/chilli/chilli_leaf_curl_virus_01.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Chilli/chilli_leaf_curl_virus_01.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 2,
+        "stage_en": "Stage 2",
+        "stage_te": "దశ 2",
+        "filename": "chilli_leaf_curl_virus_02.jpg",
+        "local_url": "/samples/dataset/chilli/chilli_leaf_curl_virus_02.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Chilli/chilli_leaf_curl_virus_02.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 3,
+        "stage_en": "Stage 3",
+        "stage_te": "దశ 3",
+        "filename": "chilli_leaf_curl_virus_03.jpg",
+        "local_url": "/samples/dataset/chilli/chilli_leaf_curl_virus_03.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Chilli/chilli_leaf_curl_virus_03.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      }
+    ],
+    "chilli_veinal_mottle_virus": [
+      {
+        "stage": 1,
+        "stage_en": "Early Stage",
+        "stage_te": "ప్రారంభ దశ",
+        "filename": "chilli_veinal_mottle_virus_01.jpg",
+        "local_url": "/samples/dataset/chilli/chilli_veinal_mottle_virus_01.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Chilli/chilli_veinal_mottle_virus_01.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 2,
+        "stage_en": "Stage 2",
+        "stage_te": "దశ 2",
+        "filename": "chilli_veinal_mottle_virus_02.jpg",
+        "local_url": "/samples/dataset/chilli/chilli_veinal_mottle_virus_02.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Chilli/chilli_veinal_mottle_virus_02.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 3,
+        "stage_en": "Stage 3",
+        "stage_te": "దశ 3",
+        "filename": "chilli_veinal_mottle_virus_03.jpg",
+        "local_url": "/samples/dataset/chilli/chilli_veinal_mottle_virus_03.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Chilli/chilli_veinal_mottle_virus_03.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      }
+    ],
+    "chilli_whitefly_damage": [
+      {
+        "stage": 1,
+        "stage_en": "Early Stage",
+        "stage_te": "ప్రారంభ దశ",
+        "filename": "chilli_whitefly_damage_01.jpg",
+        "local_url": "/samples/dataset/chilli/chilli_whitefly_damage_01.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Chilli/chilli_whitefly_damage_01.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 2,
+        "stage_en": "Stage 2",
+        "stage_te": "దశ 2",
+        "filename": "chilli_whitefly_damage_02.jpg",
+        "local_url": "/samples/dataset/chilli/chilli_whitefly_damage_02.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Chilli/chilli_whitefly_damage_02.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 3,
+        "stage_en": "Stage 3",
+        "stage_te": "దశ 3",
+        "filename": "chilli_whitefly_damage_03.jpg",
+        "local_url": "/samples/dataset/chilli/chilli_whitefly_damage_03.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Chilli/chilli_whitefly_damage_03.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      }
+    ]
+  },
+  "Citrus": {
+    "citrus_citrus_greening_hlb": [
+      {
+        "stage": 1,
+        "stage_en": "Early Stage",
+        "stage_te": "ప్రారంభ దశ",
+        "filename": "citrus_citrus_greening_hlb_01.jpg",
+        "local_url": "/samples/dataset/citrus/citrus_citrus_greening_hlb_01.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Citrus/citrus_citrus_greening_hlb_01.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 2,
+        "stage_en": "Stage 2",
+        "stage_te": "దశ 2",
+        "filename": "citrus_citrus_greening_hlb_02.jpg",
+        "local_url": "/samples/dataset/citrus/citrus_citrus_greening_hlb_02.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Citrus/citrus_citrus_greening_hlb_02.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 3,
+        "stage_en": "Stage 3",
+        "stage_te": "దశ 3",
+        "filename": "citrus_citrus_greening_hlb_03.jpg",
+        "local_url": "/samples/dataset/citrus/citrus_citrus_greening_hlb_03.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Citrus/citrus_citrus_greening_hlb_03.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      }
+    ],
+    "citrus_citrus_leafminer_infestation": [
+      {
+        "stage": 1,
+        "stage_en": "Early Stage",
+        "stage_te": "ప్రారంభ దశ",
+        "filename": "citrus_citrus_leafminer_infestation_01.jpg",
+        "local_url": "/samples/dataset/citrus/citrus_citrus_leafminer_infestation_01.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Citrus/citrus_citrus_leafminer_infestation_01.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 2,
+        "stage_en": "Stage 2",
+        "stage_te": "దశ 2",
+        "filename": "citrus_citrus_leafminer_infestation_02.jpg",
+        "local_url": "/samples/dataset/citrus/citrus_citrus_leafminer_infestation_02.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Citrus/citrus_citrus_leafminer_infestation_02.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 3,
+        "stage_en": "Stage 3",
+        "stage_te": "దశ 3",
+        "filename": "citrus_citrus_leafminer_infestation_03.jpg",
+        "local_url": "/samples/dataset/citrus/citrus_citrus_leafminer_infestation_03.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Citrus/citrus_citrus_leafminer_infestation_03.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      }
+    ]
+  },
+  "Corn": {
+    "corn_common_rust": [
+      {
+        "stage": 1,
+        "stage_en": "Early Stage",
+        "stage_te": "ప్రారంభ దశ",
+        "filename": "corn_common_rust_01.jpg",
+        "local_url": "/samples/dataset/corn/corn_common_rust_01.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Corn/corn_common_rust_01.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 2,
+        "stage_en": "Stage 2",
+        "stage_te": "దశ 2",
+        "filename": "corn_common_rust_02.jpg",
+        "local_url": "/samples/dataset/corn/corn_common_rust_02.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Corn/corn_common_rust_02.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 3,
+        "stage_en": "Stage 3",
+        "stage_te": "దశ 3",
+        "filename": "corn_common_rust_03.jpg",
+        "local_url": "/samples/dataset/corn/corn_common_rust_03.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Corn/corn_common_rust_03.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      }
+    ],
+    "corn_gray_leaf_spot": [
+      {
+        "stage": 1,
+        "stage_en": "Early Stage",
+        "stage_te": "ప్రారంభ దశ",
+        "filename": "corn_gray_leaf_spot_01.jpg",
+        "local_url": "/samples/dataset/corn/corn_gray_leaf_spot_01.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Corn/corn_gray_leaf_spot_01.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 2,
+        "stage_en": "Stage 2",
+        "stage_te": "దశ 2",
+        "filename": "corn_gray_leaf_spot_02.jpg",
+        "local_url": "/samples/dataset/corn/corn_gray_leaf_spot_02.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Corn/corn_gray_leaf_spot_02.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 3,
+        "stage_en": "Stage 3",
+        "stage_te": "దశ 3",
+        "filename": "corn_gray_leaf_spot_03.jpg",
+        "local_url": "/samples/dataset/corn/corn_gray_leaf_spot_03.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Corn/corn_gray_leaf_spot_03.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      }
+    ],
+    "corn_healthy_corn_leaf": [
+      {
+        "stage": 1,
+        "stage_en": "Early Stage",
+        "stage_te": "ప్రారంభ దశ",
+        "filename": "corn_healthy_corn_leaf_01.jpg",
+        "local_url": "/samples/dataset/corn/corn_healthy_corn_leaf_01.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Corn/corn_healthy_corn_leaf_01.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 2,
+        "stage_en": "Stage 2",
+        "stage_te": "దశ 2",
+        "filename": "corn_healthy_corn_leaf_02.jpg",
+        "local_url": "/samples/dataset/corn/corn_healthy_corn_leaf_02.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Corn/corn_healthy_corn_leaf_02.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 3,
+        "stage_en": "Stage 3",
+        "stage_te": "దశ 3",
+        "filename": "corn_healthy_corn_leaf_03.jpg",
+        "local_url": "/samples/dataset/corn/corn_healthy_corn_leaf_03.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Corn/corn_healthy_corn_leaf_03.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      }
+    ],
+    "corn_northern_leaf_blight": [
+      {
+        "stage": 1,
+        "stage_en": "Early Stage",
+        "stage_te": "ప్రారంభ దశ",
+        "filename": "corn_northern_leaf_blight_01.jpg",
+        "local_url": "/samples/dataset/corn/corn_northern_leaf_blight_01.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Corn/corn_northern_leaf_blight_01.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 2,
+        "stage_en": "Stage 2",
+        "stage_te": "దశ 2",
+        "filename": "corn_northern_leaf_blight_02.jpg",
+        "local_url": "/samples/dataset/corn/corn_northern_leaf_blight_02.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Corn/corn_northern_leaf_blight_02.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 3,
+        "stage_en": "Stage 3",
+        "stage_te": "దశ 3",
+        "filename": "corn_northern_leaf_blight_03.jpg",
+        "local_url": "/samples/dataset/corn/corn_northern_leaf_blight_03.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Corn/corn_northern_leaf_blight_03.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      }
+    ]
+  },
+  "Cotton": {
+    "cotton_bacterial_blight___angular_leaf_spot": [
+      {
+        "stage": 1,
+        "stage_en": "Early Stage",
+        "stage_te": "ప్రారంభ దశ",
+        "filename": "cotton_bacterial_blight___angular_leaf_spot_01.jpg",
+        "local_url": "/samples/dataset/cotton/cotton_bacterial_blight___angular_leaf_spot_01.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Cotton/cotton_bacterial_blight___angular_leaf_spot_01.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 2,
+        "stage_en": "Stage 2",
+        "stage_te": "దశ 2",
+        "filename": "cotton_bacterial_blight___angular_leaf_spot_02.jpg",
+        "local_url": "/samples/dataset/cotton/cotton_bacterial_blight___angular_leaf_spot_02.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Cotton/cotton_bacterial_blight___angular_leaf_spot_02.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 3,
+        "stage_en": "Stage 3",
+        "stage_te": "దశ 3",
+        "filename": "cotton_bacterial_blight___angular_leaf_spot_03.jpg",
+        "local_url": "/samples/dataset/cotton/cotton_bacterial_blight___angular_leaf_spot_03.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Cotton/cotton_bacterial_blight___angular_leaf_spot_03.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      }
+    ],
+    "cotton_fusarium_wilt": [
+      {
+        "stage": 1,
+        "stage_en": "Early Stage",
+        "stage_te": "ప్రారంభ దశ",
+        "filename": "cotton_fusarium_wilt_01.jpg",
+        "local_url": "/samples/dataset/cotton/cotton_fusarium_wilt_01.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Cotton/cotton_fusarium_wilt_01.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 2,
+        "stage_en": "Stage 2",
+        "stage_te": "దశ 2",
+        "filename": "cotton_fusarium_wilt_02.jpg",
+        "local_url": "/samples/dataset/cotton/cotton_fusarium_wilt_02.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Cotton/cotton_fusarium_wilt_02.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 3,
+        "stage_en": "Stage 3",
+        "stage_te": "దశ 3",
+        "filename": "cotton_fusarium_wilt_03.jpg",
+        "local_url": "/samples/dataset/cotton/cotton_fusarium_wilt_03.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Cotton/cotton_fusarium_wilt_03.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      }
+    ],
+    "cotton_healthy_cotton_leaf": [
+      {
+        "stage": 1,
+        "stage_en": "Early Stage",
+        "stage_te": "ప్రారంభ దశ",
+        "filename": "cotton_healthy_cotton_leaf_01.jpg",
+        "local_url": "/samples/dataset/cotton/cotton_healthy_cotton_leaf_01.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Cotton/cotton_healthy_cotton_leaf_01.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 2,
+        "stage_en": "Stage 2",
+        "stage_te": "దశ 2",
+        "filename": "cotton_healthy_cotton_leaf_02.jpg",
+        "local_url": "/samples/dataset/cotton/cotton_healthy_cotton_leaf_02.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Cotton/cotton_healthy_cotton_leaf_02.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 3,
+        "stage_en": "Stage 3",
+        "stage_te": "దశ 3",
+        "filename": "cotton_healthy_cotton_leaf_03.jpg",
+        "local_url": "/samples/dataset/cotton/cotton_healthy_cotton_leaf_03.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Cotton/cotton_healthy_cotton_leaf_03.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      }
+    ],
+    "cotton_leaf_curl_virus": [
+      {
+        "stage": 1,
+        "stage_en": "Early Stage",
+        "stage_te": "ప్రారంభ దశ",
+        "filename": "cotton_leaf_curl_virus_01.jpg",
+        "local_url": "/samples/dataset/cotton/cotton_leaf_curl_virus_01.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Cotton/cotton_leaf_curl_virus_01.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 2,
+        "stage_en": "Stage 2",
+        "stage_te": "దశ 2",
+        "filename": "cotton_leaf_curl_virus_02.jpg",
+        "local_url": "/samples/dataset/cotton/cotton_leaf_curl_virus_02.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Cotton/cotton_leaf_curl_virus_02.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 3,
+        "stage_en": "Stage 3",
+        "stage_te": "దశ 3",
+        "filename": "cotton_leaf_curl_virus_03.jpg",
+        "local_url": "/samples/dataset/cotton/cotton_leaf_curl_virus_03.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Cotton/cotton_leaf_curl_virus_03.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      }
+    ]
+  },
+  "Grape": {
+    "grape_black_rot": [
+      {
+        "stage": 1,
+        "stage_en": "Early Stage",
+        "stage_te": "ప్రారంభ దశ",
+        "filename": "grape_black_rot_01.jpg",
+        "local_url": "/samples/dataset/grape/grape_black_rot_01.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Grape/grape_black_rot_01.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 2,
+        "stage_en": "Stage 2",
+        "stage_te": "దశ 2",
+        "filename": "grape_black_rot_02.jpg",
+        "local_url": "/samples/dataset/grape/grape_black_rot_02.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Grape/grape_black_rot_02.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 3,
+        "stage_en": "Stage 3",
+        "stage_te": "దశ 3",
+        "filename": "grape_black_rot_03.jpg",
+        "local_url": "/samples/dataset/grape/grape_black_rot_03.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Grape/grape_black_rot_03.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      }
+    ],
+    "grape_esca_black_measles": [
+      {
+        "stage": 1,
+        "stage_en": "Early Stage",
+        "stage_te": "ప్రారంభ దశ",
+        "filename": "grape_esca_black_measles_01.jpg",
+        "local_url": "/samples/dataset/grape/grape_esca_black_measles_01.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Grape/grape_esca_black_measles_01.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 2,
+        "stage_en": "Stage 2",
+        "stage_te": "దశ 2",
+        "filename": "grape_esca_black_measles_02.jpg",
+        "local_url": "/samples/dataset/grape/grape_esca_black_measles_02.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Grape/grape_esca_black_measles_02.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 3,
+        "stage_en": "Stage 3",
+        "stage_te": "దశ 3",
+        "filename": "grape_esca_black_measles_03.jpg",
+        "local_url": "/samples/dataset/grape/grape_esca_black_measles_03.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Grape/grape_esca_black_measles_03.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      }
+    ],
+    "grape_healthy_grape_leaf": [
+      {
+        "stage": 1,
+        "stage_en": "Early Stage",
+        "stage_te": "ప్రారంభ దశ",
+        "filename": "grape_healthy_grape_leaf_01.jpg",
+        "local_url": "/samples/dataset/grape/grape_healthy_grape_leaf_01.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Grape/grape_healthy_grape_leaf_01.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 2,
+        "stage_en": "Stage 2",
+        "stage_te": "దశ 2",
+        "filename": "grape_healthy_grape_leaf_02.jpg",
+        "local_url": "/samples/dataset/grape/grape_healthy_grape_leaf_02.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Grape/grape_healthy_grape_leaf_02.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 3,
+        "stage_en": "Stage 3",
+        "stage_te": "దశ 3",
+        "filename": "grape_healthy_grape_leaf_03.jpg",
+        "local_url": "/samples/dataset/grape/grape_healthy_grape_leaf_03.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Grape/grape_healthy_grape_leaf_03.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      }
+    ],
+    "grape_leaf_blight_isariopsis": [
+      {
+        "stage": 1,
+        "stage_en": "Early Stage",
+        "stage_te": "ప్రారంభ దశ",
+        "filename": "grape_leaf_blight_isariopsis_01.jpg",
+        "local_url": "/samples/dataset/grape/grape_leaf_blight_isariopsis_01.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Grape/grape_leaf_blight_isariopsis_01.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 2,
+        "stage_en": "Stage 2",
+        "stage_te": "దశ 2",
+        "filename": "grape_leaf_blight_isariopsis_02.jpg",
+        "local_url": "/samples/dataset/grape/grape_leaf_blight_isariopsis_02.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Grape/grape_leaf_blight_isariopsis_02.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 3,
+        "stage_en": "Stage 3",
+        "stage_te": "దశ 3",
+        "filename": "grape_leaf_blight_isariopsis_03.jpg",
+        "local_url": "/samples/dataset/grape/grape_leaf_blight_isariopsis_03.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Grape/grape_leaf_blight_isariopsis_03.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      }
+    ]
+  },
+  "Groundnut": {
+    "groundnut_groundnut_rosette_virus": [
+      {
+        "stage": 1,
+        "stage_en": "Early Stage",
+        "stage_te": "ప్రారంభ దశ",
+        "filename": "groundnut_groundnut_rosette_virus_01.jpg",
+        "local_url": "/samples/dataset/groundnut/groundnut_groundnut_rosette_virus_01.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Groundnut/groundnut_groundnut_rosette_virus_01.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 2,
+        "stage_en": "Stage 2",
+        "stage_te": "దశ 2",
+        "filename": "groundnut_groundnut_rosette_virus_02.jpg",
+        "local_url": "/samples/dataset/groundnut/groundnut_groundnut_rosette_virus_02.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Groundnut/groundnut_groundnut_rosette_virus_02.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 3,
+        "stage_en": "Stage 3",
+        "stage_te": "దశ 3",
+        "filename": "groundnut_groundnut_rosette_virus_03.jpg",
+        "local_url": "/samples/dataset/groundnut/groundnut_groundnut_rosette_virus_03.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Groundnut/groundnut_groundnut_rosette_virus_03.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      }
+    ],
+    "groundnut_groundnut_rust": [
+      {
+        "stage": 1,
+        "stage_en": "Early Stage",
+        "stage_te": "ప్రారంభ దశ",
+        "filename": "groundnut_groundnut_rust_01.jpg",
+        "local_url": "/samples/dataset/groundnut/groundnut_groundnut_rust_01.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Groundnut/groundnut_groundnut_rust_01.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 2,
+        "stage_en": "Stage 2",
+        "stage_te": "దశ 2",
+        "filename": "groundnut_groundnut_rust_02.jpg",
+        "local_url": "/samples/dataset/groundnut/groundnut_groundnut_rust_02.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Groundnut/groundnut_groundnut_rust_02.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 3,
+        "stage_en": "Stage 3",
+        "stage_te": "దశ 3",
+        "filename": "groundnut_groundnut_rust_03.jpg",
+        "local_url": "/samples/dataset/groundnut/groundnut_groundnut_rust_03.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Groundnut/groundnut_groundnut_rust_03.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      }
+    ],
+    "groundnut_healthy_groundnut_leaf": [
+      {
+        "stage": 1,
+        "stage_en": "Early Stage",
+        "stage_te": "ప్రారంభ దశ",
+        "filename": "groundnut_healthy_groundnut_leaf_01.jpg",
+        "local_url": "/samples/dataset/groundnut/groundnut_healthy_groundnut_leaf_01.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Groundnut/groundnut_healthy_groundnut_leaf_01.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 2,
+        "stage_en": "Stage 2",
+        "stage_te": "దశ 2",
+        "filename": "groundnut_healthy_groundnut_leaf_02.jpg",
+        "local_url": "/samples/dataset/groundnut/groundnut_healthy_groundnut_leaf_02.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Groundnut/groundnut_healthy_groundnut_leaf_02.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 3,
+        "stage_en": "Stage 3",
+        "stage_te": "దశ 3",
+        "filename": "groundnut_healthy_groundnut_leaf_03.jpg",
+        "local_url": "/samples/dataset/groundnut/groundnut_healthy_groundnut_leaf_03.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Groundnut/groundnut_healthy_groundnut_leaf_03.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      }
+    ],
+    "groundnut_tikka_leaf_spot": [
+      {
+        "stage": 1,
+        "stage_en": "Early Stage",
+        "stage_te": "ప్రారంభ దశ",
+        "filename": "groundnut_tikka_leaf_spot_01.jpg",
+        "local_url": "/samples/dataset/groundnut/groundnut_tikka_leaf_spot_01.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Groundnut/groundnut_tikka_leaf_spot_01.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 2,
+        "stage_en": "Stage 2",
+        "stage_te": "దశ 2",
+        "filename": "groundnut_tikka_leaf_spot_02.jpg",
+        "local_url": "/samples/dataset/groundnut/groundnut_tikka_leaf_spot_02.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Groundnut/groundnut_tikka_leaf_spot_02.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 3,
+        "stage_en": "Stage 3",
+        "stage_te": "దశ 3",
+        "filename": "groundnut_tikka_leaf_spot_03.jpg",
+        "local_url": "/samples/dataset/groundnut/groundnut_tikka_leaf_spot_03.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Groundnut/groundnut_tikka_leaf_spot_03.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      }
+    ]
+  },
+  "Mango": {
+    "mango_alternaria_rot": [
+      {
+        "stage": 1,
+        "stage_en": "Early Stage",
+        "stage_te": "ప్రారంభ దశ",
+        "filename": "mango_alternaria_rot_01.jpg",
+        "local_url": "/samples/dataset/mango/mango_alternaria_rot_01.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Mango/mango_alternaria_rot_01.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 2,
+        "stage_en": "Stage 2",
+        "stage_te": "దశ 2",
+        "filename": "mango_alternaria_rot_02.jpg",
+        "local_url": "/samples/dataset/mango/mango_alternaria_rot_02.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Mango/mango_alternaria_rot_02.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 3,
+        "stage_en": "Stage 3",
+        "stage_te": "దశ 3",
+        "filename": "mango_alternaria_rot_03.jpg",
+        "local_url": "/samples/dataset/mango/mango_alternaria_rot_03.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Mango/mango_alternaria_rot_03.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      }
+    ],
+    "mango_mango_anthracnose": [
+      {
+        "stage": 1,
+        "stage_en": "Early Stage",
+        "stage_te": "ప్రారంభ దశ",
+        "filename": "mango_mango_anthracnose_01.jpg",
+        "local_url": "/samples/dataset/mango/mango_mango_anthracnose_01.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Mango/mango_mango_anthracnose_01.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 2,
+        "stage_en": "Stage 2",
+        "stage_te": "దశ 2",
+        "filename": "mango_mango_anthracnose_02.jpg",
+        "local_url": "/samples/dataset/mango/mango_mango_anthracnose_02.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Mango/mango_mango_anthracnose_02.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 3,
+        "stage_en": "Stage 3",
+        "stage_te": "దశ 3",
+        "filename": "mango_mango_anthracnose_03.jpg",
+        "local_url": "/samples/dataset/mango/mango_mango_anthracnose_03.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Mango/mango_mango_anthracnose_03.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      }
+    ]
+  },
+  "Potato": {
+    "potato_early_blight": [
+      {
+        "stage": 1,
+        "stage_en": "Early Stage",
+        "stage_te": "ప్రారంభ దశ",
+        "filename": "potato_early_blight_01.jpg",
+        "local_url": "/samples/dataset/potato/potato_early_blight_01.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Potato/potato_early_blight_01.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 2,
+        "stage_en": "Stage 2",
+        "stage_te": "దశ 2",
+        "filename": "potato_early_blight_02.jpg",
+        "local_url": "/samples/dataset/potato/potato_early_blight_02.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Potato/potato_early_blight_02.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 3,
+        "stage_en": "Stage 3",
+        "stage_te": "దశ 3",
+        "filename": "potato_early_blight_03.jpg",
+        "local_url": "/samples/dataset/potato/potato_early_blight_03.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Potato/potato_early_blight_03.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      }
+    ],
+    "potato_healthy_leaf": [
+      {
+        "stage": 1,
+        "stage_en": "Early Stage",
+        "stage_te": "ప్రారంభ దశ",
+        "filename": "potato_healthy_leaf_01.jpg",
+        "local_url": "/samples/dataset/potato/potato_healthy_leaf_01.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Potato/potato_healthy_leaf_01.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 2,
+        "stage_en": "Stage 2",
+        "stage_te": "దశ 2",
+        "filename": "potato_healthy_leaf_02.jpg",
+        "local_url": "/samples/dataset/potato/potato_healthy_leaf_02.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Potato/potato_healthy_leaf_02.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 3,
+        "stage_en": "Stage 3",
+        "stage_te": "దశ 3",
+        "filename": "potato_healthy_leaf_03.jpg",
+        "local_url": "/samples/dataset/potato/potato_healthy_leaf_03.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Potato/potato_healthy_leaf_03.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      }
+    ],
+    "potato_late_blight": [
+      {
+        "stage": 1,
+        "stage_en": "Early Stage",
+        "stage_te": "ప్రారంభ దశ",
+        "filename": "potato_late_blight_01.jpg",
+        "local_url": "/samples/dataset/potato/potato_late_blight_01.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Potato/potato_late_blight_01.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 2,
+        "stage_en": "Stage 2",
+        "stage_te": "దశ 2",
+        "filename": "potato_late_blight_02.jpg",
+        "local_url": "/samples/dataset/potato/potato_late_blight_02.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Potato/potato_late_blight_02.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 3,
+        "stage_en": "Stage 3",
+        "stage_te": "దశ 3",
+        "filename": "potato_late_blight_03.jpg",
+        "local_url": "/samples/dataset/potato/potato_late_blight_03.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Potato/potato_late_blight_03.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      }
+    ]
+  },
+  "Rice": {
+    "rice_bacterial_leaf_blight": [
+      {
+        "stage": 1,
+        "stage_en": "Early Stage",
+        "stage_te": "ప్రారంభ దశ",
+        "filename": "rice_bacterial_leaf_blight_01.jpg",
+        "local_url": "/samples/dataset/rice/rice_bacterial_leaf_blight_01.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Rice/rice_bacterial_leaf_blight_01.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 2,
+        "stage_en": "Stage 2",
+        "stage_te": "దశ 2",
+        "filename": "rice_bacterial_leaf_blight_02.jpg",
+        "local_url": "/samples/dataset/rice/rice_bacterial_leaf_blight_02.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Rice/rice_bacterial_leaf_blight_02.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 3,
+        "stage_en": "Stage 3",
+        "stage_te": "దశ 3",
+        "filename": "rice_bacterial_leaf_blight_03.jpg",
+        "local_url": "/samples/dataset/rice/rice_bacterial_leaf_blight_03.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Rice/rice_bacterial_leaf_blight_03.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      }
+    ],
+    "rice_brown_spot": [
+      {
+        "stage": 1,
+        "stage_en": "Early Stage",
+        "stage_te": "ప్రారంభ దశ",
+        "filename": "rice_brown_spot_01.jpg",
+        "local_url": "/samples/dataset/rice/rice_brown_spot_01.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Rice/rice_brown_spot_01.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 2,
+        "stage_en": "Stage 2",
+        "stage_te": "దశ 2",
+        "filename": "rice_brown_spot_02.jpg",
+        "local_url": "/samples/dataset/rice/rice_brown_spot_02.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Rice/rice_brown_spot_02.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 3,
+        "stage_en": "Stage 3",
+        "stage_te": "దశ 3",
+        "filename": "rice_brown_spot_03.jpg",
+        "local_url": "/samples/dataset/rice/rice_brown_spot_03.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Rice/rice_brown_spot_03.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      }
+    ],
+    "rice_green_leafhopper": [
+      {
+        "stage": 1,
+        "stage_en": "Early Stage",
+        "stage_te": "ప్రారంభ దశ",
+        "filename": "rice_green_leafhopper_01.jpg",
+        "local_url": "/samples/dataset/rice/rice_green_leafhopper_01.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Rice/rice_green_leafhopper_01.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 2,
+        "stage_en": "Stage 2",
+        "stage_te": "దశ 2",
+        "filename": "rice_green_leafhopper_02.jpg",
+        "local_url": "/samples/dataset/rice/rice_green_leafhopper_02.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Rice/rice_green_leafhopper_02.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 3,
+        "stage_en": "Stage 3",
+        "stage_te": "దశ 3",
+        "filename": "rice_green_leafhopper_03.jpg",
+        "local_url": "/samples/dataset/rice/rice_green_leafhopper_03.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Rice/rice_green_leafhopper_03.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      }
+    ],
+    "rice_leaf_folder___roller": [
+      {
+        "stage": 1,
+        "stage_en": "Early Stage",
+        "stage_te": "ప్రారంభ దశ",
+        "filename": "rice_leaf_folder___roller_01.jpg",
+        "local_url": "/samples/dataset/rice/rice_leaf_folder___roller_01.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Rice/rice_leaf_folder___roller_01.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 2,
+        "stage_en": "Stage 2",
+        "stage_te": "దశ 2",
+        "filename": "rice_leaf_folder___roller_02.jpg",
+        "local_url": "/samples/dataset/rice/rice_leaf_folder___roller_02.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Rice/rice_leaf_folder___roller_02.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 3,
+        "stage_en": "Stage 3",
+        "stage_te": "దశ 3",
+        "filename": "rice_leaf_folder___roller_03.jpg",
+        "local_url": "/samples/dataset/rice/rice_leaf_folder___roller_03.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Rice/rice_leaf_folder___roller_03.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      }
+    ],
+    "rice_leaf_smut": [
+      {
+        "stage": 1,
+        "stage_en": "Early Stage",
+        "stage_te": "ప్రారంభ దశ",
+        "filename": "rice_leaf_smut_01.jpg",
+        "local_url": "/samples/dataset/rice/rice_leaf_smut_01.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Rice/rice_leaf_smut_01.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 2,
+        "stage_en": "Stage 2",
+        "stage_te": "దశ 2",
+        "filename": "rice_leaf_smut_02.jpg",
+        "local_url": "/samples/dataset/rice/rice_leaf_smut_02.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Rice/rice_leaf_smut_02.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 3,
+        "stage_en": "Stage 3",
+        "stage_te": "దశ 3",
+        "filename": "rice_leaf_smut_03.jpg",
+        "local_url": "/samples/dataset/rice/rice_leaf_smut_03.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Rice/rice_leaf_smut_03.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      }
+    ],
+    "rice_rice_leaf_mite": [
+      {
+        "stage": 1,
+        "stage_en": "Early Stage",
+        "stage_te": "ప్రారంభ దశ",
+        "filename": "rice_rice_leaf_mite_01.jpg",
+        "local_url": "/samples/dataset/rice/rice_rice_leaf_mite_01.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Rice/rice_rice_leaf_mite_01.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 2,
+        "stage_en": "Stage 2",
+        "stage_te": "దశ 2",
+        "filename": "rice_rice_leaf_mite_02.jpg",
+        "local_url": "/samples/dataset/rice/rice_rice_leaf_mite_02.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Rice/rice_rice_leaf_mite_02.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 3,
+        "stage_en": "Stage 3",
+        "stage_te": "దశ 3",
+        "filename": "rice_rice_leaf_mite_03.jpg",
+        "local_url": "/samples/dataset/rice/rice_rice_leaf_mite_03.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Rice/rice_rice_leaf_mite_03.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      }
+    ]
+  },
+  "Soybean": {
+    "soybean_soybean_aphids": [
+      {
+        "stage": 1,
+        "stage_en": "Early Stage",
+        "stage_te": "ప్రారంభ దశ",
+        "filename": "soybean_soybean_aphids_01.jpg",
+        "local_url": "/samples/dataset/soybean/soybean_soybean_aphids_01.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Soybean/soybean_soybean_aphids_01.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 2,
+        "stage_en": "Stage 2",
+        "stage_te": "దశ 2",
+        "filename": "soybean_soybean_aphids_02.jpg",
+        "local_url": "/samples/dataset/soybean/soybean_soybean_aphids_02.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Soybean/soybean_soybean_aphids_02.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 3,
+        "stage_en": "Stage 3",
+        "stage_te": "దశ 3",
+        "filename": "soybean_soybean_aphids_03.jpg",
+        "local_url": "/samples/dataset/soybean/soybean_soybean_aphids_03.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Soybean/soybean_soybean_aphids_03.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      }
+    ],
+    "soybean_soybean_looper_caterpillar": [
+      {
+        "stage": 1,
+        "stage_en": "Early Stage",
+        "stage_te": "ప్రారంభ దశ",
+        "filename": "soybean_soybean_looper_caterpillar_01.jpg",
+        "local_url": "/samples/dataset/soybean/soybean_soybean_looper_caterpillar_01.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Soybean/soybean_soybean_looper_caterpillar_01.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 2,
+        "stage_en": "Stage 2",
+        "stage_te": "దశ 2",
+        "filename": "soybean_soybean_looper_caterpillar_02.jpg",
+        "local_url": "/samples/dataset/soybean/soybean_soybean_looper_caterpillar_02.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Soybean/soybean_soybean_looper_caterpillar_02.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 3,
+        "stage_en": "Stage 3",
+        "stage_te": "దశ 3",
+        "filename": "soybean_soybean_looper_caterpillar_03.jpg",
+        "local_url": "/samples/dataset/soybean/soybean_soybean_looper_caterpillar_03.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Soybean/soybean_soybean_looper_caterpillar_03.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      }
+    ]
+  },
+  "Sugarcane": {
+    "sugarcane_healthy_sugarcane_foliage": [
+      {
+        "stage": 1,
+        "stage_en": "Early Stage",
+        "stage_te": "ప్రారంభ దశ",
+        "filename": "sugarcane_healthy_sugarcane_foliage_01.jpg",
+        "local_url": "/samples/dataset/sugarcane/sugarcane_healthy_sugarcane_foliage_01.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Sugarcane/sugarcane_healthy_sugarcane_foliage_01.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 2,
+        "stage_en": "Stage 2",
+        "stage_te": "దశ 2",
+        "filename": "sugarcane_healthy_sugarcane_foliage_02.jpg",
+        "local_url": "/samples/dataset/sugarcane/sugarcane_healthy_sugarcane_foliage_02.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Sugarcane/sugarcane_healthy_sugarcane_foliage_02.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 3,
+        "stage_en": "Stage 3",
+        "stage_te": "దశ 3",
+        "filename": "sugarcane_healthy_sugarcane_foliage_03.jpg",
+        "local_url": "/samples/dataset/sugarcane/sugarcane_healthy_sugarcane_foliage_03.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Sugarcane/sugarcane_healthy_sugarcane_foliage_03.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      }
+    ],
+    "sugarcane_mosaic_virus": [
+      {
+        "stage": 1,
+        "stage_en": "Early Stage",
+        "stage_te": "ప్రారంభ దశ",
+        "filename": "sugarcane_mosaic_virus_01.jpg",
+        "local_url": "/samples/dataset/sugarcane/sugarcane_mosaic_virus_01.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Sugarcane/sugarcane_mosaic_virus_01.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 2,
+        "stage_en": "Stage 2",
+        "stage_te": "దశ 2",
+        "filename": "sugarcane_mosaic_virus_02.jpg",
+        "local_url": "/samples/dataset/sugarcane/sugarcane_mosaic_virus_02.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Sugarcane/sugarcane_mosaic_virus_02.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 3,
+        "stage_en": "Stage 3",
+        "stage_te": "దశ 3",
+        "filename": "sugarcane_mosaic_virus_03.jpg",
+        "local_url": "/samples/dataset/sugarcane/sugarcane_mosaic_virus_03.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Sugarcane/sugarcane_mosaic_virus_03.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      }
+    ],
+    "sugarcane_red_rot_disease": [
+      {
+        "stage": 1,
+        "stage_en": "Early Stage",
+        "stage_te": "ప్రారంభ దశ",
+        "filename": "sugarcane_red_rot_disease_01.jpg",
+        "local_url": "/samples/dataset/sugarcane/sugarcane_red_rot_disease_01.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Sugarcane/sugarcane_red_rot_disease_01.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 2,
+        "stage_en": "Stage 2",
+        "stage_te": "దశ 2",
+        "filename": "sugarcane_red_rot_disease_02.jpg",
+        "local_url": "/samples/dataset/sugarcane/sugarcane_red_rot_disease_02.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Sugarcane/sugarcane_red_rot_disease_02.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 3,
+        "stage_en": "Stage 3",
+        "stage_te": "దశ 3",
+        "filename": "sugarcane_red_rot_disease_03.jpg",
+        "local_url": "/samples/dataset/sugarcane/sugarcane_red_rot_disease_03.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Sugarcane/sugarcane_red_rot_disease_03.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      }
+    ],
+    "sugarcane_sugarcane_rust": [
+      {
+        "stage": 1,
+        "stage_en": "Early Stage",
+        "stage_te": "ప్రారంభ దశ",
+        "filename": "sugarcane_sugarcane_rust_01.jpg",
+        "local_url": "/samples/dataset/sugarcane/sugarcane_sugarcane_rust_01.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Sugarcane/sugarcane_sugarcane_rust_01.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 2,
+        "stage_en": "Stage 2",
+        "stage_te": "దశ 2",
+        "filename": "sugarcane_sugarcane_rust_02.jpg",
+        "local_url": "/samples/dataset/sugarcane/sugarcane_sugarcane_rust_02.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Sugarcane/sugarcane_sugarcane_rust_02.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 3,
+        "stage_en": "Stage 3",
+        "stage_te": "దశ 3",
+        "filename": "sugarcane_sugarcane_rust_03.jpg",
+        "local_url": "/samples/dataset/sugarcane/sugarcane_sugarcane_rust_03.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Sugarcane/sugarcane_sugarcane_rust_03.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      }
+    ]
+  },
+  "Tomato": {
+    "tomato_bacterial_spot": [
+      {
+        "stage": 1,
+        "stage_en": "Early Stage",
+        "stage_te": "ప్రారంభ దశ",
+        "filename": "tomato_bacterial_spot_01.jpg",
+        "local_url": "/samples/dataset/tomato/tomato_bacterial_spot_01.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Tomato/tomato_bacterial_spot_01.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 2,
+        "stage_en": "Stage 2",
+        "stage_te": "దశ 2",
+        "filename": "tomato_bacterial_spot_02.jpg",
+        "local_url": "/samples/dataset/tomato/tomato_bacterial_spot_02.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Tomato/tomato_bacterial_spot_02.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 3,
+        "stage_en": "Stage 3",
+        "stage_te": "దశ 3",
+        "filename": "tomato_bacterial_spot_03.jpg",
+        "local_url": "/samples/dataset/tomato/tomato_bacterial_spot_03.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Tomato/tomato_bacterial_spot_03.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      }
+    ],
+    "tomato_early_blight": [
+      {
+        "stage": 1,
+        "stage_en": "Early Stage",
+        "stage_te": "ప్రారంభ దశ",
+        "filename": "tomato_early_blight_01.jpg",
+        "local_url": "/samples/dataset/tomato/tomato_early_blight_01.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Tomato/tomato_early_blight_01.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 2,
+        "stage_en": "Stage 2",
+        "stage_te": "దశ 2",
+        "filename": "tomato_early_blight_02.jpg",
+        "local_url": "/samples/dataset/tomato/tomato_early_blight_02.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Tomato/tomato_early_blight_02.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 3,
+        "stage_en": "Stage 3",
+        "stage_te": "దశ 3",
+        "filename": "tomato_early_blight_03.jpg",
+        "local_url": "/samples/dataset/tomato/tomato_early_blight_03.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Tomato/tomato_early_blight_03.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      }
+    ],
+    "tomato_healthy_leaf": [
+      {
+        "stage": 1,
+        "stage_en": "Early Stage",
+        "stage_te": "ప్రారంభ దశ",
+        "filename": "tomato_healthy_leaf_01.jpg",
+        "local_url": "/samples/dataset/tomato/tomato_healthy_leaf_01.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Tomato/tomato_healthy_leaf_01.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 2,
+        "stage_en": "Stage 2",
+        "stage_te": "దశ 2",
+        "filename": "tomato_healthy_leaf_02.jpg",
+        "local_url": "/samples/dataset/tomato/tomato_healthy_leaf_02.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Tomato/tomato_healthy_leaf_02.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 3,
+        "stage_en": "Stage 3",
+        "stage_te": "దశ 3",
+        "filename": "tomato_healthy_leaf_03.jpg",
+        "local_url": "/samples/dataset/tomato/tomato_healthy_leaf_03.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Tomato/tomato_healthy_leaf_03.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      }
+    ],
+    "tomato_late_blight": [
+      {
+        "stage": 1,
+        "stage_en": "Early Stage",
+        "stage_te": "ప్రారంభ దశ",
+        "filename": "tomato_late_blight_01.jpg",
+        "local_url": "/samples/dataset/tomato/tomato_late_blight_01.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Tomato/tomato_late_blight_01.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 2,
+        "stage_en": "Stage 2",
+        "stage_te": "దశ 2",
+        "filename": "tomato_late_blight_02.jpg",
+        "local_url": "/samples/dataset/tomato/tomato_late_blight_02.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Tomato/tomato_late_blight_02.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 3,
+        "stage_en": "Stage 3",
+        "stage_te": "దశ 3",
+        "filename": "tomato_late_blight_03.jpg",
+        "local_url": "/samples/dataset/tomato/tomato_late_blight_03.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Tomato/tomato_late_blight_03.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      }
+    ],
+    "tomato_leaf_mold": [
+      {
+        "stage": 1,
+        "stage_en": "Early Stage",
+        "stage_te": "ప్రారంభ దశ",
+        "filename": "tomato_leaf_mold_01.jpg",
+        "local_url": "/samples/dataset/tomato/tomato_leaf_mold_01.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Tomato/tomato_leaf_mold_01.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 2,
+        "stage_en": "Stage 2",
+        "stage_te": "దశ 2",
+        "filename": "tomato_leaf_mold_02.jpg",
+        "local_url": "/samples/dataset/tomato/tomato_leaf_mold_02.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Tomato/tomato_leaf_mold_02.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 3,
+        "stage_en": "Stage 3",
+        "stage_te": "దశ 3",
+        "filename": "tomato_leaf_mold_03.jpg",
+        "local_url": "/samples/dataset/tomato/tomato_leaf_mold_03.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Tomato/tomato_leaf_mold_03.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      }
+    ],
+    "tomato_mosaic_virus": [
+      {
+        "stage": 1,
+        "stage_en": "Early Stage",
+        "stage_te": "ప్రారంభ దశ",
+        "filename": "tomato_mosaic_virus_01.jpg",
+        "local_url": "/samples/dataset/tomato/tomato_mosaic_virus_01.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Tomato/tomato_mosaic_virus_01.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 2,
+        "stage_en": "Stage 2",
+        "stage_te": "దశ 2",
+        "filename": "tomato_mosaic_virus_02.jpg",
+        "local_url": "/samples/dataset/tomato/tomato_mosaic_virus_02.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Tomato/tomato_mosaic_virus_02.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 3,
+        "stage_en": "Stage 3",
+        "stage_te": "దశ 3",
+        "filename": "tomato_mosaic_virus_03.jpg",
+        "local_url": "/samples/dataset/tomato/tomato_mosaic_virus_03.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Tomato/tomato_mosaic_virus_03.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      }
+    ],
+    "tomato_septoria_leaf_spot": [
+      {
+        "stage": 1,
+        "stage_en": "Early Stage",
+        "stage_te": "ప్రారంభ దశ",
+        "filename": "tomato_septoria_leaf_spot_01.jpg",
+        "local_url": "/samples/dataset/tomato/tomato_septoria_leaf_spot_01.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Tomato/tomato_septoria_leaf_spot_01.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 2,
+        "stage_en": "Stage 2",
+        "stage_te": "దశ 2",
+        "filename": "tomato_septoria_leaf_spot_02.jpg",
+        "local_url": "/samples/dataset/tomato/tomato_septoria_leaf_spot_02.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Tomato/tomato_septoria_leaf_spot_02.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 3,
+        "stage_en": "Stage 3",
+        "stage_te": "దశ 3",
+        "filename": "tomato_septoria_leaf_spot_03.jpg",
+        "local_url": "/samples/dataset/tomato/tomato_septoria_leaf_spot_03.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Tomato/tomato_septoria_leaf_spot_03.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      }
+    ],
+    "tomato_spider_mites_infestation": [
+      {
+        "stage": 1,
+        "stage_en": "Early Stage",
+        "stage_te": "ప్రారంభ దశ",
+        "filename": "tomato_spider_mites_infestation_01.jpg",
+        "local_url": "/samples/dataset/tomato/tomato_spider_mites_infestation_01.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Tomato/tomato_spider_mites_infestation_01.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 2,
+        "stage_en": "Stage 2",
+        "stage_te": "దశ 2",
+        "filename": "tomato_spider_mites_infestation_02.jpg",
+        "local_url": "/samples/dataset/tomato/tomato_spider_mites_infestation_02.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Tomato/tomato_spider_mites_infestation_02.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 3,
+        "stage_en": "Stage 3",
+        "stage_te": "దశ 3",
+        "filename": "tomato_spider_mites_infestation_03.jpg",
+        "local_url": "/samples/dataset/tomato/tomato_spider_mites_infestation_03.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Tomato/tomato_spider_mites_infestation_03.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      }
+    ],
+    "tomato_target_spot": [
+      {
+        "stage": 1,
+        "stage_en": "Early Stage",
+        "stage_te": "ప్రారంభ దశ",
+        "filename": "tomato_target_spot_01.jpg",
+        "local_url": "/samples/dataset/tomato/tomato_target_spot_01.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Tomato/tomato_target_spot_01.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 2,
+        "stage_en": "Stage 2",
+        "stage_te": "దశ 2",
+        "filename": "tomato_target_spot_02.jpg",
+        "local_url": "/samples/dataset/tomato/tomato_target_spot_02.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Tomato/tomato_target_spot_02.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 3,
+        "stage_en": "Stage 3",
+        "stage_te": "దశ 3",
+        "filename": "tomato_target_spot_03.jpg",
+        "local_url": "/samples/dataset/tomato/tomato_target_spot_03.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Tomato/tomato_target_spot_03.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      }
+    ],
+    "tomato_yellow_leaf_curl_virus": [
+      {
+        "stage": 1,
+        "stage_en": "Early Stage",
+        "stage_te": "ప్రారంభ దశ",
+        "filename": "tomato_yellow_leaf_curl_virus_01.jpg",
+        "local_url": "/samples/dataset/tomato/tomato_yellow_leaf_curl_virus_01.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Tomato/tomato_yellow_leaf_curl_virus_01.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 2,
+        "stage_en": "Stage 2",
+        "stage_te": "దశ 2",
+        "filename": "tomato_yellow_leaf_curl_virus_02.jpg",
+        "local_url": "/samples/dataset/tomato/tomato_yellow_leaf_curl_virus_02.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Tomato/tomato_yellow_leaf_curl_virus_02.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 3,
+        "stage_en": "Stage 3",
+        "stage_te": "దశ 3",
+        "filename": "tomato_yellow_leaf_curl_virus_03.jpg",
+        "local_url": "/samples/dataset/tomato/tomato_yellow_leaf_curl_virus_03.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Tomato/tomato_yellow_leaf_curl_virus_03.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      }
+    ]
+  },
+  "Wheat": {
+    "wheat_armyworm_leaf_damage": [
+      {
+        "stage": 1,
+        "stage_en": "Early Stage",
+        "stage_te": "ప్రారంభ దశ",
+        "filename": "wheat_armyworm_leaf_damage_01.jpg",
+        "local_url": "/samples/dataset/wheat/wheat_armyworm_leaf_damage_01.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Wheat/wheat_armyworm_leaf_damage_01.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 2,
+        "stage_en": "Stage 2",
+        "stage_te": "దశ 2",
+        "filename": "wheat_armyworm_leaf_damage_02.jpg",
+        "local_url": "/samples/dataset/wheat/wheat_armyworm_leaf_damage_02.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Wheat/wheat_armyworm_leaf_damage_02.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 3,
+        "stage_en": "Stage 3",
+        "stage_te": "దశ 3",
+        "filename": "wheat_armyworm_leaf_damage_03.jpg",
+        "local_url": "/samples/dataset/wheat/wheat_armyworm_leaf_damage_03.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Wheat/wheat_armyworm_leaf_damage_03.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      }
+    ],
+    "wheat_wheat_aphid_infestation": [
+      {
+        "stage": 1,
+        "stage_en": "Early Stage",
+        "stage_te": "ప్రారంభ దశ",
+        "filename": "wheat_wheat_aphid_infestation_01.jpg",
+        "local_url": "/samples/dataset/wheat/wheat_wheat_aphid_infestation_01.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Wheat/wheat_wheat_aphid_infestation_01.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 2,
+        "stage_en": "Stage 2",
+        "stage_te": "దశ 2",
+        "filename": "wheat_wheat_aphid_infestation_02.jpg",
+        "local_url": "/samples/dataset/wheat/wheat_wheat_aphid_infestation_02.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Wheat/wheat_wheat_aphid_infestation_02.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 3,
+        "stage_en": "Stage 3",
+        "stage_te": "దశ 3",
+        "filename": "wheat_wheat_aphid_infestation_03.jpg",
+        "local_url": "/samples/dataset/wheat/wheat_wheat_aphid_infestation_03.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Wheat/wheat_wheat_aphid_infestation_03.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      }
+    ],
+    "wheat_wheat_blossom_midge": [
+      {
+        "stage": 1,
+        "stage_en": "Early Stage",
+        "stage_te": "ప్రారంభ దశ",
+        "filename": "wheat_wheat_blossom_midge_01.jpg",
+        "local_url": "/samples/dataset/wheat/wheat_wheat_blossom_midge_01.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Wheat/wheat_wheat_blossom_midge_01.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 2,
+        "stage_en": "Stage 2",
+        "stage_te": "దశ 2",
+        "filename": "wheat_wheat_blossom_midge_02.jpg",
+        "local_url": "/samples/dataset/wheat/wheat_wheat_blossom_midge_02.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Wheat/wheat_wheat_blossom_midge_02.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      },
+      {
+        "stage": 3,
+        "stage_en": "Stage 3",
+        "stage_te": "దశ 3",
+        "filename": "wheat_wheat_blossom_midge_03.jpg",
+        "local_url": "/samples/dataset/wheat/wheat_wheat_blossom_midge_03.jpg",
+        "cdn_url": "https://cdn.jsdelivr.net/gh/trivereddygudala/agrishield-crop-system@main/datasets/crop_disease_samples/Wheat/wheat_wheat_blossom_midge_03.jpg",
+        "source": "ICAR & PlantVillage Verified Benchmark"
+      }
+    ]
+  }
+}

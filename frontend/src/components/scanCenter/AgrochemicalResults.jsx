@@ -297,7 +297,7 @@ const AgrochemicalResults = ({ data = {}, previewUrl, onScanAnother }) => {
     registration_number: rawDetails.registration_number || activeData?.registrationNumber || activeData?.info?.registration_number || "CIR-89214/2021-Abamectin(EC)-1452",
     hazard_color: rawDetails.hazard_color || activeData?.info?.hazard_color || "#eab308",
     toxicity_class: rawDetails.toxicity_class || activeData?.toxicityClass || activeData?.info?.toxicity_level || "Class II - Highly Toxic (Yellow Triangle)",
-    image_url: rawDetails.image_url || activeData?.imageUrl || activeData?.image_url || "/products/aguard_bottle.jpg"
+    image_url: (rawDetails.image_url && !rawDetails.image_url.includes('upload') && !rawDetails.image_url.startsWith('blob:')) ? rawDetails.image_url : "/products/aguard_bottle.jpg"
   };
 
   const [addingToInv, setAddingToInv] = useState(false);
@@ -517,35 +517,52 @@ const AgrochemicalResults = ({ data = {}, previewUrl, onScanAnother }) => {
 
   const agroRefList = useMemo(() => {
     const isTe = activeLang === 'te';
-    const primary = productDetails.image_url || '/samples/chilli_leaf_spot.jpg';
     const brandLow = (productDetails.brand_name || '').toLowerCase();
     const actLow = (productDetails.active_ingredient || '').toLowerCase();
 
-    // Choose authentic product bottle images based on brand/ingredient
+    // Map authentic primary bottle image and companion registered packing specifications
+    let primary = '/products/aguard_bottle.jpg';
     let secondaryImg = '/products/saaf_upl.jpg';
     let tertiaryImg = '/products/iffco_19_19_19.jpg';
 
     if (brandLow.includes('guard') || brandLow.includes('a-guard') || actLow.includes('abamectin')) {
-      secondaryImg = '/products/aguard_bottle.jpg';
-      tertiaryImg = '/products/solomon_bayer.jpg';
+      primary = '/products/aguard_bottle.jpg';
+      secondaryImg = '/products/solomon_bayer.jpg';
+      tertiaryImg = '/products/alika_syngenta.jpg';
     } else if (brandLow.includes('mancozeb') || brandLow.includes('indofil') || actLow.includes('mancozeb')) {
-      secondaryImg = '/products/indofil_m45.webp';
+      primary = '/products/indofil_m45.webp';
+      secondaryImg = '/products/saaf_upl.jpg';
       tertiaryImg = '/products/ridomil_gold_syngenta.jpg';
     } else if (brandLow.includes('admire') || brandLow.includes('confidor') || actLow.includes('imidacloprid')) {
+      primary = '/products/confidor_bayer.jpg';
       secondaryImg = '/products/admire_bayer.webp';
-      tertiaryImg = '/products/confidor_bayer.jpg';
+      tertiaryImg = '/products/actara_syngenta.jpg';
     } else if (brandLow.includes('coragen') || actLow.includes('chlorantraniliprole')) {
-      secondaryImg = '/products/coragen_fmc.jpg';
-      tertiaryImg = '/products/benevia_fmc.jpg';
+      primary = '/products/coragen_fmc.jpg';
+      secondaryImg = '/products/benevia_fmc.jpg';
+      tertiaryImg = '/products/exponus_basf.jpg';
     } else if (brandLow.includes('actara') || actLow.includes('thiamethoxam')) {
-      secondaryImg = '/products/actara_syngenta.jpg';
-      tertiaryImg = '/products/alika_syngenta.jpg';
+      primary = '/products/actara_syngenta.jpg';
+      secondaryImg = '/products/alika_syngenta.jpg';
+      tertiaryImg = '/products/jump_bayer.jpg';
     } else if (brandLow.includes('proclaim') || actLow.includes('emamectin')) {
-      secondaryImg = '/products/proclaim_syngenta.webp';
+      primary = '/products/proclaim_syngenta.webp';
+      secondaryImg = '/products/tracer_corteva.jpg';
       tertiaryImg = '/products/coragen_fmc.jpg';
-    } else if (brandLow.includes('fertilizer') || brandLow.includes('npk') || actLow.includes('npk')) {
-      secondaryImg = '/products/iffco_19_19_19.jpg';
-      tertiaryImg = '/products/iffco_nano_urea.jpg';
+    } else if (brandLow.includes('saaf') || actLow.includes('carbendazim')) {
+      primary = '/products/saaf_upl.jpg';
+      secondaryImg = '/products/bavistin_crystal.jpg';
+      tertiaryImg = '/products/custodia_adama.jpg';
+    } else if (brandLow.includes('nativo') || actLow.includes('tebuconazole')) {
+      primary = '/products/nativo_bayer.jpg';
+      secondaryImg = '/products/amistar_top_syngenta.jpg';
+      tertiaryImg = '/products/score_syngenta.webp';
+    } else if (brandLow.includes('fertilizer') || brandLow.includes('npk') || actLow.includes('npk') || brandLow.includes('urea') || brandLow.includes('dap')) {
+      primary = '/products/iffco_19_19_19.jpg';
+      secondaryImg = '/products/iffco_nano_urea.jpg';
+      tertiaryImg = '/products/iffco_nano_dap.jpg';
+    } else if (productDetails.image_url && productDetails.image_url.startsWith('/products/')) {
+      primary = productDetails.image_url;
     }
 
     return [
@@ -719,7 +736,7 @@ const AgrochemicalResults = ({ data = {}, previewUrl, onScanAnother }) => {
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                 onError={(e) => {
                   e.currentTarget.onerror = null;
-                  e.currentTarget.src = '/samples/chilli_leaf_spot.jpg';
+                  e.currentTarget.src = '/products/aguard_bottle.jpg';
                 }}
               />
               <div className="absolute top-1.5 right-1.5 px-2 py-0.5 rounded-md bg-indigo-600 text-white text-[9px] font-black shadow-xs flex items-center gap-1">
@@ -772,7 +789,7 @@ const AgrochemicalResults = ({ data = {}, previewUrl, onScanAnother }) => {
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                       onError={(e) => {
                         e.currentTarget.onerror = null;
-                        e.currentTarget.src = '/samples/chilli_leaf_spot.jpg';
+                        e.currentTarget.src = '/products/aguard_bottle.jpg';
                       }}
                     />
                     {isSelected && (
@@ -1105,12 +1122,12 @@ const AgrochemicalResults = ({ data = {}, previewUrl, onScanAnother }) => {
             </div>
             <div className="rounded-2xl overflow-hidden bg-black flex items-center justify-center max-h-[75vh]">
               <img
-                src={zoomImageModal.src || displayOriginalImg || '/samples/agrochemicals/crop_guard_plus.png'}
+                src={zoomImageModal.src || '/products/aguard_bottle.jpg'}
                 alt="Enlarged view"
                 className="max-h-[70vh] w-auto object-contain rounded-xl"
                 onError={(e) => {
                   e.currentTarget.onerror = null;
-                  e.currentTarget.src = displayOriginalImg || '/samples/agrochemicals/crop_guard_plus.png';
+                  e.currentTarget.src = '/products/aguard_bottle.jpg';
                 }}
               />
             </div>

@@ -414,6 +414,54 @@ export default function DiseaseDiagnosisResults({
           return;
         }
 
+        // 1. PRIMARY: Check Authoritative ICAR & PlantVillage multi-stage registry
+        try {
+          const regRes = await fetch('/samples/icar_reference_registry.json');
+          if (regRes.ok) {
+            const registry = await regRes.json();
+            const rawC = (rawCropName || '').toLowerCase().trim();
+            const normCrop = CROP_ALIASES[rawC] || rawC;
+            const matchedCropKey = Object.keys(registry).find(
+              c => c.toLowerCase() === normCrop || c.toLowerCase() === rawC || rawC.includes(c.toLowerCase()) || c.toLowerCase().includes(rawC)
+            );
+            if (matchedCropKey && registry[matchedCropKey]) {
+              const cropDiseases = registry[matchedCropKey];
+              const rawD = (rawDiseaseName || '').toLowerCase().replace(/[_\-()/,]/g, ' ');
+              let bestKey = null;
+              let bestScore = -1;
+              for (const dKey of Object.keys(cropDiseases)) {
+                const cleanKey = dKey.toLowerCase().replace(/[_\-()/,]/g, ' ');
+                const tokens = rawD.split(/\s+/).filter(w => w.length > 2 && !['crop', 'leaf', 'disease', 'condition'].includes(w));
+                let score = 0;
+                for (const t of tokens) {
+                  if (cleanKey.includes(t)) score += 10;
+                }
+                if (score > bestScore) {
+                  bestScore = score;
+                  bestKey = dKey;
+                }
+              }
+              if (bestKey && cropDiseases[bestKey] && cropDiseases[bestKey].length > 0) {
+                const icarMatches = cropDiseases[bestKey].map((item, idx) => ({
+                  id: `icar_stage_${idx + 1}`,
+                  crop: matchedCropKey,
+                  disease: rawDiseaseName,
+                  image_url: item.local_url,
+                  cdn_url: item.cdn_url,
+                  stage: activeLang === 'te' ? `${item.stage_te} (ICAR/PlantVillage)` : `${item.stage_en} (ICAR/PlantVillage)`,
+                  source: item.source
+                }));
+                if (isMounted) {
+                  setReferenceImages(icarMatches);
+                  return;
+                }
+              }
+            }
+          }
+        } catch (regErr) {
+          console.debug('ICAR registry lookup note:', regErr);
+        }
+
         const res = await fetch('/samples/dataset_catalog.json');
         if (!res.ok) return;
         const catalog = await res.json();
@@ -491,17 +539,8 @@ export default function DiseaseDiagnosisResults({
 
         let matches = scoredItems.filter(s => s.score > 0).map(s => s.item);
 
-        // If micro-model provided a specific verified sample image, prepend it
-        if (liveResult?.sample_reference_image) {
-          const mmEntry = {
-            id: 'micro_model_specimen_01',
-            crop: rawCropName,
-            disease: rawDiseaseName,
-            image_url: liveResult.sample_reference_image,
-            stage: activeLang === 'te' ? 'ఫీల్డ్ నమూనా (Field Specimen)' : 'Field Specimen 1'
-          };
-          matches = [mmEntry, ...matches.filter(m => m.image_url !== liveResult.sample_reference_image)];
-        }
+        // Note: Do not inject liveResult?.sample_reference_image directly into reference pool
+        // to prevent mirroring the farmer's uploaded leaf into scientific reference slots.
 
         // Ensure at least 3 identical stage images from crop pool
         if (matches.length < 3) {
@@ -838,7 +877,11 @@ export default function DiseaseDiagnosisResults({
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                       onError={(e) => {
                         e.currentTarget.onerror = null;
-                        e.currentTarget.src = '/samples/corn_leaf_blight.jpg';
+                        if (curImg.cdn_url && e.currentTarget.src !== curImg.cdn_url) {
+                          e.currentTarget.src = curImg.cdn_url;
+                        } else {
+                          e.currentTarget.src = '/samples/dataset/chilli/chilli_healthy_foliage_01.jpg';
+                        }
                       }}
                     />
                     <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
@@ -903,7 +946,11 @@ export default function DiseaseDiagnosisResults({
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                           onError={(e) => {
                             e.currentTarget.onerror = null;
-                            e.currentTarget.src = '/samples/corn_leaf_blight.jpg';
+                            if (ref.cdn_url && e.currentTarget.src !== ref.cdn_url) {
+                              e.currentTarget.src = ref.cdn_url;
+                            } else {
+                              e.currentTarget.src = '/samples/dataset/chilli/chilli_healthy_foliage_01.jpg';
+                            }
                           }}
                         />
                         {isSelected && (
@@ -1651,12 +1698,12 @@ export default function DiseaseDiagnosisResults({
             </div>
             <div className="rounded-2xl overflow-hidden bg-black flex items-center justify-center max-h-[75vh] min-h-[220px]">
               <img
-                src={zoomImageModal.src || previewUrl || displayOriginalImg || '/samples/dataset/chilli/chilli_healthy_foliage_01.jpg'}
+                src={zoomImageModal.src || '/samples/dataset/chilli/chilli_healthy_foliage_01.jpg'}
                 alt="Enlarged view"
                 className="max-h-[70vh] w-auto max-w-full object-contain rounded-xl"
                 onError={(e) => {
                   e.currentTarget.onerror = null;
-                  e.currentTarget.src = previewUrl || displayOriginalImg || '/samples/dataset/chilli/chilli_healthy_foliage_01.jpg';
+                  e.currentTarget.src = '/samples/dataset/chilli/chilli_healthy_foliage_01.jpg';
                 }}
               />
             </div>
