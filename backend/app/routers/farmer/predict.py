@@ -1427,6 +1427,9 @@ async def agrochemical_scan_endpoint(
     and returns structured product intelligence.
     """
     full_image_path = await asyncio.to_thread(resolve_image_path, req.image_path)
+    if not full_image_path and getattr(req, "image_data_url", None):
+        full_image_path = await asyncio.to_thread(resolve_image_path, req.image_data_url)
+
     if not full_image_path:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -1642,6 +1645,9 @@ async def identify_plant_endpoint(
     crops, fruits, vegetables, flowers, trees, weeds, and medicinal plants.
     """
     full_image_path = await asyncio.to_thread(resolve_image_path, req.image_path)
+    if not full_image_path and getattr(req, "image_data_url", None):
+        full_image_path = await asyncio.to_thread(resolve_image_path, req.image_data_url)
+
     if not full_image_path:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

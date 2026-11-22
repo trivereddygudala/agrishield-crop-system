@@ -142,7 +142,11 @@ def resolve_image_path(image_path: str) -> Optional[str]:
     from backend.app.core.config import get_worker_internal_secret
     internal_secret = get_worker_internal_secret()
 
+    hostless_base = getattr(settings, "HOSTLESS_BACKEND_URL", "https://agrishield-backend.hostless.app").rstrip("/")
     candidate_urls = [
+        f"{hostless_base}/uploads/{filename}",
+        f"{hostless_base}/api/worker/image/{filename}",
+        f"{hostless_base}/worker/image/{filename}",
         f"{settings.AI_WORKER_1_URL.rstrip('/')}/api/worker/image/{filename}",
         f"{settings.AI_WORKER_1_URL.rstrip('/')}/worker/image/{filename}",
         f"{settings.AI_WORKER_3_URL.rstrip('/')}/api/worker/image/{filename}",

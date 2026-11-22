@@ -541,7 +541,14 @@ class StorageService:
 
             # Match against configured trusted storage domains
             trusted_domains = set()
-            for conf_url in (settings.STORAGE_PUBLIC_BASE_URL, settings.STORAGE_ENDPOINT_URL, getattr(settings, "SUPABASE_URL", None)):
+            for conf_url in (
+                settings.STORAGE_PUBLIC_BASE_URL,
+                settings.STORAGE_ENDPOINT_URL,
+                getattr(settings, "SUPABASE_URL", None),
+                getattr(settings, "HOSTLESS_BACKEND_URL", None),
+                getattr(settings, "AI_WORKER_1_URL", None),
+                getattr(settings, "AI_WORKER_3_URL", None)
+            ):
                 if conf_url:
                     p = urllib.parse.urlparse(conf_url)
                     if p.hostname:
