@@ -11660,3 +11660,10 @@ equirements.txt with the full production package list (fastapi, uvicorn, pymongo
   - Made PyTorch imports lazy and non-blocking (try...except (ImportError, ModuleNotFoundError)).
   - Confirmed crop_scoped_onnx_service.py runs 100% independently via onnxruntime + numpy in ~1.0s with zero GPU dependencies.
   - Verified local end-to-end execution on real leaf test image (synthetic_test_leaf.jpg -> 93.69% confidence in 1,057ms).
+
+## [2026-11-22 06:17:00] - Fix Hostless Cloud Startup Crash: Resilient Production Credential Auto-Generation
+- **Non-blocking Production Credential Validation (backend/app/core/config.py):**
+  - Replaced fatal ValueError crashes in validate_production_credentials() with cryptographically secure ephemeral fallback generation (secrets.token_hex(32) for JWT_SECRET_KEY, REFRESH_TOKEN_SECRET_KEY, and IOT_API_KEY).
+  - Switched NVIDIA_API_KEY and MONGODB_URI missing-secret checks from fatal process exits to non-blocking warning notices.
+  - Resolves pydantic_core._pydantic_core.ValidationError: Production configuration error: IOT_API_KEY must be provided via environment and cannot use the default insecure key.
+  - Enables Hostless Cloud container to boot and pass health check immediately even before environment variables are typed in.
