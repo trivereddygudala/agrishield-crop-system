@@ -1,7 +1,8 @@
 import axios from 'axios';
 
 export const CANONICAL_MAIN_BACKEND = 'https://agrishield-crop-system.onrender.com';
-export const AI_WORKER_1_URL = 'https://agrishield-backend.hostless.app';
+export const HOSTLESS_BACKEND_URL = 'https://agrishield-backend.hostless.app';
+export const AI_WORKER_1_URL = 'https://agrishield-ai-worker-1.onrender.com';
 export const AI_WORKER_2_URL = 'https://agrishield-ai-worker-2.onrender.com';
 export const AI_WORKER_3_URL = 'https://agrishield-ai-worker-3.onrender.com';
 
@@ -42,22 +43,27 @@ export const getTargetClusterNode = (url) => {
   if (!url) return MAIN_RENDER_BACKEND;
   const path = url.toLowerCase();
 
-  // AI Worker 1: Disease Diagnosis & Uploads
+  // 1. Hostless Cloud: Heavy AI Disease Diagnosis & Leaf Uploads
   if (path === '/api/upload' || path.startsWith('/api/upload?') || path.includes('/predict') || path.startsWith('/uploads')) {
+    return HOSTLESS_BACKEND_URL;
+  }
+
+  // 2. Render AI Worker 1 (Repurposed): Voice Audio, APMC Mandi Prices, Soil NPK Advisor, IoT Drones
+  if (path.includes('/speech') || path.includes('/market') || path.includes('/crop-advisor') || path.includes('/action-center') || path.includes('/iot') || path.includes('/devices')) {
     return AI_WORKER_1_URL;
   }
 
-  // AI Worker 2: Botanical Plant & Weed Identification
+  // 3. Render AI Worker 2: Botanical Plant & Weed Identification
   if (path.includes('/identify-plant')) {
     return AI_WORKER_2_URL;
   }
 
-  // AI Worker 3: Agrochemical OCR, Crop Advisor, Multilingual Plant Translation
-  if (path.includes('/agrochemical') || path.includes('/crop-advisor') || path.includes('/translate')) {
+  // 4. Render AI Worker 3: Agrochemical OCR, Multilingual Plant Translation
+  if (path.includes('/agrochemical') || path.includes('/translate')) {
     return AI_WORKER_3_URL;
   }
 
-  // Cluster Main: Equipment, Bookings, Auth, Notifications, Farms, History, IoT, Admin Firmware
+  // 5. Cluster Main: Equipment, Bookings, Auth, Notifications, Farms, History, Admin Firmware
   return MAIN_RENDER_BACKEND;
 };
 
