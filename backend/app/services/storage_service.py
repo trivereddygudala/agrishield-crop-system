@@ -192,14 +192,27 @@ class StorageService:
             return f"https://{bucket}.s3.amazonaws.com/{object_name}"
 
     def _save_local_file(self, content_bytes: bytes, object_name: str) -> Tuple[str, str]:
-        """Saves image bytes to the canonical local upload directory."""
+        """Saves image bytes to the canonical local upload directory with automatic /tmp fallback."""
         upload_dir = settings.canonical_upload_dir
-        os.makedirs(upload_dir, exist_ok=True)
-        local_path = os.path.join(upload_dir, object_name)
-        with open(local_path, "wb") as f:
-            f.write(content_bytes)
-        relative_path = f"uploads/{object_name}"
-        return relative_path, local_path
+        try:
+            os.makedirs(upload_dir, exist_ok=True)
+            local_path = os.path.join(upload_dir, object_name)
+            with open(local_path, "wb") as f:
+                f.write(content_bytes)
+            relative_path = f"uploads/{object_name}"
+            return relative_path, local_path
+        except (OSError, PermissionError) as write_err:
+            logger.warning(
+                f"[STORAGE READONLY FALLBACK] Directory '{upload_dir}' is read-only ({write_err}). "
+                f"Falling back to /tmp/agrishield_uploads"
+            )
+            tmp_upload = os.path.join(os.environ.get("TMPDIR") or os.environ.get("TEMP") or "/tmp", "agrishield_uploads")
+            os.makedirs(tmp_upload, exist_ok=True)
+            local_path = os.path.join(tmp_upload, object_name)
+            with open(local_path, "wb") as f:
+                f.write(content_bytes)
+            relative_path = f"uploads/{object_name}"
+            return relative_path, local_path
 
     async def _upload_supabase(self, object_name: str, content_bytes: bytes, content_type: str) -> str:
         """
@@ -479,15 +492,18 @@ class StorageService:
         clean_rel = image_path.replace("/", os.sep).lstrip(os.sep)
         filename = os.path.basename(clean_rel)
         local_path = os.path.join(settings.canonical_upload_dir, filename)
+        tmp_dir = os.path.join(os.environ.get("TMPDIR") or os.environ.get("TEMP") or "/tmp", "agrishield_uploads")
+        tmp_path = os.path.join(tmp_dir, filename)
 
-        if os.path.exists(local_path):
-            try:
-                os.remove(local_path)
-                logger.info(f"[STORAGE DELETE] [{req_id}] Removed local file {local_path}")
-                return True
-            except Exception as e:
-                logger.warning(f"[STORAGE DELETE WARNING] [{req_id}] Could not delete local file {local_path}: {e}")
-                return False
+        deleted = False
+        for p in (local_path, tmp_path):
+            if os.path.exists(p):
+                try:
+                    os.remove(p)
+                    logger.info(f"[STORAGE DELETE] [{req_id}] Removed local file {p}")
+                    deleted = True
+                except Exception as e:
+                    logger.warning(f"[STORAGE DELETE WARNING] [{req_id}] Could not delete local file {p}: {e}")
 
         return True
 
@@ -563,6 +579,10 @@ class StorageService:
             local_path = os.path.join(settings.canonical_upload_dir, filename)
             if os.path.exists(local_path):
                 return local_path
+            tmp_dir = os.path.join(os.environ.get("TMPDIR") or os.environ.get("TEMP") or "/tmp", "agrishield_uploads")
+            tmp_path = os.path.join(tmp_dir, filename)
+            if os.path.exists(tmp_path):
+                return tmp_path
             # Check secondary paths
             from backend.app.services.image_resolver import resolve_image_path
             return resolve_image_path(image_path)
@@ -578,6 +598,10 @@ class StorageService:
         cached_path = os.path.join(settings.canonical_upload_dir, filename)
         if os.path.exists(cached_path) and os.path.getsize(cached_path) > 32:
             return cached_path
+        tmp_dir = os.path.join(os.environ.get("TMPDIR") or os.environ.get("TEMP") or "/tmp", "agrishield_uploads")
+        tmp_cached_path = os.path.join(tmp_dir, filename)
+        if os.path.exists(tmp_cached_path) and os.path.getsize(tmp_cached_path) > 32:
+            return tmp_cached_path
 
         # Stream and cache locally
         try:
@@ -606,10 +630,16 @@ class StorageService:
                             logger.warning(f"Downloaded image {filename} failed magic bytes verification.")
                             return None
 
-                        os.makedirs(settings.canonical_upload_dir, exist_ok=True)
-                        with open(cached_path, "wb") as f:
-                            f.write(data)
-                        return cached_path
+                        try:
+                            os.makedirs(settings.canonical_upload_dir, exist_ok=True)
+                            with open(cached_path, "wb") as f:
+                                f.write(data)
+                            return cached_path
+                        except (OSError, PermissionError):
+                            os.makedirs(tmp_dir, exist_ok=True)
+                            with open(tmp_cached_path, "wb") as f:
+                                f.write(data)
+                            return tmp_cached_path
         except Exception as e:
             logger.error(f"Failed to cache remote image {image_path} for inference: {e}")
             return None

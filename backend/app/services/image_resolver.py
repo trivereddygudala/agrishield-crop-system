@@ -50,12 +50,20 @@ def _decode_base64_image(b64_str: str) -> Optional[str]:
         h = hashlib.sha256(raw_bytes).hexdigest()[:16]
         filename = f"b64_{h}{ext}"
         canonical_dir = settings.canonical_upload_dir
-        os.makedirs(canonical_dir, exist_ok=True)
-        local_path = os.path.join(canonical_dir, filename)
-        if not os.path.exists(local_path):
-            with open(local_path, "wb") as f:
-                f.write(raw_bytes)
-            logger.info(f"[IMAGE RESOLVER] Decoded and cached cross-worker base64 payload to {local_path} ({len(raw_bytes)} bytes)")
+        try:
+            os.makedirs(canonical_dir, exist_ok=True)
+            local_path = os.path.join(canonical_dir, filename)
+            if not os.path.exists(local_path):
+                with open(local_path, "wb") as f:
+                    f.write(raw_bytes)
+        except (OSError, PermissionError):
+            tmp_dir = os.path.join(os.environ.get("TMPDIR") or os.environ.get("TEMP") or "/tmp", "agrishield_uploads")
+            os.makedirs(tmp_dir, exist_ok=True)
+            local_path = os.path.join(tmp_dir, filename)
+            if not os.path.exists(local_path):
+                with open(local_path, "wb") as f:
+                    f.write(raw_bytes)
+        logger.info(f"[IMAGE RESOLVER] Decoded and cached cross-worker base64 payload to {local_path} ({len(raw_bytes)} bytes)")
         return local_path
     except Exception as e:
         logger.warning(f"[IMAGE RESOLVER] Failed to decode base64 image: {e}")
@@ -111,6 +119,12 @@ def resolve_image_path(image_path: str) -> Optional[str]:
     if os.path.exists(local_canonical_path):
         return local_canonical_path
 
+    # Check /tmp/agrishield_uploads container fallback
+    tmp_upload_dir = os.path.join(os.environ.get("TMPDIR") or os.environ.get("TEMP") or "/tmp", "agrishield_uploads")
+    tmp_path = os.path.join(tmp_upload_dir, filename)
+    if os.path.exists(tmp_path):
+        return tmp_path
+
     # Secondary local legacy candidates
     backend_dir = os.path.dirname(canonical_dir)
     repo_root = os.path.dirname(backend_dir)
@@ -161,8 +175,15 @@ def resolve_image_path(image_path: str) -> Optional[str]:
                             logger.warning(f"Downloaded payload for {filename} from {url} failed magic byte validation.")
                             continue
 
-                        with open(local_canonical_path, "wb") as f:
-                            f.write(data)
+                        try:
+                            with open(local_canonical_path, "wb") as f:
+                                f.write(data)
+                        except (OSError, PermissionError):
+                            tmp_dir = os.path.join(os.environ.get("TMPDIR") or os.environ.get("TEMP") or "/tmp", "agrishield_uploads")
+                            os.makedirs(tmp_dir, exist_ok=True)
+                            local_canonical_path = os.path.join(tmp_dir, filename)
+                            with open(local_canonical_path, "wb") as f:
+                                f.write(data)
                         logger.info(f"Resolved and cached {filename} from cluster node {url} ({len(data)} bytes)")
                         return local_canonical_path
         except Exception as e:

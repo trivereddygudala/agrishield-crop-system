@@ -1268,14 +1268,21 @@ async def worker_predict_endpoint(
     # Validate image upload format, magic bytes, size limits, and antivirus signatures
     content, safe_filename = await validate_image_upload(file)
 
-    temp_dir = os.path.join(settings.canonical_upload_dir, "cluster_temp")
-    os.makedirs(temp_dir, exist_ok=True)
     temp_filename = f"worker_{uuid.uuid4().hex[:8]}_{safe_filename}"
-    temp_path = os.path.join(temp_dir, temp_filename)
-
+    temp_dir = os.path.join(settings.canonical_upload_dir, "cluster_temp")
     try:
+        os.makedirs(temp_dir, exist_ok=True)
+        temp_path = os.path.join(temp_dir, temp_filename)
         with open(temp_path, "wb") as f:
             f.write(content)
+    except (OSError, PermissionError):
+        temp_dir = os.path.join(os.environ.get("TMPDIR") or os.environ.get("TEMP") or "/tmp", "agrishield_uploads", "cluster_temp")
+        os.makedirs(temp_dir, exist_ok=True)
+        temp_path = os.path.join(temp_dir, temp_filename)
+        with open(temp_path, "wb") as f:
+            f.write(content)
+
+    try:
 
         import asyncio
         import inspect
@@ -1347,10 +1354,15 @@ async def worker_get_image_endpoint(filename: str):
 
     file_path = os.path.join(settings.canonical_upload_dir, clean_filename)
     if not os.path.exists(file_path):
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Image not found on cluster worker."
-        )
+        tmp_dir = os.path.join(os.environ.get("TMPDIR") or os.environ.get("TEMP") or "/tmp", "agrishield_uploads")
+        alt_path = os.path.join(tmp_dir, clean_filename)
+        if os.path.exists(alt_path):
+            file_path = alt_path
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Image not found on cluster worker."
+            )
 
     media_type = "image/jpeg"
     if ext == ".png":

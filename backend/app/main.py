@@ -38,10 +38,12 @@ install_credential_redaction_filter()
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 BACKEND_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 uploads_path = settings.canonical_upload_dir
-try:
-    os.makedirs(uploads_path, exist_ok=True)
-except (OSError, PermissionError):
-    pass
+tmp_upload_path = os.path.join(os.environ.get("TMPDIR") or os.environ.get("TEMP") or "/tmp", "agrishield_uploads")
+for p in (uploads_path, tmp_upload_path):
+    try:
+        os.makedirs(p, exist_ok=True)
+    except (OSError, PermissionError):
+        pass
 
 def is_ai_worker_node() -> bool:
     """
@@ -284,8 +286,27 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Serve uploads folder statically
-app.mount("/uploads", StaticFiles(directory=uploads_path), name="uploads")
+class ResilientStaticFiles(StaticFiles):
+    """StaticFiles that seamlessly serves from canonical, /tmp, and legacy upload directories."""
+    def __init__(self, fallback_dirs: list[str] | None = None, **kwargs):
+        super().__init__(**kwargs)
+        for d in (fallback_dirs or []):
+            if d and os.path.isdir(d) and d not in self.all_directories:
+                self.all_directories.append(d)
+
+# Serve uploads folder statically across canonical and fallback locations
+app.mount(
+    "/uploads",
+    ResilientStaticFiles(
+        directory=uploads_path,
+        fallback_dirs=[
+            tmp_upload_path,
+            os.path.join(BACKEND_DIR, "uploads"),
+            os.path.join(BASE_DIR, "uploads")
+        ]
+    ),
+    name="uploads"
+)
 
 # Serve per-crop models and reference pathology images statically
 models_static_dir = os.path.join(BASE_DIR, "models")

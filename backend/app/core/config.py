@@ -8,6 +8,43 @@ from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
+_CANONICAL_UPLOAD_DIR_CACHE: Optional[str] = None
+
+def get_canonical_upload_dir() -> str:
+    """
+    Returns the writable upload directory with container read-only filesystem fallback.
+    Actively probes write access so container environments with read-only root filesystems
+    (such as Hostless Cloud or Docker security-locked environments) automatically and immediately
+    fall back to /tmp/agrishield_uploads, eliminating OSError: [Errno 30] Read-only file system.
+    """
+    global _CANONICAL_UPLOAD_DIR_CACHE
+    if _CANONICAL_UPLOAD_DIR_CACHE and os.path.exists(_CANONICAL_UPLOAD_DIR_CACHE):
+        return _CANONICAL_UPLOAD_DIR_CACHE
+
+    try:
+        backend_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        candidate = os.path.join(backend_dir, "uploads")
+        os.makedirs(candidate, exist_ok=True)
+        # Probe file creation to verify write access
+        probe = os.path.join(candidate, f".write_probe_{os.getpid()}")
+        with open(probe, "wb") as f:
+            f.write(b"1")
+        try:
+            os.remove(probe)
+        except Exception:
+            pass
+        _CANONICAL_UPLOAD_DIR_CACHE = candidate
+        return candidate
+    except (OSError, PermissionError):
+        tmp_upload = os.path.join(os.environ.get("TMPDIR") or os.environ.get("TEMP") or "/tmp", "agrishield_uploads")
+        try:
+            os.makedirs(tmp_upload, exist_ok=True)
+        except Exception:
+            pass
+        _CANONICAL_UPLOAD_DIR_CACHE = tmp_upload
+        return tmp_upload
+
+
 class Settings(BaseSettings):
     ENV: str = "development"
     HOST: str = "127.0.0.1"
@@ -118,18 +155,7 @@ class Settings(BaseSettings):
     @property
     def canonical_upload_dir(self) -> str:
         """Absolute path to the canonical backend/uploads directory, with container fallback."""
-        try:
-            backend_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-            upload_path = os.path.join(backend_dir, "uploads")
-            os.makedirs(upload_path, exist_ok=True)
-            return upload_path
-        except (OSError, PermissionError):
-            tmp_upload = os.path.join(os.environ.get("TMPDIR") or os.environ.get("TEMP") or "/tmp", "agrishield_uploads")
-            try:
-                os.makedirs(tmp_upload, exist_ok=True)
-            except Exception:
-                pass
-            return tmp_upload
+        return get_canonical_upload_dir()
 
     @property
     def is_production(self) -> bool:

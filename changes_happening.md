@@ -11709,3 +11709,26 @@ equirements.txt with the full production package list (fastapi, uvicorn, pymongo
   - Vite production build verified (3,204 modules transformed in 21.79s, 0 errors).
 - **Git Commit (Local Only - No Push):**
   - Staged and committed changes locally per explicit user instruction ('just make the commit do not push ok').
+
+## [2026-11-22 08:50:00] - Production Fix: Read-Only Filesystem Upload Resilience on Hostless Cloud
+- **Active Root-Cause Diagnostics (9 Screenshots Analysis):**
+  - Farmer leaf photo uploads (chilli_leaf_spot.jpg) produced:
+    OSError: [Errno 30] Read-only file system: '/app/backend/uploads/3e529872e9744785a00b3f6a513130ad.jpg'
+    on Hostless Cloud container runtime at line 199 in backend/app/services/storage_service.py during POST /api/upload.
+  - Cause: Hostless Cloud mounts /app as a read-only filesystem. While /app/backend/uploads exists in the container image, writes to it are prohibited by kernel security.
+- **Dynamic Write-Probe Upload Directory Resolver (backend/app/core/config.py):**
+  - Added get_canonical_upload_dir() with atomic write probe test: verifies write capability to disk. If root is read-only, automatically falls back to /tmp/agrishield_uploads (standard POSIX writable ramdisk).
+  - Caches verified directory to ensure zero disk probe overhead during normal runtime.
+- **Fail-Safe Local Image Storage (backend/app/services/storage_service.py):**
+  - Wrapped _save_local_file with explicit (OSError, PermissionError) try-catch fallback directly into /tmp/agrishield_uploads.
+  - Updated delete_image and ensure_local_cache_for_inference to scan and manage both canonical and /tmp/agrishield_uploads paths.
+- **Cross-Worker & Cluster Image Resolution (backend/app/services/image_resolver.py):**
+  - Updated base64 image decoder, path resolver, and peer cluster fetch caching to gracefully redirect to /tmp/agrishield_uploads when /app is read-only.
+- **Inference & Stream Worker Endpoints (backend/app/routers/farmer/predict.py):**
+  - Updated worker_predict_endpoint temporary cluster file writer to use /tmp/agrishield_uploads/cluster_temp fallback.
+  - Updated worker_get_image_endpoint to locate images in /tmp/agrishield_uploads when streaming across cluster workers.
+- **Multi-Directory Resilient Static File Server (backend/app/main.py):**
+  - Replaced standard single-directory StaticFiles with ResilientStaticFiles spanning /tmp/agrishield_uploads, canonical uploads, and repo-level uploads, guaranteeing GET /uploads/{filename} serves photos regardless of which path received them.
+- **Verification:**
+  - Validated read-only fallback logic with automated unit tests.
+  - Verified FastAPI application import and routing integrity with zero errors.
