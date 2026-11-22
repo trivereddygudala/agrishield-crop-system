@@ -11667,3 +11667,12 @@ equirements.txt with the full production package list (fastapi, uvicorn, pymongo
   - Switched NVIDIA_API_KEY and MONGODB_URI missing-secret checks from fatal process exits to non-blocking warning notices.
   - Resolves pydantic_core._pydantic_core.ValidationError: Production configuration error: IOT_API_KEY must be provided via environment and cannot use the default insecure key.
   - Enables Hostless Cloud container to boot and pass health check immediately even before environment variables are typed in.
+
+## [2026-11-22 06:33:00] - Fix GitHub Actions CI: Backend Unit Tests & PyTorch Pipeline Mocking
+- **CI Dependencies (.github/workflows/ci_cd.yml):**
+  - Added timm to CI pip install step alongside torch and torchvision (pip install torch torchvision timm --index-url https://download.pytorch.org/whl/cpu).
+- **Resilient Test Pipeline (backend/tests/test_pytorch_prediction.py):**
+  - Wrapped load_pytorch_model imports in try...except (ImportError, ModuleNotFoundError) so tests skip gracefully if timm or torch are omitted.
+- **Crop-Scoped ONNX Mocking (backend/tests/test_api.py):**
+  - Added monkeypatching for crop_scoped_onnx_service.run_crop_scoped_inference in test_upload_and_prediction and test_low_confidence_rejection.
+  - Ensures unit tests evaluate fast mocked responses without attempting real disk model inferences on synthetic blank images.

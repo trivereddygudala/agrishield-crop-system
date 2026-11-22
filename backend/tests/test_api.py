@@ -123,6 +123,13 @@ async def test_upload_and_prediction(monkeypatch):
                 ]
             }
         monkeypatch.setattr("backend.app.routers.predict.predict_crop_disease", mock_predict_high)
+        import backend.app.routers.farmer.predict as farmer_predict
+        monkeypatch.setattr(farmer_predict, "predict_crop_disease", mock_predict_high)
+        try:
+            import backend.app.services.crop_scoped_onnx_service as onnx_service
+            monkeypatch.setattr(onnx_service, "run_crop_scoped_inference", lambda *args, **kwargs: mock_predict_high(""))
+        except Exception:
+            pass
 
         # Create dummy image file using Pillow
         from PIL import Image
@@ -235,6 +242,11 @@ async def test_low_confidence_rejection(monkeypatch):
         from unittest.mock import AsyncMock
         monkeypatch.setattr(cluster_module.ai_cluster, "offload_prediction", AsyncMock(return_value=mock_predict_low("")))
         monkeypatch.setattr("backend.app.services.gemini_vision.cross_verify_disease_with_vision", AsyncMock(return_value=None))
+        try:
+            import backend.app.services.crop_scoped_onnx_service as onnx_service
+            monkeypatch.setattr(onnx_service, "run_crop_scoped_inference", lambda *args, **kwargs: mock_predict_low(""))
+        except Exception:
+            pass
 
         # Create dummy image to test with
         from PIL import Image
