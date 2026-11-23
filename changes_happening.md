@@ -11858,3 +11858,18 @@ equirements.txt with the full production package list (fastapi, uvicorn, pymongo
   - Deleted buggy partial-slice override (if (unreadAlerts.length === 0) setUnreadCount(0) on 8-item array) that wiped unreadCount immediately following server hydration.
   - Updated handleMarkRead(id) to persist reads to setUserReadNotificationIds and dispatch grishield_notification_read.
 - **Verification:** Frontend production build passed cleanly with ite build (3,204 modules transformed, 0 errors).
+
+## [2026-11-23 18:35:00] - Resolved React Error #31 in Multi-Leaf Results & Implemented Hybrid Mobile Messages Layout for Alerts Tab
+- **MultiLeafResults.jsx & regionalLocale.js (Defensive Severity Value Extraction):**
+  - Clarified root cause of React invariant #31 (object with keys {level, desc}) displayed on the live Vercel URL (UploadImagePage-6ad3e5af.js): the previous local fix was created in commit 99ae4d04 but never pushed to GitHub per the user's instructions ('do not push to github just make the commit'), leaving the Vercel production deployment running the older unpatched bundle where line 295 rendered {getLocalizedSeverity(s.severity, i18n.language)} directly into <strong>.
+  - Fortified regionalLocale.js: if level parameter is already an object {level, desc}, getLocalizedSeverity safely unwraps rawKey before lookup.
+  - Fortified MultiLeafResults.jsx: added strict typecheck typeof s?.severity === 'string' fallback so that under all circumstances a primitive string (e.g. 'Healthy', 'Moderate', or localized string) is rendered into JSX, preventing any object from ever being passed to React children.
+- **NotificationsPage.jsx (Hybrid Mobile Messages Dual-Pane Architecture):**
+  - Completely replaced the cluttered layout, redundant dual view switcher ('Chat Bubbles' vs 'Messages List'), repeated date headers, and scattered buttons with a clean, modern, intuitive Mobile Messages design (Google Messages / WhatsApp style).
+  - Responsive Master-Detail Dual Pane:
+    - Mobile (< 1024px): Single-pane flow showing the clean Messages thread list; tapping an item smoothly opens the conversational detail view with a 1-tap back button (<-).
+    - Desktop (>= 1024px): Master-detail split view with left 400px thread list and right full conversational detail pane.
+  - Left Inbox Pane: Modern app bar with unread count pill badge, audio briefing shortcut, search toggle with smooth input, 3-dot dropdown menu (MoreVertical for 'Mark all as read', 'Notification Settings', 'Clear all'), horizontal category filter chips (All, Unread, Farmers & Fields, Bookings, Weather, IoT, Resolved), pinned critical threat banner, and clean thread rows with category avatar squircle, verified badge, sender name, timestamp, priority pill, 1-line snippet, and green unread dot indicator.
+  - Right Pane: Embedded GoogleMessageReader for active message viewing and 2-way actions (voice reader, WhatsApp share, 1-tap call/prescription/booking actions), or serene empty placeholder when no thread is selected.
+  - Kept Notification Settings dialog accessible via the 3-dot options menu without cluttering the main feed.
+- **Build Verification:** Verified frontend production build with vite build (3,204 modules transformed, 0 errors, bundle size reduced from 83.7kB to 67.9kB).

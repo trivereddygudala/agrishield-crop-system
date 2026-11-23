@@ -110,7 +110,7 @@ export default function MultiLeafResults({ result, onReset, farmName = "My Farm 
                 🌾 {t('batch_scan.uploader_title', 'Multi-Leaf Plot Scan')}
               </span>
               <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-black uppercase tracking-wider border ${getSeverityBadgeClass()}`}>
-                {getLocalizedSeverity(severity_level, i18n.language)?.level || severity_level}
+                {getLocalizedSeverity(severity_level, i18n.language)?.level || (typeof severity_level === 'string' ? severity_level : severity_level?.level) || 'Healthy'}
               </span>
             </div>
             
@@ -292,7 +292,11 @@ export default function MultiLeafResults({ result, onReset, farmName = "My Farm 
                 </div>
 
                 <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[10px] text-slate-400 font-semibold">
-                  <span>{t('batch_scan.severity', 'Severity:')} <strong className={isHealthy ? 'text-emerald-500' : 'text-amber-500'}>{getLocalizedSeverity(s.severity, i18n.language)?.level || s.severity || (isHealthy ? 'Healthy' : 'Moderate')}</strong></span>
+                  <span>{t('batch_scan.severity', 'Severity:')} <strong className={isHealthy ? 'text-emerald-500' : 'text-amber-500'}>
+                    {typeof s?.severity === 'string'
+                      ? (getLocalizedSeverity(s.severity, i18n.language)?.level || s.severity)
+                      : (s?.severity?.level || (isHealthy ? 'Healthy' : 'Moderate'))}
+                  </strong></span>
                   <span>{t('batch_scan.zone', 'Zone #{{index}}', { index: s.sample_index })}</span>
                 </div>
               </motion.div>

@@ -584,7 +584,8 @@ export const SEVERITY_TRANSLATIONS = {
 
 export function getLocalizedSeverity(level = 'Moderate', lang = 'en') {
   const code = (lang || 'en').split('-')[0].toLowerCase();
-  const normalizedLevel = (level && SEVERITY_TRANSLATIONS[level]) ? level : 'Moderate';
+  const rawKey = (typeof level === 'object' && level !== null) ? (level.level || level.name || 'Moderate') : level;
+  const normalizedLevel = (rawKey && SEVERITY_TRANSLATIONS[rawKey]) ? rawKey : 'Moderate';
   const entry = SEVERITY_TRANSLATIONS[normalizedLevel] || SEVERITY_TRANSLATIONS['Moderate'];
   const base = (entry && entry[code]) ? entry[code] : entry.en;
   const res = { ...base };
