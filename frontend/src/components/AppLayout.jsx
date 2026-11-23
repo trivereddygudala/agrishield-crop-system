@@ -366,6 +366,26 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
         if (Array.isArray(legacy)) legacy.forEach(id => localReadIds.add(String(id)));
       } catch (_) { }
 
+      // B9.5B Auto-Sync: If any notifications were read locally on this device but are still unread in MongoDB,
+      // silently synchronize them with MongoDB so the authoritative count matches across devices and never flickers.
+      const unsyncedReadAlerts = alertData.filter(a => {
+        const aId = String(a.notification_id || a.id || a._id || '');
+        return (!a.read && !a.is_read) && aId && localReadIds.has(aId);
+      });
+
+      if (unsyncedReadAlerts.length > 0) {
+        Promise.allSettled(
+          unsyncedReadAlerts.map(a => {
+            const aId = a.notification_id || a.id || a._id;
+            return API.put(`/api/v1/notifications/${encodeURIComponent(aId)}/read`).catch(() => 
+              API.post(`/api/notifications/${aId}/read`).catch(() => {})
+            );
+          })
+        ).then(() => {
+          if (refreshUnreadCount) refreshUnreadCount();
+        });
+      }
+
       alertData = alertData.map(a => {
         const aId = String(a.notification_id || a.id || a._id || '');
         if (aId && localReadIds.has(aId)) {
@@ -404,9 +424,8 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
         hasInitializedAlertsRef.current = true;
       }
 
-      // If server returned 0 unread alerts and hardware simulation is not adding unread alerts,
-      // reconcile in-memory unreadCount so it does not linger > 0 when inbox is empty
-      if (unreadAlerts.length === 0 && setUnreadCount) {
+      // Reconcile unreadCount ONLY if the entire inbox returned 0 items from the server
+      if (alertData.length === 0 && setUnreadCount) {
         setUnreadCount(0);
       }
 
@@ -645,12 +664,18 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
 
   const handleMarkRead = async (id) => {
     try {
-      await API.post(`/api/notifications/${id}/read`);
+      await API.put(`/api/v1/notifications/${encodeURIComponent(id)}/read`).catch(() => 
+        API.post(`/api/notifications/${id}/read`)
+      );
+      const localReadIds = getUserReadNotificationIds(user);
+      localReadIds.add(String(id));
+      setUserReadNotificationIds(user, localReadIds);
       setRecentAlerts(prev => prev.map(n => {
         const nId = n.notification_id || n.id || n._id;
         return nId === id ? { ...n, read: true, is_read: true } : n;
       }));
       if (setUnreadCount) setUnreadCount(prev => Math.max(0, (prev || 0) - 1));
+      window.dispatchEvent(new CustomEvent('agrishield_notification_read'));
     } catch { /* ignore */ }
   };
 

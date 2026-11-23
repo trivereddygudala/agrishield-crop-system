@@ -11850,3 +11850,11 @@ equirements.txt with the full production package list (fastapi, uvicorn, pymongo
   - Added `onWheel` horizontal scroll translation and `overscroll-contain touch-pan-x` to floating suggestion chips.
   - Added `min-h-0 overscroll-contain touch-pan-y` to admin chatbot messages list.
 - **Verification:** Verified frontend production build with vite build (3,204 modules transformed, 0 errors).
+
+## [2026-11-23 16:05:00] - Resolved Alert Badge 1-Second Disappearing Bug
+- **AppLayout.jsx (Two-Way Server Synchronization & Partial-Slice Fix):**
+  - Resolved race condition where alert badge flashed a number (e.g., 5) and disappeared under 1 second.
+  - Added B9.5B auto-sync: detects alerts read in local device storage but unread in MongoDB (unsyncedReadAlerts), batch-syncing them via /api/v1/notifications/{id}/read to MongoDB.
+  - Deleted buggy partial-slice override (if (unreadAlerts.length === 0) setUnreadCount(0) on 8-item array) that wiped unreadCount immediately following server hydration.
+  - Updated handleMarkRead(id) to persist reads to setUserReadNotificationIds and dispatch grishield_notification_read.
+- **Verification:** Frontend production build passed cleanly with ite build (3,204 modules transformed, 0 errors).
