@@ -130,6 +130,34 @@ function normalizeIncomingPins(raw) {
   return [];
 }
 
+// 2D Kalman Filter for GPS drift reduction
+class KalmanFilter2D {
+  constructor() {
+    this.reset();
+  }
+  reset() {
+    this.lat = null;
+    this.lng = null;
+    this.variance = 10.0;
+  }
+  update(measLat, measLng, accuracy = 4.0) {
+    if (this.lat === null) {
+      this.lat = measLat;
+      this.lng = measLng;
+      this.variance = accuracy * accuracy;
+      return [measLat, measLng];
+    }
+    const Q = 1.5;
+    const R = Math.max(accuracy * accuracy, 1.0);
+    this.variance += Q;
+    const K = this.variance / (this.variance + R);
+    this.lat += K * (measLat - this.lat);
+    this.lng += K * (measLng - this.lng);
+    this.variance = (1 - K) * this.variance;
+    return [this.lat, this.lng];
+  }
+}
+
 export default function FieldBoundaryMap({
   centerLat = 15.5057,
   centerLng = 80.0499,
@@ -157,6 +185,7 @@ export default function FieldBoundaryMap({
   const pinsGroupRef = useRef(null);
   const radarGroupRef = useRef(null);
   const walkLayerGroupRef = useRef(null);
+  const currentPolygonLayerRef = useRef(null);
 
   // Sync tracking to prevent infinite update loops
   const isUserActionRef = useRef(false);
@@ -188,6 +217,21 @@ export default function FieldBoundaryMap({
   const lastLoggedCoordRef = useRef(null);
   const recentGpsBufferRef = useRef([]); // for moving-average smoothing
   const lastBearingRef = useRef(null);
+  const kalmanRef = useRef(new KalmanFilter2D());
+  const [voiceGuidanceEnabled, setVoiceGuidanceEnabled] = useState(true);
+
+  const speakGuidance = useCallback((text) => {
+    if (!voiceGuidanceEnabled) return;
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      try {
+        window.speechSynthesis.cancel();
+        const utter = new SpeechSynthesisUtterance(text);
+        utter.lang = isTelugu ? 'te-IN' : 'en-IN';
+        utter.rate = 0.95;
+        window.speechSynthesis.speak(utter);
+      } catch (_) {}
+    }
+  }, [voiceGuidanceEnabled, isTelugu]);
 
   // Coordinate rounding helper
   const roundCoord = (val) => parseFloat(Number(val).toFixed(6));
@@ -368,10 +412,13 @@ export default function FieldBoundaryMap({
     lastLoggedCoordRef.current = null;
     recentGpsBufferRef.current = [];
     lastBearingRef.current = null;
+    kalmanRef.current.reset();
 
     if (walkLayerGroupRef.current) {
       walkLayerGroupRef.current.clearLayers();
     }
+
+    speakGuidance(isTelugu ? 'జీపీఎస్ వాక్ సర్వే ప్రారంభమైంది. మొదటి సరిహద్దు రాయి వద్ద నిలబడండి.' : 'GPS walk survey started. Stand at your first boundary corner.');
 
     // High accuracy Geolocation Watch
     watchIdRef.current = navigator.geolocation.watchPosition(
@@ -382,15 +429,9 @@ export default function FieldBoundaryMap({
         // Quality Gate: Filter out loose GPS drift fixes (> 9m)
         if (accuracy > 9) return;
 
-        // Moving Average Buffer for Sub-Meter Jitter Reduction
-        recentGpsBufferRef.current.push([latitude, longitude]);
-        if (recentGpsBufferRef.current.length > 3) {
-          recentGpsBufferRef.current.shift();
-        }
-
-        const avgLat = recentGpsBufferRef.current.reduce((acc, c) => acc + c[0], 0) / recentGpsBufferRef.current.length;
-        const avgLng = recentGpsBufferRef.current.reduce((acc, c) => acc + c[1], 0) / recentGpsBufferRef.current.length;
-        const smoothCoord = [roundCoord(avgLat), roundCoord(avgLng)];
+        // 2D Kalman Filter update for sub-meter drift reduction
+        const [kLat, kLng] = kalmanRef.current.update(latitude, longitude, accuracy);
+        const smoothCoord = [roundCoord(kLat), roundCoord(kLng)];
 
         setLiveLocation(smoothCoord);
 
@@ -417,6 +458,7 @@ export default function FieldBoundaryMap({
               if (turnAngle >= 28 && stepDist >= 4) {
                 // Auto drop corner pin on turn
                 addWalkPin(smoothCoord);
+                speakGuidance(isTelugu ? 'మలుపు గుర్తించబడింది. మూల పిన్ జోడించబడింది.' : 'Corner turn detected. Pin added.');
               }
             }
 
@@ -430,6 +472,7 @@ export default function FieldBoundaryMap({
           lastLoggedCoordRef.current = smoothCoord;
           addWalkPin(smoothCoord);
           drawWalkHUDTrail(walkTrailRef.current, smoothCoord, accuracy);
+          speakGuidance(isTelugu ? 'మొదటి మూల నమోదయింది. సరిహద్దు వెంబడి నడవండి.' : 'Corner 1 recorded. Walk along the field boundary.');
         }
 
         // Keep map centered on walking farmer
@@ -466,6 +509,7 @@ export default function FieldBoundaryMap({
   const handleDropManualCorner = () => {
     if (!liveLocation) return;
     addWalkPin(liveLocation);
+    speakGuidance(isTelugu ? `సరిహద్దు రాయి నమోదయింది. మూల పిన్ ${pins.length + 1}.` : `Boundary stone pinned. Corner ${pins.length + 1}.`);
   };
 
   // Draw Walk Trail & High Accuracy Live Puck on Map
@@ -525,6 +569,7 @@ export default function FieldBoundaryMap({
     setIsWalkMode(false);
     setIsWalking(false);
     setLiveLocation(null);
+    speakGuidance(isTelugu ? `సర్వే పూర్తయింది. మొత్తం విస్తీర్ణం ${area.acres} ఎకరాలు.` : `Survey finished. Total area is ${area.acres} Acres.`);
   };
 
   // Cancel Walk Survey
@@ -605,19 +650,84 @@ export default function FieldBoundaryMap({
       `);
 
     // 2. Draw Connected Boundary Polygon (if 3+ pins) or Line (if 2 pins)
+    currentPolygonLayerRef.current = null;
     if (pins.length >= 3) {
-      L.polygon(pins, {
+      currentPolygonLayerRef.current = L.polygon(pins, {
         color: '#10b981',
         weight: 3,
         fillColor: '#10b981',
         fillOpacity: 0.28
       }).addTo(boundaryLayerGroupRef.current);
     } else if (pins.length === 2) {
-      L.polyline(pins, {
+      currentPolygonLayerRef.current = L.polyline(pins, {
         color: '#10b981',
         weight: 3,
         dashArray: '6, 6'
       }).addTo(boundaryLayerGroupRef.current);
+    }
+
+    // 2.5 CAD Tools: Render Edge Length Badges & Midpoint '+' Virtual Extrusion Handles
+    if (pins.length >= 2) {
+      const edgeCount = pins.length >= 3 ? pins.length : 1;
+      for (let i = 0; i < edgeCount; i++) {
+        const nextIdx = (i + 1) % pins.length;
+        const p1 = pins[i];
+        const p2 = pins[nextIdx];
+        const midLat = (p1[0] + p2[0]) / 2;
+        const midLng = (p1[1] + p2[1]) / 2;
+        const distM = haversineDistanceMeters(p1[0], p1[1], p2[0], p2[1]);
+
+        // Edge Length Badge
+        const edgeBadge = L.divIcon({
+          className: `cad-edge-badge-${i}`,
+          html: `
+            <div style="background: rgba(15, 23, 42, 0.88); backdrop-filter: blur(4px); color: #38bdf8; padding: 2px 7px; border-radius: 9999px; font-size: 10px; font-weight: 800; white-space: nowrap; border: 1px solid rgba(56, 189, 248, 0.4); pointer-events: none; transform: translate(-50%, -50%); box-shadow: 0 2px 6px rgba(0,0,0,0.4);">
+              ${distM >= 1000 ? `${(distM / 1000).toFixed(2)} km` : `${Math.round(distM)} m`}
+            </div>
+          `,
+          iconSize: [0, 0]
+        });
+        L.marker([midLat, midLng], { icon: edgeBadge, interactive: false }).addTo(boundaryLayerGroupRef.current);
+
+        // Midpoint '+' Extrusion Handle (insert or drag new vertex)
+        if (interactive && !isWalkMode) {
+          const plusIcon = L.divIcon({
+            className: `cad-midpoint-pin-${i}`,
+            html: `
+              <div style="background: #ffffff; color: #059669; width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 900; box-shadow: 0 2px 8px rgba(0,0,0,0.35); border: 2px solid #059669; cursor: pointer; transition: transform 0.15s;" title="${isTelugu ? 'కొత్త కార్నర్ చేర్చు' : 'Add New Corner'}">
+                +
+              </div>
+            `,
+            iconSize: [22, 22],
+            iconAnchor: [11, 11]
+          });
+
+          const plusMarker = L.marker([midLat, midLng], { icon: plusIcon, draggable: true }).addTo(boundaryLayerGroupRef.current);
+
+          plusMarker.on('click', () => {
+            isUserActionRef.current = true;
+            setPins((prev) => {
+              const next = [...prev];
+              next.splice(i + 1, 0, [roundCoord(midLat), roundCoord(midLng)]);
+              pushToHistory(next);
+              notifyChange(next);
+              return next;
+            });
+          });
+
+          plusMarker.on('dragend', (ev) => {
+            const { lat, lng } = ev.target.getLatLng();
+            isUserActionRef.current = true;
+            setPins((prev) => {
+              const next = [...prev];
+              next.splice(i + 1, 0, [roundCoord(lat), roundCoord(lng)]);
+              pushToHistory(next);
+              notifyChange(next);
+              return next;
+            });
+          });
+        }
+      }
     }
 
     // 3. Render Corner Pins (Numbered 1, 2, 3...)
@@ -635,6 +745,15 @@ export default function FieldBoundaryMap({
         });
 
         const marker = L.marker(pin, { icon: pinIcon, draggable: !isWalkMode }).addTo(pinsGroupRef.current);
+
+        // Real-time 60fps dynamic polygon reshaping during drag
+        marker.on('drag', (ev) => {
+          if (currentPolygonLayerRef.current) {
+            const { lat, lng } = ev.target.getLatLng();
+            const liveCoords = pins.map((p, idx) => (idx === index ? [lat, lng] : p));
+            currentPolygonLayerRef.current.setLatLngs(liveCoords);
+          }
+        });
 
         marker.on('dragend', (ev) => {
           const { lat, lng } = ev.target.getLatLng();

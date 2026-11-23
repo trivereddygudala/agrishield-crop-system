@@ -11873,3 +11873,24 @@ equirements.txt with the full production package list (fastapi, uvicorn, pymongo
   - Right Pane: Embedded GoogleMessageReader for active message viewing and 2-way actions (voice reader, WhatsApp share, 1-tap call/prescription/booking actions), or serene empty placeholder when no thread is selected.
   - Kept Notification Settings dialog accessible via the 3-dot options menu without cluttering the main feed.
 - **Build Verification:** Verified frontend production build with vite build (3,204 modules transformed, 0 errors, bundle size reduced from 83.7kB to 67.9kB).
+
+
+## [2026-11-23 19:32:00] - Hybrid Field Area Calculator & Geodetic Boundary Engine Implementation
+**Summary of Changes:**
+1. **Interactive CAD Polygon Editing (frontend/src/components/farm/FieldBoundaryMap.jsx):**
+   - Added real-time 60fps dynamic polygon reshaping during vertex drag (`marker.on('drag')` tied to active polygon layer).
+   - Added edge distance badges along every polygon perimeter boundary line in meters and kilometers.
+   - Added interactive midpoint `+` virtual handles on every edge that dynamically split line segments and insert a new boundary corner on click or drag.
+   - Integrated `KalmanFilter2D` for sub-meter GPS drift and velocity clamping during perimeter walk mode.
+   - Added bilingual Web Speech API voice guidance prompts (Telugu and English) during walk surveys.
+2. **Official Land Survey Deed & Multi-Format GIS Export Engine (frontend/src/utils/landDeedGenerator.js):**
+   - Implemented `generateLandSurveyPDF(surveyData)`: Produces a high-precision, printable Land Survey Deed certificate (`SURV-XXXX-2026`) with WGS-84 geodesic datum certification, boundary coordinates table with bearings, and certified 8-unit area conversion.
+   - Implemented `exportToKML(surveyData)`: Exports field boundaries in Google Earth standard XML format with closed `LinearRing`.
+   - Implemented `exportToGeoJSON(surveyData)`: Exports field boundaries in standard RFC 7946 GeoJSON `Polygon` format for PMFBY crop insurance claims and GIS software.
+3. **Adaptive Dual-Pane Hybrid Architecture (frontend/src/pages/farmer/FieldAreaCalculatorPage.jsx):**
+   - Desktop View (>= 1024px): 440px sticky left console dock containing mode switcher, village/GPS search, plot name, live area hero badge, certified 8-unit conversion dial, Patwari geometry form, border segments, and export actions; right flex-1 full-height GIS viewport.
+   - Mobile View (< 1024px): Edge-to-edge GIS canvas with floating glassmorphic top control bar, live area badge, and bottom drawer.
+   - Dynamic SVG Patwari Geometry Preview: Interactive vector diagrams for Rectangle (L × W), Heron's Triangle, and 4-sided irregular field with diagonal decomposition.
+   - Strictly excluded agronomic resource telemetry (no seeds, fertilizer bags, spray pumps, or drip time) per explicit user command.
+4. **Verification & Build:**
+   - Production bundle verified via `npm --prefix frontend run build` (vite v4.5.14 built in 21.31s with 0 errors).
