@@ -300,7 +300,7 @@ export default function AdminAIChatbot() {
           </div>
 
           {/* ── MESSAGES ── */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50/60 dark:bg-[#0f1318]">
+          <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain touch-pan-y p-4 space-y-4 bg-slate-50/60 dark:bg-[#0f1318]">
             {messages.map(msg => (
               <ChatBubble key={msg.id} msg={msg} />
             ))}

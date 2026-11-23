@@ -1154,7 +1154,14 @@ export default function FloatingAIAssistant() {
             )}
 
             {/* Quick Suggestion Chips */}
-            <div className="px-3 py-1.5 border-t border-slate-800/80 bg-slate-900/60 flex items-center gap-1.5 overflow-x-auto scrollbar-none">
+            <div 
+              onWheel={(e) => {
+                if (e.deltaY !== 0) {
+                  e.currentTarget.scrollLeft += e.deltaY;
+                }
+              }}
+              className="px-3 py-1.5 border-t border-slate-800/80 bg-slate-900/60 flex items-center gap-1.5 overflow-x-auto overscroll-contain touch-pan-x scrollbar-none"
+            >
               {[
                 { label: '🏛️ Nearest RBK', query: 'Where is the nearest Rythu Bharosa Kendram (RBK) and agrochemical store in Andhra Pradesh?' },
                 { label: '🌧️ Spray Window', query: "Check today's farm spraying weather window and 4-hour rain safety forecast" },

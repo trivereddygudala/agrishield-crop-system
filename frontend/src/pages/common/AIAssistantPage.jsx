@@ -466,7 +466,14 @@ const AIAssistantPage = () => {
   // Smooth auto-scroll with height observer
   useEffect(() => {
     const timer = setTimeout(() => {
-      chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+      if (chatContainerRef.current) {
+        chatContainerRef.current.scrollTo({
+          top: chatContainerRef.current.scrollHeight,
+          behavior: 'smooth'
+        });
+      } else {
+        chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }
     }, 100);
     return () => clearTimeout(timer);
   }, [currentSession?.messages, isTyping]);
@@ -485,7 +492,14 @@ const AIAssistantPage = () => {
   };
 
   const scrollToBottom = () => {
-    chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTo({
+        top: chatContainerRef.current.scrollHeight,
+        behavior: 'smooth'
+      });
+    } else {
+      chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
   };
 
   // Send Message
@@ -832,7 +846,7 @@ ${formattedBody}
               </div>
 
               {/* Sessions List */}
-              <div className="flex-1 overflow-y-auto px-2 py-1 space-y-1">
+              <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain touch-pan-y px-2 py-1 space-y-1">
                 {filteredSessions.map(s => (
                   <div
                     key={s.id}
@@ -905,7 +919,7 @@ ${formattedBody}
               </div>
 
               {/* Commands Grid */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-2">
+              <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain touch-pan-y p-4 space-y-2">
                 {activeCommandsList.map((cmd) => {
                   const CmdIcon = cmd.icon;
                   return (
@@ -1072,8 +1086,9 @@ ${formattedBody}
           <div
             ref={chatContainerRef}
             onScroll={handleScroll}
-            className="flex-1 min-h-0 overflow-y-auto px-3.5 sm:px-6 py-4 space-y-4 max-w-3xl w-full mx-auto"
+            className="flex-1 min-h-0 w-full overflow-y-auto overscroll-contain touch-pan-y mobile-scroll-container"
           >
+            <div className="max-w-3xl mx-auto px-3.5 sm:px-6 py-4 space-y-4 w-full">
             {/* Suggestion Cards for Fresh Chat */}
             {currentSession?.messages.length <= 1 && (
               <div className="flex flex-col justify-end min-h-[45vh] pb-2">
@@ -1223,6 +1238,7 @@ ${formattedBody}
             )}
 
             <div ref={chatBottomRef} className="h-4 shrink-0" />
+            </div>
           </div>
 
           {/* Floating Scroll to Bottom Arrow */}
@@ -1244,7 +1260,14 @@ ${formattedBody}
           <div className="px-3.5 sm:px-6 pt-1 pb-2 sm:pb-3 bg-white/95 dark:bg-[#0c0d0e]/95 border-t border-slate-200/60 dark:border-slate-800/60 shrink-0 z-20 max-w-3xl w-full mx-auto">
             
             {/* Quick Commands Horizontal Scroller */}
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-1.5 scrollbar-none text-[11px] font-semibold">
+            <div 
+              onWheel={(e) => {
+                if (e.deltaY !== 0) {
+                  e.currentTarget.scrollLeft += e.deltaY;
+                }
+              }}
+              className="flex items-center gap-1.5 overflow-x-auto overscroll-contain touch-pan-x pb-1.5 scrollbar-none text-[11px] font-semibold"
+            >
               <button
                 type="button"
                 onClick={() => setCommandsModalOpen(true)}
@@ -1468,7 +1491,7 @@ ${formattedBody}
         <div 
           ref={toolkitContainerRef}
           className={`
-            w-full lg:w-80 xl:w-[360px] shrink-0 flex-1 lg:flex-initial h-full lg:h-auto border-t lg:border-t-0 lg:border-l border-slate-200/80 dark:border-slate-800/80 bg-white dark:bg-[#111215] flex flex-col overflow-y-auto p-4 pb-32 sm:pb-24 lg:pb-6 space-y-4 shadow-xs
+            w-full lg:w-80 xl:w-[360px] shrink-0 flex-1 lg:flex-initial h-full min-h-0 border-t lg:border-t-0 lg:border-l border-slate-200/80 dark:border-slate-800/80 bg-white dark:bg-[#111215] flex flex-col overflow-y-auto overscroll-contain touch-pan-y mobile-scroll-container p-4 pb-32 sm:pb-24 lg:pb-6 space-y-4 shadow-xs
             ${mobileTab === 'toolkit' ? 'flex' : 'hidden lg:flex'}
           `}
         >

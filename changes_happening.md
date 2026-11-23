@@ -11834,3 +11834,19 @@ equirements.txt with the full production package list (fastapi, uvicorn, pymongo
   - Integrated local run_crop_scoped_inference (<30ms per leaf) with fallback to local predict_crop_disease (explainer_type='none').
   - Reduced batch execution latency from >30s down to <500ms total.
 - **Verification:** Verified frontend production build with vite build (3,204 modules transformed, 0 errors).
+
+## [2026-11-23 15:42:00] - Fixed Internal Scrolling in AgriShield Chat Assistant & Floating Copilot
+- **App.jsx (Viewport Boundary & Flexbox Constraints):**
+  - Updated `isAssistant` selector to `location.pathname.startsWith('/assistant')`.
+  - Constrained root layout container to `h-[100dvh] max-h-[100dvh] overflow-hidden` when viewing the assistant, preventing document body stretching.
+  - Added `min-h-0 h-full max-h-full overflow-hidden` to flex parent (`line 92`) and `min-h-0` to `<main>`, ensuring flex children properly compute bounded heights and trigger CSS `overflow-y-auto`.
+- **AIAssistantPage.jsx (Full-Width Message Stream & Field Toolkit Scrolling):**
+  - Expanded `chatContainerRef` from centered `max-w-3xl` to full width (`w-full min-h-0 flex-1 overflow-y-auto overscroll-contain touch-pan-y mobile-scroll-container`), wrapping an inner centered container. Mouse wheel and touch events now register across the entire chat pane with zero dead zones.
+  - Replaced `scrollIntoView()` with container-scoped `chatContainerRef.current.scrollTo()` to avoid document body jumpiness.
+  - Removed `lg:h-auto` on the right Field Toolkit tray, replacing with `h-full min-h-0 overflow-y-auto overscroll-contain touch-pan-y mobile-scroll-container`. The toolkit tray now scrolls independently and smoothly on desktop and mobile.
+  - Added `onWheel` listener to Quick Commands horizontal scroller translating vertical mouse wheel (`deltaY`) into horizontal scroll (`scrollLeft`), plus `touch-pan-x overscroll-contain`.
+  - Added `min-h-0 overscroll-contain touch-pan-y` to history drawer sessions list and commands modal grid.
+- **FloatingAIAssistant.jsx & AdminAIChatbot.jsx:**
+  - Added `onWheel` horizontal scroll translation and `overscroll-contain touch-pan-x` to floating suggestion chips.
+  - Added `min-h-0 overscroll-contain touch-pan-y` to admin chatbot messages list.
+- **Verification:** Verified frontend production build with vite build (3,204 modules transformed, 0 errors).
