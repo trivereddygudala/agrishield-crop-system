@@ -2,10 +2,10 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { 
-  Ruler, ChevronLeft, MapPin, Footprints, Share2, 
-  Copy, Check, Trash2, Maximize2, Compass, Layers, Info,
-  Search, Calculator, Square, Triangle, ShieldCheck,
-  FileText, Download, ChevronUp, ChevronDown, RotateCcw
+  Ruler, ChevronLeft, MapPin, Share2, 
+  Copy, Check, Trash2, Layers, Search, Calculator, 
+  Square, Triangle, FileText, Download, X,
+  Maximize2, ArrowLeft
 } from 'lucide-react';
 import FieldBoundaryMap, { 
   calculateGeodesicArea, 
@@ -32,15 +32,14 @@ export default function FieldAreaCalculatorPage() {
   const [plotName, setPlotName] = useState(() => isTe ? 'భూమి సర్వే' : 'Land / Plot Survey');
   const [boundaryPins, setBoundaryPins] = useState([]);
   const [copied, setCopied] = useState(false);
-  const [isStudioOpen, setIsStudioOpen] = useState(false);
 
-  // Mobile Bottom Drawer State
-  const [mobileDrawerExpanded, setMobileDrawerExpanded] = useState(false);
+  // Drawer / Bottom Sheet & Search Modal States
+  const [showDrawer, setShowDrawer] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
 
   // Live GPS Center coordinates
   const [centerLat, setCenterLat] = useState(15.5057);
   const [centerLng, setCenterLng] = useState(80.0499);
-  const [gpsAcquired, setGpsAcquired] = useState(false);
 
   // Location / Village / GPS Search State
   const [searchQuery, setSearchQuery] = useState('');
@@ -73,7 +72,6 @@ export default function FieldAreaCalculatorPage() {
         (pos) => {
           setCenterLat(pos.coords.latitude);
           setCenterLng(pos.coords.longitude);
-          setGpsAcquired(true);
         },
         (err) => {
           console.log('Using default AP-TS coordinates for land calculator:', err);
@@ -202,6 +200,7 @@ export default function FieldAreaCalculatorPage() {
         setCenterLat(lat);
         setCenterLng(lng);
         setSearchLoading(false);
+        setShowSearch(false);
         return;
       }
     }
@@ -212,12 +211,14 @@ export default function FieldAreaCalculatorPage() {
       if (data && data.length > 0) {
         setCenterLat(parseFloat(data[0].lat));
         setCenterLng(parseFloat(data[0].lon));
+        setShowSearch(false);
       } else {
         const res2 = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`);
         const data2 = await res2.json();
         if (data2 && data2.length > 0) {
           setCenterLat(parseFloat(data2[0].lat));
           setCenterLng(parseFloat(data2[0].lon));
+          setShowSearch(false);
         } else {
           setSearchError(isTe ? 'స్థలం కనుగొనబడలేదు. సరైన గ్రామం పేరు లేదా GPS కోఆర్డినేట్స్ ఇవ్వండి.' : 'Location not found. Try village name or lat,lng coordinates.');
         }
@@ -243,40 +244,32 @@ export default function FieldAreaCalculatorPage() {
         `📍 *భూమి / స్థలం:* ${plotName || 'భూమి సర్వే'}\n` +
         `📐 *సర్వే పద్ధతి:* ${isSat ? 'శాటిలైట్ జీపీఎస్ సర్వే (WGS-84)' : `భౌతిక కొలతలు (${dimensionShape.toUpperCase()})`}\n` +
         `📅 *సర్వే తేదీ:* ${new Date().toLocaleDateString('te-IN')}\n\n` +
-        `📏 *ఖచ్చితమైన కొలతలు (Exact Measured Area):*\n` +
-        `• *ఎకరాలు (Acres):* ${area.acres} ఎక\n` +
-        `• *గుంటలు (Gunthas):* ${area.gunthas} గుంటలు\n` +
-        `• *సెంట్లు (Cents):* ${area.cents} సెంట్లు\n` +
-        `• *గజాలు (Sq. Yards):* ${area.gajam} గజాలు\n` +
+        `📏 *ఖచ్చితమైన కొలతలు:*\n` +
+        `• *ఎకరాలు:* ${area.acres} ఎక (${area.cents} సెంట్లు)\n` +
+        `• *గుంటలు:* ${area.gunthas} గుంటలు\n` +
+        `• *గజాలు:* ${area.gajam} గజాలు\n` +
         `• *చదరపు అడుగులు:* ${area.sqFeet} Sq.Ft\n` +
-        `• *చదరపు మీటర్లు:* ${area.sqMeters} m²\n` +
-        `• *హెక్టార్లు:* ${area.hectares} Ha\n` +
-        `• *బీఘా:* ${area.bigha} Bigha\n\n` +
-        `📐 *చుట్టుకొలత (Perimeter):*\n` +
-        `• మొత్తం: ${area.perimeterMeters} మీటర్లు (${area.perimeterFeet} అడుగులు)\n` +
+        `• *చదరపు మీటర్లు:* ${area.sqMeters} m²\n\n` +
+        `📐 *చుట్టుకొలత:* ${area.perimeterMeters} మీటర్లు (${area.perimeterFeet} అడుగులు)\n` +
         (isSat ? `• కార్నర్ పిన్స్: ${boundaryPins.length} పాయింట్స్\n` : '') +
-        (segmentsText ? `\n🧱 *ప్రతి సరిహద్దు పొడవు (Borders):*\n${segmentsText}\n` : '') +
+        (segmentsText ? `\n🧱 *సరిహద్దులు:*\n${segmentsText}\n` : '') +
         `━━━━━━━━━━━━━━━━━━━━\n` +
-        `✨ _AgriShield హై-ప్రెసిషన్ GPS ల్యాండ్ కాలిక్యులేటర్ ద్వారా లెక్కించబడింది._`
+        `✨ _AgriShield హై-ప్రెసిషన్ GPS ల్యాండ్ కాలిక్యులేటర్._`
       : `🌾 *Digital Land Area Survey Report* 🌾\n` +
         `━━━━━━━━━━━━━━━━━━━━\n` +
         `📍 *Land / Plot:* ${plotName || 'Land Survey'}\n` +
-        `📐 *Survey Method:* ${isSat ? 'Satellite GPS Map Survey (WGS-84 Precision)' : `Tape Dimension Survey (${dimensionShape.toUpperCase()})`}\n` +
+        `📐 *Survey Method:* ${isSat ? 'Satellite GPS Map Survey (WGS-84)' : `Tape Dimension Survey (${dimensionShape.toUpperCase()})`}\n` +
         `📅 *Survey Date:* ${new Date().toLocaleDateString()}\n\n` +
         `📏 *Calculated Land Area:*\n` +
-        `• *Acres:* ${area.acres} Ac\n` +
+        `• *Acres:* ${area.acres} Ac (${area.cents} Cents)\n` +
         `• *Gunthas:* ${area.gunthas} Gunthas\n` +
-        `• *Cents:* ${area.cents} Cents\n` +
         `• *Sq. Yards (Gajam):* ${area.gajam} Sq.Yds\n` +
         `• *Sq. Feet:* ${area.sqFeet} Sq.Ft\n` +
-        `• *Sq. Meters:* ${area.sqMeters} m²\n` +
-        `• *Hectares:* ${area.hectares} Ha\n` +
-        `• *Bigha:* ${area.bigha} Bigha\n\n` +
-        `📐 *Boundary Perimeter:*\n` +
-        `• Total: ${area.perimeterMeters} m (${area.perimeterFeet} ft)\n` +
+        `• *Sq. Meters:* ${area.sqMeters} m²\n\n` +
+        `📐 *Perimeter:* ${area.perimeterMeters} m (${area.perimeterFeet} ft)\n` +
         (isSat ? `• Corner Pins: ${boundaryPins.length} points\n` : '') +
         `━━━━━━━━━━━━━━━━━━━━\n` +
-        `✨ _Measured accurately via AgriShield High-Precision Land Area Calculator._`;
+        `✨ _Measured via AgriShield High-Precision Land Area Calculator._`;
 
     window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
   };
@@ -336,41 +329,17 @@ export default function FieldAreaCalculatorPage() {
     });
   };
 
-  // Dedicated Full-screen Studio View
-  if (isStudioOpen) {
-    return (
-      <FieldBoundaryMap
-        centerLat={centerLat}
-        centerLng={centerLng}
-        farmName={plotName}
-        boundaryCoordinates={boundaryPins}
-        onBoundaryChange={(newPins) => setBoundaryPins(newPins)}
-        isTelugu={isTe}
-        interactive={true}
-        isDedicated={true}
-        mode="calculator"
-        onShare={handleWhatsAppShare}
-        onBack={() => setIsStudioOpen(false)}
-        backLabel={isTe ? '← వెనుకకు' : '← Back'}
-      />
-    );
-  }
-
   // ═══════ RENDER DYNAMIC SVG PATWARI GEOMETRY CANVAS ═══════
   const renderPatwariGeometrySVG = () => {
     if (dimensionShape === 'rectangle') {
-      const L = parseFloat(rectLength) || 100;
-      const W = parseFloat(rectWidth) || 60;
       return (
         <div className="flex flex-col items-center justify-center p-4 bg-slate-900 rounded-2xl border border-slate-800 shadow-inner">
           <svg viewBox="0 0 320 200" className="w-full max-w-[280px] h-40">
             <rect x="50" y="30" width="220" height="130" fill="rgba(16, 185, 129, 0.2)" stroke="#10b981" strokeWidth="2.5" rx="6" />
-            {/* Length Dimension Arrow */}
-            <line x1="50" y1="18" x2="270" y2="18" stroke="#38bdf8" strokeWidth="1.5" markerStart="url(#arrow)" markerEnd="url(#arrow)" />
+            <line x1="50" y1="18" x2="270" y2="18" stroke="#38bdf8" strokeWidth="1.5" />
             <text x="160" y="14" fill="#38bdf8" fontSize="11" fontWeight="bold" textAnchor="middle">
               L: {rectLength ? `${rectLength} ${dimensionUnit}` : `Length (${dimensionUnit})`}
             </text>
-            {/* Width Dimension Arrow */}
             <line x1="28" y1="30" x2="28" y2="160" stroke="#f59e0b" strokeWidth="1.5" />
             <text x="24" y="100" fill="#f59e0b" fontSize="11" fontWeight="bold" textAnchor="end" dominantBaseline="middle">
               W: {rectWidth ? `${rectWidth} ${dimensionUnit}` : `Width`}
@@ -389,7 +358,6 @@ export default function FieldAreaCalculatorPage() {
         <div className="flex flex-col items-center justify-center p-4 bg-slate-900 rounded-2xl border border-slate-800 shadow-inner">
           <svg viewBox="0 0 320 200" className="w-full max-w-[280px] h-40">
             <polygon points="160,25 280,165 40,165" fill="rgba(16, 185, 129, 0.2)" stroke="#10b981" strokeWidth="2.5" strokeLinejoin="round" />
-            {/* Side Labels */}
             <text x="90" y="90" fill="#38bdf8" fontSize="11" fontWeight="bold" textAnchor="middle">A: {triSideA || 'Side A'}</text>
             <text x="230" y="90" fill="#f59e0b" fontSize="11" fontWeight="bold" textAnchor="middle">B: {triSideB || 'Side B'}</text>
             <text x="160" y="182" fill="#a78bfa" fontSize="11" fontWeight="bold" textAnchor="middle">C: {triSideC || 'Side C'}</text>
@@ -407,9 +375,7 @@ export default function FieldAreaCalculatorPage() {
         <div className="flex flex-col items-center justify-center p-4 bg-slate-900 rounded-2xl border border-slate-800 shadow-inner">
           <svg viewBox="0 0 320 210" className="w-full max-w-[280px] h-44">
             <polygon points="45,40 260,30 285,170 30,155" fill="rgba(16, 185, 129, 0.15)" stroke="#10b981" strokeWidth="2.5" strokeLinejoin="round" />
-            {/* Diagonal Splitting Line */}
             <line x1="45" y1="40" x2="285" y2="170" stroke="#f43f5e" strokeWidth="2" strokeDasharray="5,4" />
-            {/* Labels */}
             <text x="150" y="22" fill="#38bdf8" fontSize="10" fontWeight="bold" textAnchor="middle">A: {quadSideA || 'A'}</text>
             <text x="288" y="105" fill="#f59e0b" fontSize="10" fontWeight="bold" textAnchor="middle">B: {quadSideB || 'B'}</text>
             <text x="160" y="180" fill="#a78bfa" fontSize="10" fontWeight="bold" textAnchor="middle">C: {quadSideC || 'C'}</text>
@@ -417,7 +383,6 @@ export default function FieldAreaCalculatorPage() {
             <text x="165" y="105" fill="#f43f5e" fontSize="10" fontWeight="900" textAnchor="middle" transform="rotate(28, 165, 105)">
               Diag: {quadDiagonal || 'Diagonal'}
             </text>
-            {/* Triangle 1 & 2 markers */}
             <text x="180" y="75" fill="rgba(255,255,255,0.7)" fontSize="10" fontWeight="bold">△ 1</text>
             <text x="95" y="130" fill="rgba(255,255,255,0.7)" fontSize="10" fontWeight="bold">△ 2</text>
           </svg>
@@ -430,473 +395,151 @@ export default function FieldAreaCalculatorPage() {
     return null;
   };
 
-  return (
-    <div className="w-full min-h-[calc(100vh-4rem)] flex flex-col lg:flex-row bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100">
-      
-      {/* ═════════════════════════════════════════════════════════════════════
-          LEFT / DESKTOP CONTROL DOCK & SURVEY TELEMETRY CONSOLE (420px)
-          ═════════════════════════════════════════════════════════════════════ */}
-      <div className="w-full lg:w-[440px] xl:w-[480px] shrink-0 lg:h-[calc(100vh-4rem)] lg:overflow-y-auto border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/90 p-4 lg:p-5 space-y-4">
+  // ════════════════════════════════════════════════════════════════════════
+  // MODE 1: SATELLITE MAP (FULL VIEWPORT FIRST - THE ACTUAL MAP IS 100%)
+  // ════════════════════════════════════════════════════════════════════════
+  if (surveyTool === 'satellite') {
+    return (
+      <div className="relative w-full h-[calc(100vh-4rem)] bg-slate-950 overflow-hidden select-none">
         
-        {/* Navigation & Header */}
-        <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
-          <button
-            type="button"
-            onClick={() => navigate('/more')}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-all cursor-pointer active:scale-95 shadow-xs"
-          >
-            <ChevronLeft className="w-4 h-4 stroke-[3]" />
-            <span>{t('field_calculator.back_to_more', isTe ? '← ఇతర సేవలు' : '← Back')}</span>
-          </button>
+        {/* 1. FLOATING TOP CONTROLS ISLAND (Back + Title + Mode Switcher + Search) */}
+        <div className="absolute top-3 inset-x-3 z-20 flex items-center justify-between gap-2 pointer-events-none">
+          
+          {/* Left: Back to More & Title */}
+          <div className="flex items-center gap-1.5 pointer-events-auto">
+            <button
+              type="button"
+              onClick={() => navigate('/more')}
+              className="p-2.5 rounded-2xl bg-slate-900/90 hover:bg-slate-800 text-white backdrop-blur-md border border-slate-700/80 shadow-xl cursor-pointer active:scale-95 transition-all"
+              title={isTe ? 'ఇతర సేవలు' : 'Back to More'}
+            >
+              <ArrowLeft className="w-4 h-4" />
+            </button>
 
-          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
-            WGS-84 Precision
-          </span>
-        </div>
-
-        {/* Title & Description */}
-        <div className="space-y-1">
-          <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 shrink-0">
-              <Ruler className="w-5 h-5" />
-            </div>
-            <div>
-              <h1 className="text-lg font-black text-slate-900 dark:text-white tracking-tight">
-                {t('field_calculator.title', isTe ? 'భూమి విస్తీర్ణ కాలిక్యులేటర్' : 'Field Area Calculator')}
-              </h1>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                {isTe ? 'ఖచ్చితమైన సర్వే & సరిహద్దు లెక్కింపు' : 'Cadastral land geometry & boundary survey'}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Survey Mode Switcher: Satellite vs Tape Dimensions */}
-        <div className="grid grid-cols-2 gap-2 p-1.5 rounded-2xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
-          <button
-            type="button"
-            onClick={() => setSurveyTool('satellite')}
-            className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-black transition-all cursor-pointer ${
-              surveyTool === 'satellite'
-                ? 'bg-emerald-600 text-white shadow-sm ring-1 ring-emerald-400'
-                : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
-            }`}
-          >
-            <MapPin className="w-3.5 h-3.5" />
-            <span>{isTe ? '🛰️ శాటిలైట్ GPS' : '🛰️ Satellite & GPS'}</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setSurveyTool('dimensions')}
-            className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-black transition-all cursor-pointer ${
-              surveyTool === 'dimensions'
-                ? 'bg-emerald-600 text-white shadow-sm ring-1 ring-emerald-400'
-                : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
-            }`}
-          >
-            <Calculator className="w-3.5 h-3.5" />
-            <span>{isTe ? '📐 టేపు కొలతలు' : '📐 Tape / Chain'}</span>
-          </button>
-        </div>
-
-        {/* Plot Name Input */}
-        <div className="space-y-1">
-          <label htmlFor="plot-name-input" className="text-[11px] font-bold text-slate-600 dark:text-slate-400">
-            {isTe ? 'పొలం / సర్వే పేరు:' : 'Plot / Survey Name:'}
-          </label>
-          <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700">
-            <Compass className="w-4 h-4 text-emerald-600 shrink-0" />
-            <input
-              id="plot-name-input"
-              type="text"
-              value={plotName}
-              onChange={(e) => setPlotName(e.target.value)}
-              placeholder="e.g., North Plot or Survey No. 42"
-              className="flex-1 bg-transparent text-xs font-bold text-slate-900 dark:text-white outline-none"
-            />
-          </div>
-        </div>
-
-        {/* Location Search Bar (Satellite Mode) */}
-        {surveyTool === 'satellite' && (
-          <form onSubmit={handleLocationSearch} className="space-y-1">
-            <label htmlFor="loc-search-input" className="text-[11px] font-bold text-slate-600 dark:text-slate-400">
-              {isTe ? 'గ్రామం లేదా GPS ద్వారా వెతకండి:' : 'Search Village or GPS Coordinates:'}
-            </label>
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700">
-              <Search className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+            <div className="px-3 py-1.5 rounded-2xl bg-slate-900/90 backdrop-blur-md border border-slate-700/80 shadow-xl flex items-center gap-2">
+              <Ruler className="w-4 h-4 text-emerald-400 shrink-0" />
               <input
-                id="loc-search-input"
                 type="text"
+                value={plotName}
+                onChange={(e) => setPlotName(e.target.value)}
+                placeholder="Plot Name"
+                className="bg-transparent text-xs font-black text-white outline-none w-28 sm:w-40 truncate"
+              />
+            </div>
+          </div>
+
+          {/* Right: Search + Mode Switcher */}
+          <div className="flex items-center gap-1.5 pointer-events-auto">
+            <button
+              type="button"
+              onClick={() => setShowSearch(!showSearch)}
+              className={`p-2.5 rounded-2xl backdrop-blur-md border shadow-xl cursor-pointer active:scale-95 transition-all ${
+                showSearch 
+                  ? 'bg-emerald-600 text-white border-emerald-400' 
+                  : 'bg-slate-900/90 hover:bg-slate-800 text-white border-slate-700/80'
+              }`}
+              title={isTe ? 'గ్రామం లేదా GPS వెతకండి' : 'Search Village or GPS'}
+            >
+              <Search className="w-4 h-4" />
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setSurveyTool('dimensions')}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-2xl bg-slate-900/90 hover:bg-slate-800 text-white backdrop-blur-md border border-slate-700/80 shadow-xl text-xs font-black cursor-pointer active:scale-95 transition-all"
+            >
+              <Calculator className="w-3.5 h-3.5 text-emerald-400" />
+              <span className="hidden sm:inline">{isTe ? 'టేపు కొలతలు' : 'Tape'}</span>
+            </button>
+          </div>
+        </div>
+
+        {/* 2. SEARCH BAR OVERLAY (Opens when search icon is tapped) */}
+        {showSearch && (
+          <div className="absolute top-16 inset-x-3 z-30 pointer-events-auto max-w-md mx-auto">
+            <form onSubmit={handleLocationSearch} className="p-2.5 rounded-2xl bg-slate-900/95 text-white backdrop-blur-xl border border-slate-700 shadow-2xl flex items-center gap-2">
+              <Search className="w-4 h-4 text-emerald-400 shrink-0 ml-1" />
+              <input
+                type="text"
+                autoFocus
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={isTe ? 'గ్రామం లేదా 15.5057, 80.0499' : 'Village name or 15.5057, 80.0499'}
-                className="flex-1 bg-transparent text-xs font-bold text-slate-900 dark:text-white outline-none"
+                placeholder={isTe ? 'గ్రామం పేరు లేదా 15.5057, 80.0499' : 'Village name or 15.5057, 80.0499'}
+                className="flex-1 bg-transparent text-xs font-bold text-white outline-none"
               />
               <button
                 type="submit"
                 disabled={searchLoading}
-                className="px-2.5 py-1 rounded-lg text-[11px] font-black bg-emerald-600 hover:bg-emerald-700 text-white transition-all cursor-pointer shrink-0"
+                className="px-3 py-1.5 rounded-xl text-xs font-black bg-emerald-600 hover:bg-emerald-700 text-white transition-all cursor-pointer"
               >
                 {searchLoading ? '...' : (isTe ? 'వెతుకు' : 'Find')}
               </button>
-            </div>
-            {searchError && <p className="text-[10px] font-bold text-rose-500">{searchError}</p>}
-          </form>
-        )}
-
-        {/* ═══════ REAL-TIME MEASURED AREA HERO CARD ═══════ */}
-        <div className="p-4 rounded-2xl bg-gradient-to-br from-emerald-500/15 via-teal-500/10 to-emerald-500/5 border-2 border-emerald-500/30 shadow-sm space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-black uppercase tracking-wider text-emerald-800 dark:text-emerald-300">
-              {isTe ? 'ప్రస్తుత విస్తీర్ణం (Measured Area)' : 'Live Measured Area'}
-            </span>
-            {surveyTool === 'satellite' && (
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-600 text-white">
-                📍 {boundaryPins.length} {isTe ? 'రాళ్లు' : 'Pins'}
-              </span>
-            )}
-          </div>
-          
-          <div className="flex items-baseline gap-2">
-            <span className="text-3xl font-black text-emerald-700 dark:text-emerald-400">
-              {activeAreaData.acres}
-            </span>
-            <span className="text-base font-extrabold text-emerald-800 dark:text-emerald-300">
-              {isTe ? 'ఎకరాలు' : 'Acres'}
-            </span>
-            <span className="text-sm font-bold text-teal-600 dark:text-teal-400">
-              ({activeAreaData.cents} {isTe ? 'సెంట్లు' : 'Cents'})
-            </span>
-          </div>
-
-          <div className="pt-2 border-t border-emerald-500/20 flex items-center justify-between text-xs font-bold text-slate-700 dark:text-slate-300">
-            <span>📏 {isTe ? 'చుట్టుకొలత:' : 'Perimeter:'}</span>
-            <span className="font-black text-slate-900 dark:text-white">
-              {activeAreaData.perimeterMeters} m ({activeAreaData.perimeterFeet} ft)
-            </span>
-          </div>
-        </div>
-
-        {/* ═══════ 8 STANDARD REGIONAL UNITS DIAL ═══════ */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-black uppercase tracking-wider text-slate-600 dark:text-slate-400 flex items-center gap-1.5">
-              <Layers className="w-3.5 h-3.5 text-emerald-600" />
-              <span>{isTe ? '8 ప్రామాణిక యూనిట్లు' : '8 Standard Units'}</span>
-            </span>
-            <button
-              type="button"
-              onClick={handleCopySummary}
-              className="flex items-center gap-1 text-[11px] font-bold text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 cursor-pointer"
-            >
-              {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
-              <span>{copied ? (isTe ? 'కాపీ అయింది!' : 'Copied!') : (isTe ? 'కాపీ' : 'Copy')}</span>
-            </button>
-          </div>
-
-          <div className="grid grid-cols-4 gap-2">
-            <div className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-center">
-              <p className="text-[9px] font-bold text-slate-400 uppercase">{isTe ? 'ఎకరాలు' : 'Acres'}</p>
-              <p className="text-xs font-black text-emerald-600 dark:text-emerald-400">{activeAreaData.acres}</p>
-            </div>
-            <div className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-center">
-              <p className="text-[9px] font-bold text-slate-400 uppercase">{isTe ? 'గుంటలు' : 'Gunthas'}</p>
-              <p className="text-xs font-black text-teal-600 dark:text-teal-400">{activeAreaData.gunthas}</p>
-            </div>
-            <div className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-center">
-              <p className="text-[9px] font-bold text-slate-400 uppercase">{isTe ? 'సెంట్లు' : 'Cents'}</p>
-              <p className="text-xs font-black text-sky-600 dark:text-sky-400">{activeAreaData.cents}</p>
-            </div>
-            <div className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-center">
-              <p className="text-[9px] font-bold text-slate-400 uppercase">{isTe ? 'గజాలు' : 'Sq.Yds'}</p>
-              <p className="text-xs font-black text-indigo-600 dark:text-indigo-400">{activeAreaData.gajam}</p>
-            </div>
-            <div className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-center">
-              <p className="text-[9px] font-bold text-slate-400 uppercase">Sq.Ft</p>
-              <p className="text-xs font-black text-purple-600 dark:text-purple-400 truncate">{activeAreaData.sqFeet}</p>
-            </div>
-            <div className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-center">
-              <p className="text-[9px] font-bold text-slate-400 uppercase">m²</p>
-              <p className="text-xs font-black text-amber-600 dark:text-amber-400 truncate">{activeAreaData.sqMeters}</p>
-            </div>
-            <div className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-center">
-              <p className="text-[9px] font-bold text-slate-400 uppercase">Ha</p>
-              <p className="text-xs font-black text-cyan-600 dark:text-cyan-400">{activeAreaData.hectares}</p>
-            </div>
-            <div className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-center">
-              <p className="text-[9px] font-bold text-slate-400 uppercase">Bigha</p>
-              <p className="text-xs font-black text-rose-600 dark:text-rose-400">{activeAreaData.bigha}</p>
-            </div>
-          </div>
-        </div>
-
-        {/* ═══════ IF TAPE/DIMENSIONS MODE: FORM INPUTS & PATWARI SVG ═══════ */}
-        {surveyTool === 'dimensions' && (
-          <div className="space-y-3 pt-2 border-t border-slate-100 dark:border-slate-800">
-            {/* Shape Select */}
-            <div className="flex items-center gap-1.5">
               <button
                 type="button"
-                onClick={() => setDimensionShape('rectangle')}
-                className={`flex-1 py-1.5 px-2 rounded-xl text-[11px] font-bold flex items-center justify-center gap-1 transition-all cursor-pointer ${
-                  dimensionShape === 'rectangle' ? 'bg-emerald-600 text-white shadow-xs' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
-                }`}
+                onClick={() => setShowSearch(false)}
+                className="p-1 rounded-lg text-slate-400 hover:text-white"
               >
-                <Square className="w-3 h-3" />
-                <span>{isTe ? 'చతురస్రం' : 'Rectangle'}</span>
+                <X className="w-4 h-4" />
               </button>
-              <button
-                type="button"
-                onClick={() => setDimensionShape('quadrilateral')}
-                className={`flex-1 py-1.5 px-2 rounded-xl text-[11px] font-bold flex items-center justify-center gap-1 transition-all cursor-pointer ${
-                  dimensionShape === 'quadrilateral' ? 'bg-emerald-600 text-white shadow-xs' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
-                }`}
-              >
-                <Layers className="w-3 h-3" />
-                <span>{isTe ? '4 భుజాలు' : '4-Sided'}</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setDimensionShape('triangle')}
-                className={`flex-1 py-1.5 px-2 rounded-xl text-[11px] font-bold flex items-center justify-center gap-1 transition-all cursor-pointer ${
-                  dimensionShape === 'triangle' ? 'bg-emerald-600 text-white shadow-xs' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
-                }`}
-              >
-                <Triangle className="w-3 h-3" />
-                <span>{isTe ? 'త్రిభుజం' : 'Triangle'}</span>
-              </button>
-            </div>
-
-            {/* Measurement Unit Selector */}
-            <div className="flex items-center justify-between text-[11px] font-bold">
-              <span className="text-slate-500">{isTe ? 'కొలత యూనిట్:' : 'Unit:'}</span>
-              <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg">
-                {['feet', 'meters', 'yards', 'links'].map((u) => (
-                  <button
-                    key={u}
-                    type="button"
-                    onClick={() => setDimensionUnit(u)}
-                    className={`px-2 py-0.5 rounded-md text-[10px] font-bold capitalize transition-all cursor-pointer ${
-                      dimensionUnit === u ? 'bg-emerald-600 text-white shadow-xs' : 'text-slate-600 dark:text-slate-400'
-                    }`}
-                  >
-                    {u}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Shape-specific inputs */}
-            {dimensionShape === 'rectangle' && (
-              <div className="grid grid-cols-2 gap-2">
-                <input
-                  type="number"
-                  step="any"
-                  value={rectLength}
-                  onChange={(e) => setRectLength(e.target.value)}
-                  placeholder={`Length (${dimensionUnit})`}
-                  className="px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold outline-none focus:ring-2 focus:ring-emerald-500"
-                />
-                <input
-                  type="number"
-                  step="any"
-                  value={rectWidth}
-                  onChange={(e) => setRectWidth(e.target.value)}
-                  placeholder={`Width (${dimensionUnit})`}
-                  className="px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold outline-none focus:ring-2 focus:ring-emerald-500"
-                />
-              </div>
-            )}
-
-            {dimensionShape === 'quadrilateral' && (
-              <div className="space-y-2">
-                <div className="grid grid-cols-2 gap-2">
-                  <input
-                    type="number"
-                    step="any"
-                    value={quadSideA}
-                    onChange={(e) => setQuadSideA(e.target.value)}
-                    placeholder={`Side A (${dimensionUnit})`}
-                    className="px-2.5 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold outline-none focus:ring-2 focus:ring-emerald-500"
-                  />
-                  <input
-                    type="number"
-                    step="any"
-                    value={quadSideB}
-                    onChange={(e) => setQuadSideB(e.target.value)}
-                    placeholder={`Side B (${dimensionUnit})`}
-                    className="px-2.5 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold outline-none focus:ring-2 focus:ring-emerald-500"
-                  />
-                  <input
-                    type="number"
-                    step="any"
-                    value={quadSideC}
-                    onChange={(e) => setQuadSideC(e.target.value)}
-                    placeholder={`Side C (${dimensionUnit})`}
-                    className="px-2.5 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold outline-none focus:ring-2 focus:ring-emerald-500"
-                  />
-                  <input
-                    type="number"
-                    step="any"
-                    value={quadSideD}
-                    onChange={(e) => setQuadSideD(e.target.value)}
-                    placeholder={`Side D (${dimensionUnit})`}
-                    className="px-2.5 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold outline-none focus:ring-2 focus:ring-emerald-500"
-                  />
-                </div>
-                <input
-                  type="number"
-                  step="any"
-                  value={quadDiagonal}
-                  onChange={(e) => setQuadDiagonal(e.target.value)}
-                  placeholder={`Center Diagonal (${dimensionUnit}) [Recommended]`}
-                  className="w-full px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold outline-none focus:ring-2 focus:ring-emerald-500"
-                />
-              </div>
-            )}
-
-            {dimensionShape === 'triangle' && (
-              <div className="grid grid-cols-3 gap-2">
-                <input
-                  type="number"
-                  step="any"
-                  value={triSideA}
-                  onChange={(e) => setTriSideA(e.target.value)}
-                  placeholder="Side A"
-                  className="px-2 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold outline-none focus:ring-2 focus:ring-emerald-500"
-                />
-                <input
-                  type="number"
-                  step="any"
-                  value={triSideB}
-                  onChange={(e) => setTriSideB(e.target.value)}
-                  placeholder="Side B"
-                  className="px-2 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold outline-none focus:ring-2 focus:ring-emerald-500"
-                />
-                <input
-                  type="number"
-                  step="any"
-                  value={triSideC}
-                  onChange={(e) => setTriSideC(e.target.value)}
-                  placeholder="Side C"
-                  className="px-2 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold outline-none focus:ring-2 focus:ring-emerald-500"
-                />
-              </div>
-            )}
-
-            {/* Dynamic SVG Patwari Geometry Preview */}
-            {renderPatwariGeometrySVG()}
+            </form>
+            {searchError && <p className="text-[11px] font-bold text-rose-400 mt-1 px-3 py-1 rounded-lg bg-slate-900/90 border border-rose-500/30">{searchError}</p>}
           </div>
         )}
 
-        {/* ═══════ SATELLITE SIDE SEGMENTS (Borders Table) ═══════ */}
-        {surveyTool === 'satellite' && sideSegments.length > 0 && (
-          <div className="space-y-1.5 pt-2 border-t border-slate-100 dark:border-slate-800">
-            <div className="flex items-center justify-between text-[11px] font-bold text-slate-500">
-              <span>{isTe ? 'సరిహద్దు భుజాలు:' : 'Border Segments:'}</span>
-              <span>{sideSegments.length} {isTe ? 'భుజాలు' : 'Sides'}</span>
+        {/* 3. FLOATING LIVE MEASURED AREA PILL (Top-Left of map, compact & non-intrusive) */}
+        <div className="absolute top-16 left-3 z-20 pointer-events-auto">
+          <div className="flex items-center gap-2.5 px-3 py-2 rounded-2xl bg-slate-900/90 text-white backdrop-blur-md border border-slate-700/80 shadow-xl">
+            <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+            <div>
+              <p className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider">
+                {boundaryPins.length} {isTe ? 'పిన్స్' : 'Pins'} • {activeAreaData.perimeterMeters}m
+              </p>
+              <p className="text-sm font-black text-white">
+                {activeAreaData.acres} {isTe ? 'ఎకరాలు' : 'Ac'} <span className="text-teal-300 font-bold text-xs">({activeAreaData.cents} {isTe ? 'సెంట్లు' : 'Cents'})</span>
+              </p>
             </div>
-            <div className="grid grid-cols-2 gap-1.5 max-h-36 overflow-y-auto pr-1">
-              {sideSegments.map((seg, idx) => (
-                <div key={idx} className="p-1.5 rounded-lg bg-slate-50 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700 flex items-center justify-between text-[10px]">
-                  <span className="font-black text-emerald-600 dark:text-emerald-400">Side {seg.side}</span>
-                  <span className="font-extrabold text-slate-800 dark:text-slate-200">{seg.meters}m ({seg.feet}ft)</span>
-                </div>
-              ))}
-            </div>
+            <button
+              type="button"
+              onClick={() => setShowDrawer(true)}
+              className="ml-1 px-2.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-black flex items-center gap-1 transition-all active:scale-95 cursor-pointer shadow-xs"
+            >
+              <Layers className="w-3.5 h-3.5" />
+              <span>{isTe ? '8 యూనిట్లు' : '8 Units'}</span>
+            </button>
           </div>
-        )}
-
-        {/* ═══════ EXPORT ACTIONS SUITE ═══════ */}
-        <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
-          <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">
-            {isTe ? 'అధికారిక డాక్యుమెంటేషన్ & ఎగుమతులు' : 'Official Exports & Deeds'}
-          </span>
-
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              onClick={handleExportPDF}
-              className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-900 shadow-sm transition-all cursor-pointer active:scale-95"
-            >
-              <FileText className="w-3.5 h-3.5 text-emerald-400 dark:text-emerald-600" />
-              <span>{isTe ? 'సర్వే డీడ్ (PDF)' : 'Survey Deed (PDF)'}</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={handleWhatsAppShare}
-              className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm transition-all cursor-pointer active:scale-95"
-            >
-              <Share2 className="w-3.5 h-3.5" />
-              <span>{isTe ? 'వాట్సాప్ రిపోర్ట్' : 'WhatsApp'}</span>
-            </button>
-
-            {surveyTool === 'satellite' && (
-              <>
-                <button
-                  type="button"
-                  onClick={handleExportKML}
-                  className="flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-xl text-[11px] font-bold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 transition-all cursor-pointer"
-                >
-                  <Download className="w-3 h-3 text-emerald-600" />
-                  <span>Google Earth (.kml)</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleExportGeoJSON}
-                  className="flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-xl text-[11px] font-bold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 transition-all cursor-pointer"
-                >
-                  <Download className="w-3 h-3 text-teal-600" />
-                  <span>GIS (.geojson)</span>
-                </button>
-              </>
-            )}
-          </div>
-
-          {surveyTool === 'satellite' && boundaryPins.length > 0 && (
-            <button
-              type="button"
-              onClick={handleResetSurvey}
-              className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-xl text-[11px] font-bold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 transition-colors cursor-pointer"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-              <span>{isTe ? 'అన్ని పిన్స్ క్లియర్ చేయి' : 'Reset All Pins'}</span>
-            </button>
-          )}
         </div>
 
-      </div>
-
-      {/* ═════════════════════════════════════════════════════════════════════
-          RIGHT / INTERACTIVE GIS VIEWPORT (Full Screen / Dual-Pane Map)
-          ═════════════════════════════════════════════════════════════════════ */}
-      <div className="flex-1 relative h-[600px] lg:h-[calc(100vh-4rem)] bg-slate-950">
-        
-        {/* Floating Top Bar on Map (Full Screen trigger & GPS center status) */}
-        <div className="absolute top-3 right-3 z-[1000] flex items-center gap-2">
+        {/* 4. FLOATING QUICK ACTION BUTTONS (Deed & WhatsApp at bottom-right) */}
+        <div className="absolute bottom-20 sm:bottom-24 right-3 z-20 pointer-events-auto flex items-center gap-2">
           <button
             type="button"
-            onClick={() => setIsStudioOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black bg-slate-900/90 hover:bg-slate-900 text-white backdrop-blur-md border border-slate-700 shadow-lg cursor-pointer transition-all active:scale-95"
+            onClick={handleExportPDF}
+            className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-2xl bg-slate-900/90 hover:bg-slate-800 text-white backdrop-blur-md border border-slate-700/80 shadow-xl text-xs font-black cursor-pointer active:scale-95 transition-all"
+            title={isTe ? 'సర్వే పత్రం (PDF)' : 'Print Survey Deed (PDF)'}
           >
-            <Maximize2 className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">{isTe ? 'పూర్తి స్క్రీన్' : 'Full Screen'}</span>
+            <FileText className="w-4 h-4 text-emerald-400" />
+            <span className="hidden sm:inline">{isTe ? 'సర్వే పత్రం' : 'Survey Deed'}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleWhatsAppShare}
+            className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white backdrop-blur-md border border-emerald-500/80 shadow-xl text-xs font-black cursor-pointer active:scale-95 transition-all"
+            title={isTe ? 'వాట్సాప్ షేర్' : 'WhatsApp Share'}
+          >
+            <Share2 className="w-4 h-4" />
+            <span className="hidden sm:inline">WhatsApp</span>
           </button>
         </div>
 
-        {/* Map Viewport */}
-        <div className="w-full h-full">
+        {/* 5. THE ACTUAL THING: 100% FULL-VIEWPORT MAP CANVAS */}
+        <div className="w-full h-full relative z-0">
           <FieldBoundaryMap
             centerLat={centerLat}
             centerLng={centerLng}
             farmName={plotName}
             boundaryCoordinates={boundaryPins}
             onBoundaryChange={(newPins) => setBoundaryPins(newPins)}
-            onExpand={() => setIsStudioOpen(true)}
             isTelugu={isTe}
             interactive={true}
             mode="calculator"
@@ -905,33 +548,495 @@ export default function FieldAreaCalculatorPage() {
           />
         </div>
 
-        {/* Mobile Floating Area Badge (Visible on Mobile) */}
-        <div className="lg:hidden absolute bottom-4 left-3 right-3 z-[1000] p-3 rounded-2xl bg-slate-900/95 backdrop-blur-md border border-slate-800 text-white shadow-2xl flex items-center justify-between">
-          <div>
-            <p className="text-[10px] text-emerald-400 font-bold uppercase">{plotName}</p>
-            <p className="text-lg font-black text-white">
-              {activeAreaData.acres} Ac <span className="text-xs text-teal-300">({activeAreaData.cents} Cents)</span>
-            </p>
+        {/* 6. BOTTOM DRAWER (MODAL SHEET FOR 8 UNITS & FULL GIS EXPORTS) */}
+        {showDrawer && (
+          <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-xs p-0 sm:p-4">
+            <div className="w-full max-w-xl bg-white dark:bg-slate-900 rounded-t-3xl sm:rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl max-h-[85vh] flex flex-col overflow-hidden animate-in slide-in-from-bottom duration-200">
+              
+              {/* Drawer Header */}
+              <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-800/50">
+                <div className="flex items-center gap-2">
+                  <Layers className="w-5 h-5 text-emerald-600" />
+                  <div>
+                    <h3 className="text-sm font-black text-slate-900 dark:text-white">
+                      {plotName} - {isTe ? 'సర్వే విస్తీర్ణ కొలతలు' : 'Certified Land Survey'}
+                    </h3>
+                    <p className="text-[11px] text-slate-500">
+                      WGS-84 Geodetic Datum • {boundaryPins.length} {isTe ? 'కార్నర్ రాళ్లు' : 'Pins'}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowDrawer(false)}
+                  className="p-1.5 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:text-slate-900 cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Drawer Body */}
+              <div className="p-4 sm:p-5 overflow-y-auto space-y-4">
+                
+                {/* Live Area Hero */}
+                <div className="p-4 rounded-2xl bg-gradient-to-br from-emerald-500/15 via-teal-500/10 to-emerald-500/5 border border-emerald-500/30 flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] font-black uppercase tracking-wider text-emerald-800 dark:text-emerald-300">
+                      {isTe ? 'ప్రస్తుత విస్తీర్ణం' : 'Total Field Area'}
+                    </span>
+                    <div className="flex items-baseline gap-2 mt-0.5">
+                      <span className="text-2xl sm:text-3xl font-black text-emerald-700 dark:text-emerald-400">
+                        {activeAreaData.acres}
+                      </span>
+                      <span className="text-sm font-bold text-emerald-800 dark:text-emerald-300">
+                        {isTe ? 'ఎకరాలు' : 'Acres'}
+                      </span>
+                      <span className="text-xs font-bold text-teal-600 dark:text-teal-400">
+                        ({activeAreaData.cents} {isTe ? 'సెంట్లు' : 'Cents'})
+                      </span>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase">{isTe ? 'చుట్టుకొలత' : 'Perimeter'}</span>
+                    <p className="text-sm font-black text-slate-900 dark:text-white">
+                      {activeAreaData.perimeterMeters} m
+                    </p>
+                    <span className="text-[10px] text-slate-400 font-medium">({activeAreaData.perimeterFeet} ft)</span>
+                  </div>
+                </div>
+
+                {/* 8 Units Grid */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-black uppercase tracking-wider text-slate-600 dark:text-slate-400">
+                      {isTe ? '8 ప్రామాణిక యూనిట్లలో విస్తీర్ణం' : 'Land Area in 8 Standard Units'}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleCopySummary}
+                      className="flex items-center gap-1 text-[11px] font-bold text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 cursor-pointer"
+                    >
+                      {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                      <span>{copied ? (isTe ? 'కాపీ అయింది!' : 'Copied!') : (isTe ? 'కాపీ' : 'Copy')}</span>
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-4 gap-2">
+                    <div className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-center">
+                      <p className="text-[9px] font-bold text-slate-400 uppercase">{isTe ? 'ఎకరాలు' : 'Acres'}</p>
+                      <p className="text-xs font-black text-emerald-600 dark:text-emerald-400">{activeAreaData.acres}</p>
+                    </div>
+                    <div className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-center">
+                      <p className="text-[9px] font-bold text-slate-400 uppercase">{isTe ? 'గుంటలు' : 'Gunthas'}</p>
+                      <p className="text-xs font-black text-teal-600 dark:text-teal-400">{activeAreaData.gunthas}</p>
+                    </div>
+                    <div className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-center">
+                      <p className="text-[9px] font-bold text-slate-400 uppercase">{isTe ? 'సెంట్లు' : 'Cents'}</p>
+                      <p className="text-xs font-black text-sky-600 dark:text-sky-400">{activeAreaData.cents}</p>
+                    </div>
+                    <div className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-center">
+                      <p className="text-[9px] font-bold text-slate-400 uppercase">{isTe ? 'గజాలు' : 'Sq.Yds'}</p>
+                      <p className="text-xs font-black text-indigo-600 dark:text-indigo-400">{activeAreaData.gajam}</p>
+                    </div>
+                    <div className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-center">
+                      <p className="text-[9px] font-bold text-slate-400 uppercase">Sq.Ft</p>
+                      <p className="text-xs font-black text-purple-600 dark:text-purple-400 truncate">{activeAreaData.sqFeet}</p>
+                    </div>
+                    <div className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-center">
+                      <p className="text-[9px] font-bold text-slate-400 uppercase">m²</p>
+                      <p className="text-xs font-black text-amber-600 dark:text-amber-400 truncate">{activeAreaData.sqMeters}</p>
+                    </div>
+                    <div className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-center">
+                      <p className="text-[9px] font-bold text-slate-400 uppercase">Ha</p>
+                      <p className="text-xs font-black text-cyan-600 dark:text-cyan-400">{activeAreaData.hectares}</p>
+                    </div>
+                    <div className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-center">
+                      <p className="text-[9px] font-bold text-slate-400 uppercase">Bigha</p>
+                      <p className="text-xs font-black text-rose-600 dark:text-rose-400">{activeAreaData.bigha}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Border Segments */}
+                {sideSegments.length > 0 && (
+                  <div className="space-y-1.5 pt-2 border-t border-slate-100 dark:border-slate-800">
+                    <span className="text-[11px] font-bold text-slate-500">
+                      {isTe ? 'ప్రతి సరిహద్దు పొడవు:' : 'Border Fence Segments:'}
+                    </span>
+                    <div className="grid grid-cols-2 gap-1.5 max-h-36 overflow-y-auto pr-1">
+                      {sideSegments.map((seg, idx) => (
+                        <div key={idx} className="p-2 rounded-lg bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 flex items-center justify-between text-xs">
+                          <span className="font-black text-emerald-600 dark:text-emerald-400">Side {seg.side}</span>
+                          <span className="font-extrabold text-slate-800 dark:text-slate-200">{seg.meters}m ({seg.feet}ft)</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Export Action Buttons */}
+                <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={handleExportPDF}
+                      className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-xs font-black bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-900 shadow-sm transition-all cursor-pointer active:scale-95"
+                    >
+                      <FileText className="w-4 h-4 text-emerald-400 dark:text-emerald-600" />
+                      <span>{isTe ? 'సర్వే డీడ్ (PDF)' : 'Survey Deed (PDF)'}</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleWhatsAppShare}
+                      className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-xs font-black bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm transition-all cursor-pointer active:scale-95"
+                    >
+                      <Share2 className="w-4 h-4" />
+                      <span>WhatsApp</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleExportKML}
+                      className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-[11px] font-bold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 transition-all cursor-pointer"
+                    >
+                      <Download className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>Google Earth (.kml)</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleExportGeoJSON}
+                      className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-[11px] font-bold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 transition-all cursor-pointer"
+                    >
+                      <Download className="w-3.5 h-3.5 text-teal-600" />
+                      <span>GIS (.geojson)</span>
+                    </button>
+                  </div>
+
+                  {boundaryPins.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowDrawer(false);
+                        handleResetSurvey();
+                      }}
+                      className="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-bold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 transition-colors cursor-pointer mt-1"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>{isTe ? 'అన్ని పిన్స్ తొలగించు' : 'Clear All Pins'}</span>
+                    </button>
+                  )}
+                </div>
+
+              </div>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
+        )}
+
+      </div>
+    );
+  }
+
+  // ════════════════════════════════════════════════════════════════════════
+  // MODE 2: TAPE & CHAIN DIMENSIONS CALCULATOR (CLEAN FOCUSED WORKSPACE)
+  // ════════════════════════════════════════════════════════════════════════
+  return (
+    <div className="max-w-2xl mx-auto w-full p-4 sm:p-6 space-y-5 pb-24 text-slate-900 dark:text-slate-100">
+      
+      {/* Top Header */}
+      <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
+        <button
+          type="button"
+          onClick={() => setSurveyTool('satellite')}
+          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-black bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 transition-all cursor-pointer active:scale-95 shadow-xs"
+        >
+          <MapPin className="w-4 h-4 text-emerald-600" />
+          <span>{isTe ? '← శాటిలైట్ మ్యాప్‌కు వెళ్ళు' : '← Back to Satellite Map'}</span>
+        </button>
+
+        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
+          Patwari Cadastral Mode
+        </span>
+      </div>
+
+      {/* Title */}
+      <div className="space-y-1">
+        <h1 className="text-xl font-black text-slate-900 dark:text-white">
+          {isTe ? '📐 టేపు & గొలుసు కొలతల కాలిక్యులేటర్' : '📐 Tape & Chain Dimension Calculator'}
+        </h1>
+        <p className="text-xs text-slate-500">
+          {isTe ? 'భౌతిక సరిహద్దు కొలతలను నమోదు చేసి ఖచ్చితమైన విస్తీర్ణం లెక్కించండి' : 'Enter physical fence dimensions to calculate exact revenue acreage'}
+        </p>
+      </div>
+
+      {/* Main Card */}
+      <div className="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+        
+        {/* Shape Select */}
+        <div className="space-y-1.5">
+          <label className="text-xs font-black text-slate-700 dark:text-slate-300">
+            {isTe ? '1. పొలం ఆకారం ఎంచుకోండి:' : '1. Select Field Shape:'}
+          </label>
+          <div className="flex items-center gap-1.5">
             <button
               type="button"
-              onClick={handleExportPDF}
-              className="p-2 rounded-xl bg-slate-800 text-emerald-400 border border-slate-700"
-              title="PDF Deed"
+              onClick={() => setDimensionShape('rectangle')}
+              className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                dimensionShape === 'rectangle' ? 'bg-emerald-600 text-white shadow-xs' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
+              }`}
             >
-              <FileText className="w-4 h-4" />
+              <Square className="w-3.5 h-3.5" />
+              <span>{isTe ? 'చతురస్రం' : 'Rectangle'}</span>
             </button>
             <button
               type="button"
-              onClick={handleWhatsAppShare}
-              className="px-3 py-2 rounded-xl text-xs font-black bg-emerald-600 text-white shadow-sm"
+              onClick={() => setDimensionShape('quadrilateral')}
+              className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                dimensionShape === 'quadrilateral' ? 'bg-emerald-600 text-white shadow-xs' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
+              }`}
             >
-              {isTe ? 'వాట్సాప్' : 'Share'}
+              <Layers className="w-3.5 h-3.5" />
+              <span>{isTe ? '4 భుజాల పొలం' : '4-Sided'}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setDimensionShape('triangle')}
+              className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                dimensionShape === 'triangle' ? 'bg-emerald-600 text-white shadow-xs' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
+              }`}
+            >
+              <Triangle className="w-3.5 h-3.5" />
+              <span>{isTe ? 'త్రిభుజం' : 'Triangle'}</span>
             </button>
           </div>
         </div>
 
+        {/* Unit Select */}
+        <div className="flex items-center justify-between text-xs font-bold pt-2 border-t border-slate-100 dark:border-slate-800">
+          <span className="text-slate-500">{isTe ? 'కొలత యూనిట్:' : 'Measurement Unit:'}</span>
+          <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
+            {['feet', 'meters', 'yards', 'links'].map((u) => (
+              <button
+                key={u}
+                type="button"
+                onClick={() => setDimensionUnit(u)}
+                className={`px-3 py-1 rounded-lg text-xs font-bold capitalize transition-all cursor-pointer ${
+                  dimensionUnit === u ? 'bg-emerald-600 text-white shadow-xs' : 'text-slate-600 dark:text-slate-400'
+                }`}
+              >
+                {u}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Input Fields */}
+        {dimensionShape === 'rectangle' && (
+          <div className="grid grid-cols-2 gap-3 pt-2">
+            <div className="space-y-1">
+              <label className="text-[11px] font-black text-slate-500">Length ({dimensionUnit})</label>
+              <input
+                type="number"
+                step="any"
+                value={rectLength}
+                onChange={(e) => setRectLength(e.target.value)}
+                placeholder="e.g. 200"
+                className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm font-bold outline-none focus:ring-2 focus:ring-emerald-500"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-[11px] font-black text-slate-500">Width ({dimensionUnit})</label>
+              <input
+                type="number"
+                step="any"
+                value={rectWidth}
+                onChange={(e) => setRectWidth(e.target.value)}
+                placeholder="e.g. 150"
+                className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm font-bold outline-none focus:ring-2 focus:ring-emerald-500"
+              />
+            </div>
+          </div>
+        )}
+
+        {dimensionShape === 'quadrilateral' && (
+          <div className="space-y-3 pt-2">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              <input
+                type="number"
+                step="any"
+                value={quadSideA}
+                onChange={(e) => setQuadSideA(e.target.value)}
+                placeholder={`Side A (${dimensionUnit})`}
+                className="px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold outline-none focus:ring-2 focus:ring-emerald-500"
+              />
+              <input
+                type="number"
+                step="any"
+                value={quadSideB}
+                onChange={(e) => setQuadSideB(e.target.value)}
+                placeholder={`Side B (${dimensionUnit})`}
+                className="px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold outline-none focus:ring-2 focus:ring-emerald-500"
+              />
+              <input
+                type="number"
+                step="any"
+                value={quadSideC}
+                onChange={(e) => setQuadSideC(e.target.value)}
+                placeholder={`Side C (${dimensionUnit})`}
+                className="px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold outline-none focus:ring-2 focus:ring-emerald-500"
+              />
+              <input
+                type="number"
+                step="any"
+                value={quadSideD}
+                onChange={(e) => setQuadSideD(e.target.value)}
+                placeholder={`Side D (${dimensionUnit})`}
+                className="px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold outline-none focus:ring-2 focus:ring-emerald-500"
+              />
+            </div>
+            <input
+              type="number"
+              step="any"
+              value={quadDiagonal}
+              onChange={(e) => setQuadDiagonal(e.target.value)}
+              placeholder={`Center Diagonal (${dimensionUnit}) [Recommended for Patwari Accuracy]`}
+              className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold outline-none focus:ring-2 focus:ring-emerald-500"
+            />
+          </div>
+        )}
+
+        {dimensionShape === 'triangle' && (
+          <div className="grid grid-cols-3 gap-2 pt-2">
+            <input
+              type="number"
+              step="any"
+              value={triSideA}
+              onChange={(e) => setTriSideA(e.target.value)}
+              placeholder={`Side A (${dimensionUnit})`}
+              className="px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold outline-none focus:ring-2 focus:ring-emerald-500"
+            />
+            <input
+              type="number"
+              step="any"
+              value={triSideB}
+              onChange={(e) => setTriSideB(e.target.value)}
+              placeholder={`Side B (${dimensionUnit})`}
+              className="px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold outline-none focus:ring-2 focus:ring-emerald-500"
+            />
+            <input
+              type="number"
+              step="any"
+              value={triSideC}
+              onChange={(e) => setTriSideC(e.target.value)}
+              placeholder={`Side C (${dimensionUnit})`}
+              className="px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold outline-none focus:ring-2 focus:ring-emerald-500"
+            />
+          </div>
+        )}
+
+        {/* Dynamic SVG Visual Preview */}
+        {renderPatwariGeometrySVG()}
+      </div>
+
+      {/* Real-time Measured Area Hero Card */}
+      <div className="p-4 rounded-2xl bg-gradient-to-br from-emerald-500/15 via-teal-500/10 to-emerald-500/5 border border-emerald-500/30 flex items-center justify-between">
+        <div>
+          <span className="text-[10px] font-black uppercase tracking-wider text-emerald-800 dark:text-emerald-300">
+            {isTe ? 'లెక్కించిన విస్తీర్ణం' : 'Calculated Area'}
+          </span>
+          <div className="flex items-baseline gap-2 mt-0.5">
+            <span className="text-2xl sm:text-3xl font-black text-emerald-700 dark:text-emerald-400">
+              {activeAreaData.acres}
+            </span>
+            <span className="text-sm font-bold text-emerald-800 dark:text-emerald-300">
+              {isTe ? 'ఎకరాలు' : 'Acres'}
+            </span>
+            <span className="text-xs font-bold text-teal-600 dark:text-teal-400">
+              ({activeAreaData.cents} {isTe ? 'సెంట్లు' : 'Cents'})
+            </span>
+          </div>
+        </div>
+        <div className="text-right">
+          <span className="text-[10px] font-bold text-slate-400 uppercase">{isTe ? 'చుట్టుకొలత' : 'Perimeter'}</span>
+          <p className="text-sm font-black text-slate-900 dark:text-white">
+            {activeAreaData.perimeterMeters} m
+          </p>
+          <span className="text-[10px] text-slate-400 font-medium">({activeAreaData.perimeterFeet} ft)</span>
+        </div>
+      </div>
+
+      {/* 8 Units Grid */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <span className="text-[11px] font-black uppercase tracking-wider text-slate-600 dark:text-slate-400">
+            {isTe ? '8 ప్రామాణిక యూనిట్లలో విస్తీర్ణం' : 'Land Area in 8 Standard Units'}
+          </span>
+          <button
+            type="button"
+            onClick={handleCopySummary}
+            className="flex items-center gap-1 text-[11px] font-bold text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 cursor-pointer"
+          >
+            {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+            <span>{copied ? (isTe ? 'కాపీ అయింది!' : 'Copied!') : (isTe ? 'కాపీ' : 'Copy')}</span>
+          </button>
+        </div>
+
+        <div className="grid grid-cols-4 gap-2">
+          <div className="p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-center">
+            <p className="text-[9px] font-bold text-slate-400 uppercase">{isTe ? 'ఎకరాలు' : 'Acres'}</p>
+            <p className="text-xs font-black text-emerald-600 dark:text-emerald-400">{activeAreaData.acres}</p>
+          </div>
+          <div className="p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-center">
+            <p className="text-[9px] font-bold text-slate-400 uppercase">{isTe ? 'గుంటలు' : 'Gunthas'}</p>
+            <p className="text-xs font-black text-teal-600 dark:text-teal-400">{activeAreaData.gunthas}</p>
+          </div>
+          <div className="p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-center">
+            <p className="text-[9px] font-bold text-slate-400 uppercase">{isTe ? 'సెంట్లు' : 'Cents'}</p>
+            <p className="text-xs font-black text-sky-600 dark:text-sky-400">{activeAreaData.cents}</p>
+          </div>
+          <div className="p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-center">
+            <p className="text-[9px] font-bold text-slate-400 uppercase">{isTe ? 'గజాలు' : 'Sq.Yds'}</p>
+            <p className="text-xs font-black text-indigo-600 dark:text-indigo-400">{activeAreaData.gajam}</p>
+          </div>
+          <div className="p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-center">
+            <p className="text-[9px] font-bold text-slate-400 uppercase">Sq.Ft</p>
+            <p className="text-xs font-black text-purple-600 dark:text-purple-400 truncate">{activeAreaData.sqFeet}</p>
+          </div>
+          <div className="p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-center">
+            <p className="text-[9px] font-bold text-slate-400 uppercase">m²</p>
+            <p className="text-xs font-black text-amber-600 dark:text-amber-400 truncate">{activeAreaData.sqMeters}</p>
+          </div>
+          <div className="p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-center">
+            <p className="text-[9px] font-bold text-slate-400 uppercase">Ha</p>
+            <p className="text-xs font-black text-cyan-600 dark:text-cyan-400">{activeAreaData.hectares}</p>
+          </div>
+          <div className="p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-center">
+            <p className="text-[9px] font-bold text-slate-400 uppercase">Bigha</p>
+            <p className="text-xs font-black text-rose-600 dark:text-rose-400">{activeAreaData.bigha}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Export & Share buttons */}
+      <div className="grid grid-cols-2 gap-2 pt-2">
+        <button
+          type="button"
+          onClick={handleExportPDF}
+          className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-xs font-black bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-900 shadow-sm transition-all cursor-pointer active:scale-95"
+        >
+          <FileText className="w-4 h-4 text-emerald-400 dark:text-emerald-600" />
+          <span>{isTe ? 'సర్వే పత్రం (PDF)' : 'Survey Deed (PDF)'}</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={handleWhatsAppShare}
+          className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-xs font-black bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm transition-all cursor-pointer active:scale-95"
+        >
+          <Share2 className="w-4 h-4" />
+          <span>WhatsApp</span>
+        </button>
       </div>
 
     </div>

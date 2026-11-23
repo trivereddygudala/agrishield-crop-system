@@ -11894,3 +11894,18 @@ equirements.txt with the full production package list (fastapi, uvicorn, pymongo
    - Strictly excluded agronomic resource telemetry (no seeds, fertilizer bags, spray pumps, or drip time) per explicit user command.
 4. **Verification & Build:**
    - Production bundle verified via `npm --prefix frontend run build` (vite v4.5.14 built in 21.31s with 0 errors).
+
+
+## [2026-11-23 20:05:00] - Field Area Calculator UI Simplification (Map-First Viewport & Modal Drawer)
+**Summary of Changes:**
+1. **Uncluttered Map-First Architecture (frontend/src/pages/farmer/FieldAreaCalculatorPage.jsx):**
+   - Fixed the issue where stacked controls, 8 unit cards, and action buttons pushed the actual map completely off-screen on mobile viewports.
+   - Set the Satellite Map to occupy 100% of the screen (`h-[calc(100vh-4rem)]`) immediately upon page load.
+   - Replaced the overwhelming wall of input forms with floating, non-intrusive glassmorphic HUD controls:
+     - Sleek top island: Back button, Plot Name, Search toggle, and Tape Mode toggle.
+     - Compact top-left live area badge: Pins count, perimeter in meters, and live acres/cents with 1-tap "8 Units" drawer trigger.
+     - Floating bottom-right quick actions: 1-click Survey Deed (PDF) and WhatsApp Share.
+   - Moved the detailed 8 Standard Units grid, border segment fence measurements, KML/GeoJSON GIS exports, and pin reset into a smooth, slide-up modal bottom sheet drawer.
+   - Dedicated clean workspace for Tape/Chain dimensions mode with dynamic SVG Patwari preview.
+2. **Verification & Build:**
+   - Production bundle verified via `npm --prefix frontend run build` (vite v4.5.14 built in 18.59s with 0 errors).
