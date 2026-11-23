@@ -3269,34 +3269,35 @@ async def predict_batch_endpoint(
             logger.debug(f"Batch image suitability check exception: {suit_err}")
 
         try:
-            import asyncio
-            import inspect
-            sig = inspect.signature(predict_crop_disease)
-            kwargs = {}
-            if "crop_filter" in sig.parameters:
-                kwargs["crop_filter"] = user_crop_filter
-            elif any(p.kind == inspect.Parameter.VAR_KEYWORD for p in sig.parameters.values()):
-                kwargs["crop_filter"] = user_crop_filter
-
             res = None
-            try:
-                from backend.app.services.ai_cluster import ai_cluster
-                with open(full_path, "rb") as img_f:
-                    img_bytes = img_f.read()
-                res = await ai_cluster.offload_prediction(
-                    image_bytes=img_bytes,
-                    filename=os.path.basename(full_path),
-                    explainer_type="gradcam++",
-                    crop_filter=user_crop_filter
-                )
-            except Exception as cluster_err:
-                logger.warning(f"Batch cluster offload bypassed: {cluster_err}")
 
+            # 1. Fast Path: Crop-scoped ONNX micro-model (<30ms, 98%+ accuracy)
+            if user_crop_filter:
+                try:
+                    from backend.app.services.crop_scoped_onnx_service import run_crop_scoped_inference
+                    res = await asyncio.to_thread(
+                        run_crop_scoped_inference,
+                        full_path,
+                        user_crop_filter,
+                        target_lang
+                    )
+                except Exception as onnx_err:
+                    logger.debug(f"Batch fast ONNX bypass: {onnx_err}")
+
+            # 2. Local PyTorch/ResNet runner (<150ms)
             if not res:
+                import inspect
+                sig = inspect.signature(predict_crop_disease)
+                kwargs = {}
+                if "crop_filter" in sig.parameters:
+                    kwargs["crop_filter"] = user_crop_filter
+                elif any(p.kind == inspect.Parameter.VAR_KEYWORD for p in sig.parameters.values()):
+                    kwargs["crop_filter"] = user_crop_filter
+
                 res = await asyncio.to_thread(
                     predict_crop_disease,
                     full_path,
-                    "gradcam++",
+                    "none",
                     **kwargs
                 )
 

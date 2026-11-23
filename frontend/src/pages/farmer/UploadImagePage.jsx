@@ -243,6 +243,7 @@ const UploadImagePage = () => {
 
   // Farmer explicitly designates crop filter or is prompted via Option A to prevent cross-crop mismatches
   const [showCropPromptModal, setShowCropPromptModal] = useState(false);
+  const [isBatchCropPrompt, setIsBatchCropPrompt] = useState(false);
   const [pendingScanArgs, setPendingScanArgs] = useState(null);
 
   const handleTabChange = (tab) => {
@@ -394,12 +395,19 @@ const UploadImagePage = () => {
     });
   };
 
-  const handleStartBatchScan = async () => {
+  const handleStartBatchScan = async (cropFilterOverride = null) => {
     const samples = state.batchSamples || [];
     if (samples.length < 2) {
       const msg = 'Please select at least 2 leaf samples to calculate plot-level infection severity.';
       scanStore.setState({ batchErrorMsg: msg });
       scanStore.setTabState('disease-diag', { errorMsg: msg });
+      return;
+    }
+
+    const effectiveCrop = cropFilterOverride || selectedCropFilter;
+    if (!effectiveCrop && !cropFilterOverride) {
+      setIsBatchCropPrompt(true);
+      setShowCropPromptModal(true);
       return;
     }
 
@@ -431,7 +439,7 @@ const UploadImagePage = () => {
       const batchRes = await API.post('/api/predict-batch', {
         image_paths: imagePaths,
         sample_labels: sampleLabels,
-        crop_filter: selectedCropFilter || undefined,
+        crop_filter: effectiveCrop || undefined,
         language: activeLang
       });
 
@@ -1452,11 +1460,19 @@ const UploadImagePage = () => {
       {/* Option A: Quick Crop Family Selector Modal */}
       <QuickCropSelectorModal
         isOpen={showCropPromptModal}
-        onClose={() => setShowCropPromptModal(false)}
+        onClose={() => {
+          setShowCropPromptModal(false);
+          setIsBatchCropPrompt(false);
+        }}
         onSelectCrop={(cropValue) => {
           scanStore.setState({ selectedCropFilter: cropValue });
           setShowCropPromptModal(false);
-          executeScanPipeline(pendingScanArgs || {}, cropValue);
+          if (isBatchCropPrompt) {
+            setIsBatchCropPrompt(false);
+            handleStartBatchScan(cropValue);
+          } else {
+            executeScanPipeline(pendingScanArgs || {}, cropValue);
+          }
         }}
         activeLang={activeLang}
       />

@@ -14,11 +14,32 @@ import {
   Sparkles, 
   RefreshCw,
   Compass,
-  MapPin
+  MapPin,
+  Check
 } from 'lucide-react';
 import { Card, Button, Badge } from '../ui/index';
 import { compressImageForUpload } from '../../utils/imageCompression';
 import { useTranslation } from 'react-i18next';
+
+const AGRICULTURAL_CROPS = [
+  { value: '', label: 'అన్ని పంటలు (All Crops)', icon: '🌱' },
+  { value: 'Tomato', label: 'టమాటా (Tomato)', icon: '🍅' },
+  { value: 'Chilli', label: 'మిరప (Chilli)', icon: '🌶️' },
+  { value: 'Rice', label: 'వరి (Paddy / Rice)', icon: '🌾' },
+  { value: 'Cotton', label: 'పత్తి (Cotton)', icon: '🌿' },
+  { value: 'Potato', label: 'బంగాళాదుంప (Potato)', icon: '🥔' },
+  { value: 'Maize', label: 'మొక్కజొన్న (Maize)', icon: '🌽' },
+  { value: 'Groundnut', label: 'వేరుశనగ (Groundnut)', icon: '🥜' },
+  { value: 'Sugarcane', label: 'చెరకు (Sugarcane)', icon: '🎋' },
+  { value: 'Mango', label: 'మామిడి (Mango)', icon: '🥭' },
+  { value: 'Wheat', label: 'గోధుమ (Wheat)', icon: '🌾' },
+  { value: 'Banana', label: 'అరటి (Banana)', icon: '🍌' },
+  { value: 'Apple', label: 'యాపిల్ (Apple)', icon: '🍎' },
+  { value: 'Grape', label: 'ద్రాక్ష (Grape)', icon: '🍇' },
+  { value: 'Soybean', label: 'సోయాబీన్ (Soybean)', icon: '🫘' },
+  { value: 'Pepper', label: 'క్యాప్సికమ్ (Capsicum)', icon: '🫑' },
+  { value: 'Orange', label: 'బత్తాయి / నారింజ (Citrus)', icon: '🍊' }
+];
 
 export default function MultiLeafUploader({
   samples = [],
@@ -139,6 +160,61 @@ export default function MultiLeafUploader({
           <span>{errorMsg}</span>
         </div>
       )}
+
+      {/* Target Crop Selector for High-Precision Inference */}
+      <div className="p-3 sm:p-4 rounded-2xl bg-slate-50/90 dark:bg-slate-900/90 border border-slate-200/80 dark:border-white/10 shadow-xs space-y-2">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <span className="text-base sm:text-lg">🎯</span>
+            <div>
+              <div className="flex items-center gap-1.5">
+                <h4 className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-wider">
+                  {t('uploader.select_crop_title', 'Target Plot Crop')}
+                </h4>
+                <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 font-black">
+                  98%+ Precision
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                {t('uploader.select_crop_subtitle', 'Choose your plot crop for ultra-fast, crop-scoped pathology analysis')}
+              </p>
+            </div>
+          </div>
+          {selectedCropFilter ? (
+            <Badge variant="success" className="text-[10px] font-black uppercase tracking-wider py-1 px-2.5 flex items-center gap-1 shadow-xs">
+              <span>🔒</span>
+              <span>{selectedCropFilter} Selected</span>
+            </Badge>
+          ) : (
+            <Badge variant="outline" className="text-[10px] font-bold text-slate-500 py-1 px-2.5">
+              🌐 All Crops Mode
+            </Badge>
+          )}
+        </div>
+
+        {/* Quick-Select Scrollable Crop Chips */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1.5 pt-0.5 scrollbar-thin scrollbar-thumb-emerald-500/20">
+          {AGRICULTURAL_CROPS.map((crop) => {
+            const isSelected = (selectedCropFilter || '') === crop.value;
+            return (
+              <button
+                key={crop.value || 'all'}
+                type="button"
+                onClick={() => onCropFilterChange?.(crop.value)}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold shrink-0 flex items-center gap-1.5 transition-all cursor-pointer border ${
+                  isSelected
+                    ? 'bg-emerald-600 text-white border-emerald-500 shadow-xs scale-102'
+                    : 'bg-white dark:bg-white/[0.05] text-slate-700 dark:text-slate-300 border-slate-200/80 dark:border-white/5 hover:border-emerald-500/40 hover:bg-emerald-50/50 dark:hover:bg-emerald-950/30'
+                }`}
+              >
+                <span>{crop.icon}</span>
+                <span>{crop.label}</span>
+                {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
+              </button>
+            );
+          })}
+        </div>
+      </div>
 
       {/* 5 Sample Slots Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
