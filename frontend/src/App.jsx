@@ -54,6 +54,8 @@ const ProviderDashboardPage = lazyWithRetry(() => import('./pages/provider/Provi
 const DashboardLayout = () => {
   const location = useLocation();
   const isAssistant = location.pathname.startsWith('/assistant');
+  const isFieldArea = location.pathname.startsWith('/field-area');
+  const isFullViewportPage = isAssistant || isFieldArea;
 
   const [sidebarOpen, setSidebarOpen] = useState(() => {
     return typeof window !== 'undefined' ? window.innerWidth >= 1024 : false;
@@ -79,7 +81,7 @@ const DashboardLayout = () => {
   }, [location.pathname, location.search]);
 
   return (
-    <div className={`${isAssistant ? 'h-[100dvh] max-h-[100dvh] overflow-hidden' : 'min-h-screen'} pt-16 bg-slate-100/90 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col transition-colors duration-200`}>
+    <div className={`${isFullViewportPage ? 'h-[100dvh] max-h-[100dvh] overflow-hidden' : 'min-h-screen'} pt-16 bg-slate-100/90 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col transition-colors duration-200`}>
       {/* Top Floating Offline Status & Auto-Sync Bar */}
       <OfflineStatusBar />
 
@@ -89,16 +91,16 @@ const DashboardLayout = () => {
       {/* Platform Maintenance Mode Alert Banner */}
       <MaintenanceModeBanner />
       
-      <div className={`flex flex-1 ${isAssistant ? 'min-h-0 h-full max-h-full overflow-hidden' : ''}`}>
+      <div className={`flex flex-1 ${isFullViewportPage ? 'min-h-0 h-full max-h-full overflow-hidden' : ''}`}>
         {/* Left Navigation Sidebar */}
         <Sidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
         
         {/* Main Content Area — full width on mobile (sidebar is overlay), indent only on lg+ */}
         <main
-          className={`flex-1 w-full min-w-0 ${sidebarOpen ? 'lg:pl-64' : 'lg:pl-0'} transition-all duration-300 ${isAssistant ? 'h-[calc(100dvh-8rem)] lg:h-[calc(100dvh-4rem)] max-h-[calc(100dvh-8rem)] lg:max-h-[calc(100dvh-4rem)] min-h-0 overflow-hidden flex flex-col' : 'min-h-[calc(100vh-4rem)] flex flex-col justify-between overflow-x-hidden'}`}
+          className={`flex-1 w-full min-w-0 ${sidebarOpen ? 'lg:pl-64' : 'lg:pl-0'} transition-all duration-300 ${isFullViewportPage ? 'h-[calc(100dvh-8rem-env(safe-area-inset-bottom,0px))] lg:h-[calc(100dvh-4rem)] max-h-[calc(100dvh-8rem-env(safe-area-inset-bottom,0px))] lg:max-h-[calc(100dvh-4rem)] min-h-0 overflow-hidden flex flex-col' : 'min-h-[calc(100vh-4rem)] flex flex-col justify-between overflow-x-hidden'}`}
           role="main"
         >
-          <div className={isAssistant ? 'p-0 h-full max-h-full flex flex-col flex-1 min-h-0 overflow-hidden' : 'p-3 sm:p-6 lg:p-8 pb-[calc(6.5rem+env(safe-area-inset-bottom,0px))] lg:pb-8 w-full flex-1'}>
+          <div className={isFullViewportPage ? 'p-0 h-full max-h-full flex flex-col flex-1 min-h-0 overflow-hidden' : 'p-3 sm:p-6 lg:p-8 pb-[calc(6.5rem+env(safe-area-inset-bottom,0px))] lg:pb-8 w-full flex-1'}>
             <ErrorBoundary locationKey={location.pathname}>
               <Suspense fallback={<PageSkeleton />}>
                 <AnimatePresence mode="wait" initial={false}>
@@ -108,7 +110,7 @@ const DashboardLayout = () => {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -6 }}
                     transition={{ duration: 0.18, ease: 'easeOut' }}
-                    className={`w-full ${isAssistant ? 'h-full max-h-full flex-1 flex flex-col min-h-0 overflow-hidden' : ''}`}
+                    className={`w-full ${isFullViewportPage ? 'h-full max-h-full flex-1 flex flex-col min-h-0 overflow-hidden' : ''}`}
                   >
                     <Outlet />
                   </motion.div>
@@ -116,7 +118,7 @@ const DashboardLayout = () => {
               </Suspense>
             </ErrorBoundary>
           </div>
-          {!isAssistant && <Footer />}
+          {!isFullViewportPage && <Footer />}
         </main>
       </div>
 

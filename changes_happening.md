@@ -11944,3 +11944,24 @@ equirements.txt with the full production package list (fastapi, uvicorn, pymongo
    - Fixed alert detail date pill to reflect the actual notification creation timestamp rather than hardcoded 'Today'.
 4. **Verification & Build:**
    - Production bundle verified via npm --prefix frontend run build (vite v4.5.14 built cleanly in 39.23s with 0 errors).
+
+
+## [2026-11-24 14:25:00] - Mobile Auto-Resize, True Edge-to-Edge Viewport & Responsive GIS Controls
+**Summary of Changes:**
+1. **Full-Viewport Edge-to-Edge GIS Architecture (frontend/src/App.jsx & frontend/src/pages/farmer/FieldAreaCalculatorPage.jsx):**
+   - Designated /field-area as a dedicated full-viewport GIS route (isFullViewportPage), eliminating the standard p-3 sm:p-6 outer margin, pb-28 bottom padding, and duplicate footer.
+   - Sized the map canvas strictly to calc(100dvh - 8rem - env(safe-area-inset-bottom, 0px)) on mobile and calc(100dvh - 4rem) on desktop, allowing the map to fit cleanly between the top navbar and the mobile bottom dock with zero vertical overflow.
+2. **Container Auto-Resize & Polygon Framing (frontend/src/components/farm/FieldBoundaryMap.jsx):**
+   - Attached a hardware-accelerated ResizeObserver directly to the map container to trigger map.invalidateSize({ debounceMoveEnd: true }) whenever the mobile viewport or container shifts (orientation change, keyboard toggle, address bar collapse).
+   - Added handleAutoFitBounds and an interactive **Auto-Resize & Fit Boundary** ([Fit / ఫ్రేమ్]) button in the bottom dock that auto-frames and zooms the map to fit the entire surveyed plot perfectly on mobile screens.
+   - Moved Leaflet default zoom controls from ottomright to 	opright to prevent touch collisions with bottom-right action buttons.
+3. **Mobile-Responsive Top Header Bar (frontend/src/components/farm/FieldBoundaryMap.jsx):**
+   - Converted the Back button to a compact touch squircle on mobile, hiding redundant text on small screens (hidden sm:inline).
+   - Added responsive truncation (max-w-[80px] xs:max-w-[125px] sm:max-w-[180px]) to the plot title badge to eliminate horizontal spill.
+   - Streamlined the Satellite/Street switcher into an intuitive 1-tap toggle button ([🛰️ Sat] / [🗺️ Map]), saving over 60px of horizontal space on mobile.
+4. **Mobile-Safe Bottom Action Dock (frontend/src/components/farm/FieldBoundaryMap.jsx):**
+   - Repositioned the action dock to float safely at ottom-3 sm:bottom-5 directly above the mobile bottom navigation bar.
+   - Calibrated button paddings and labels (+ Pin, Walk, Undo, Clear, Fit, My Farm, Deed, Share) so buttons never get cut off vertically by the bottom navigation bar.
+5. **Verification & Build:**
+   - Production bundle verified via 
+pm --prefix frontend run build (vite v4.5.14 built cleanly in 21.31s with 0 errors).

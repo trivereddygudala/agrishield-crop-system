@@ -352,7 +352,7 @@ export default function FieldBoundaryMap({
       attributionControl: false
     });
 
-    L.control.zoom({ position: 'bottomright' }).addTo(map);
+    L.control.zoom({ position: 'topright' }).addTo(map);
 
     // Google Ultra-Zoom Hybrid Satellite Layer
     const hybridLayer = L.tileLayer('https://mt{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
@@ -376,22 +376,47 @@ export default function FieldBoundaryMap({
     };
   }, []);
 
-  // Invalidate map size on layout changes
+  // Automatic container auto-resizing via ResizeObserver and window listeners
   useEffect(() => {
+    if (!mapContainerRef.current) return;
     const invalidate = () => {
       if (mapInstanceRef.current) {
-        mapInstanceRef.current.invalidateSize();
+        mapInstanceRef.current.invalidateSize({ debounceMoveEnd: true });
       }
     };
+
+    const observer = new ResizeObserver(() => {
+      invalidate();
+    });
+    observer.observe(mapContainerRef.current);
+
     const t1 = setTimeout(invalidate, 100);
-    const t2 = setTimeout(invalidate, 300);
+    const t2 = setTimeout(invalidate, 400);
     window.addEventListener('resize', invalidate);
+    window.addEventListener('orientationchange', invalidate);
+
     return () => {
+      observer.disconnect();
       clearTimeout(t1);
       clearTimeout(t2);
       window.removeEventListener('resize', invalidate);
+      window.removeEventListener('orientationchange', invalidate);
     };
   }, [isFullscreen, isDedicated, height]);
+
+  // Auto-resize & fit map viewport to encompass the entire surveyed polygon
+  const handleAutoFitBounds = useCallback(() => {
+    const map = mapInstanceRef.current;
+    if (!map) return;
+    if (pins.length >= 2) {
+      const bounds = L.latLngBounds(pins);
+      map.fitBounds(bounds, { padding: [40, 40], maxZoom: 19, animate: true });
+    } else if (pins.length === 1) {
+      map.setView(pins[0], 18, { animate: true });
+    } else if (centerLat && centerLng) {
+      map.setView([centerLat, centerLng], 17, { animate: true });
+    }
+  }, [pins, centerLat, centerLng]);
 
   // Center map on farm location
   const centerMap = useCallback(() => {
@@ -927,37 +952,37 @@ export default function FieldBoundaryMap({
       }}
     >
       {/* ═══════ 1. TOP HEADER BAR: SINGLE, CLEAN, FIXED 56px HEIGHT (NO OVERLAPS) ═══════ */}
-      <div className={`h-14 shrink-0 px-3 py-2 flex items-center justify-between gap-1.5 z-30 min-w-0 max-w-full ${
+      <div className={`h-14 shrink-0 px-2 sm:px-3 py-2 flex items-center justify-between gap-1 sm:gap-1.5 z-30 min-w-0 max-w-full ${
         isFullScreenView
           ? 'bg-slate-900 text-white border-b border-slate-800 shadow-md'
           : 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white border-b border-slate-200 dark:border-slate-800'
       }`}>
         {/* Left: ONLY ONE Prominent Back Button + Title Badge */}
-        <div className="flex items-center gap-1.5 min-w-0 overflow-hidden">
+        <div className="flex items-center gap-1 sm:gap-1.5 min-w-0 overflow-hidden">
           {(isFullScreenView || onBack) && (
             <button
               type="button"
               onClick={handleBackNavigation}
-              className="flex items-center gap-1 px-3 py-2 rounded-xl text-xs font-black bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm transition-all cursor-pointer shrink-0 active:scale-95"
+              className="flex items-center gap-1 p-2 sm:px-3 sm:py-2 rounded-xl text-xs font-black bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm transition-all cursor-pointer shrink-0 active:scale-95"
               title={isTelugu ? 'వెనుకకు' : 'Back'}
             >
               <ChevronLeft className="w-4 h-4 stroke-[3]" />
-              <span className="font-extrabold truncate max-w-[100px] xs:max-w-[130px]">
-                {backLabel || (isTelugu ? '← వెనుకకు' : '← Back')}
+              <span className="font-extrabold hidden sm:inline">
+                {backLabel || (isTelugu ? 'వెనుకకు' : 'Back')}
               </span>
             </button>
           )}
 
           {/* Title Badge: Differentiates Calculator Mode from Farm Sector */}
-          <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 text-xs font-bold shrink-0">
+          <div className="flex items-center gap-1.5 px-2 py-1.5 sm:px-2.5 sm:py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 text-xs font-bold min-w-0 shrink">
             <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
-            <span className="truncate max-w-[120px] xs:max-w-[160px] text-slate-900 dark:text-white font-black">
+            <span className="truncate max-w-[80px] xs:max-w-[125px] sm:max-w-[180px] text-slate-900 dark:text-white font-black">
               {mode === 'calculator' 
-                ? (farmName ? `📐 ${farmName}` : (isTelugu ? '📐 భూమి సర్వే' : '📐 Land Survey'))
+                ? (farmName ? farmName : (isTelugu ? 'భూమి సర్వే' : 'Land Survey'))
                 : farmName}
             </span>
             {mode !== 'calculator' && (
-              <span className="text-emerald-600 dark:text-emerald-400 font-extrabold ml-0.5">
+              <span className="text-emerald-600 dark:text-emerald-400 font-extrabold ml-0.5 hidden sm:inline">
                 🌾 {area.acres} {isTelugu ? 'ఎక' : 'Ac'}
               </span>
             )}
@@ -965,41 +990,25 @@ export default function FieldBoundaryMap({
         </div>
 
         {/* Right: Satellite/Street Toggle & Action Button */}
-        <div className="flex items-center gap-1.5 shrink-0">
-          <div className="flex items-center gap-0.5 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-xl border border-slate-200/80 dark:border-slate-700 text-xs">
-            <button
-              type="button"
-              onClick={() => switchMapType('hybrid')}
-              className={`px-2 py-1 rounded-lg text-[11px] font-bold transition-all ${
-                mapType === 'hybrid'
-                  ? 'bg-emerald-600 text-white shadow-xs'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-              }`}
-              title={isTelugu ? 'శాటిలైట్ మ్యాప్' : 'Satellite Map'}
-            >
-              🛰️ Sat
-            </button>
-            <button
-              type="button"
-              onClick={() => switchMapType('street')}
-              className={`px-2 py-1 rounded-lg text-[11px] font-bold transition-all ${
-                mapType === 'street'
-                  ? 'bg-emerald-600 text-white shadow-xs'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-              }`}
-              title={isTelugu ? 'వీధి మ్యాప్' : 'Street Map'}
-            >
-              🗺️ Map
-            </button>
-          </div>
+        <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
+          {/* Satellite vs Street Toggle: 1-tap mobile toggle */}
+          <button
+            type="button"
+            onClick={() => switchMapType(mapType === 'hybrid' ? 'street' : 'hybrid')}
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-300 hover:text-white cursor-pointer active:scale-95 transition-all shrink-0"
+            title={mapType === 'hybrid' ? (isTelugu ? 'శాటిలైట్ మోడ్ (వీధి మ్యాప్‌కి మార్చు)' : 'Satellite Mode (Switch to Street Map)') : (isTelugu ? 'వీధి మ్యాప్ (శాటిలైట్‌కి మార్చు)' : 'Street Mode (Switch to Satellite)')}
+          >
+            <span>{mapType === 'hybrid' ? '🛰️' : '🗺️'}</span>
+            <span className="hidden xs:inline font-bold">{mapType === 'hybrid' ? 'Sat' : 'Map'}</span>
+          </button>
 
           {/* Mode-Gated Action Button: No confusing "Save" in Calculator Mode */}
           {mode === 'calculator' ? (
-            <div className="flex items-center gap-1.5 shrink-0">
+            <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
               <button
                 type="button"
                 onClick={() => setShowSearch(!showSearch)}
-                className={`p-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
+                className={`p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer flex items-center gap-1 shrink-0 ${
                   showSearch ? 'bg-emerald-600 text-white border-emerald-400' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700'
                 }`}
                 title={isTelugu ? 'గ్రామం లేదా GPS వెతకండి' : 'Search Village or GPS'}
@@ -1011,11 +1020,11 @@ export default function FieldBoundaryMap({
                 <button
                   type="button"
                   onClick={onSwitchToTape}
-                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-black bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 cursor-pointer active:scale-95 transition-all shrink-0"
+                  className="flex items-center gap-1 p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl text-xs font-black bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 cursor-pointer active:scale-95 transition-all shrink-0"
                   title={isTelugu ? 'టేపు / గొలుసు కొలతలు' : 'Tape / Chain Dimensions'}
                 >
                   <Calculator className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                  <span className="font-bold">{isTelugu ? 'టేపు' : 'Tape'}</span>
+                  <span className="hidden xs:inline font-bold">{isTelugu ? 'టేపు' : 'Tape'}</span>
                 </button>
               )}
             </div>
@@ -1263,13 +1272,13 @@ export default function FieldBoundaryMap({
 
         {/* Simple Farmer Action Dock (Bottom Center of Map) */}
         {interactive && !isWalkMode && (
-          <div className="absolute bottom-4 sm:bottom-6 inset-x-3 z-30 flex justify-center pointer-events-none pb-safe">
-            <div className="flex items-center gap-2 bg-slate-900/95 text-white backdrop-blur-xl p-1.5 rounded-2xl shadow-2xl border border-slate-700/80 pointer-events-auto">
+          <div className="absolute bottom-3 sm:bottom-5 inset-x-2 sm:inset-x-3 z-30 flex justify-center pointer-events-none">
+            <div className="flex items-center gap-1 sm:gap-2 bg-slate-900/95 text-white backdrop-blur-xl p-1 sm:p-1.5 rounded-2xl shadow-2xl border border-slate-700/80 pointer-events-auto max-w-full overflow-x-auto no-scrollbar">
               {/* 1. Add Pin Toggle Button */}
               <button
                 type="button"
                 onClick={() => setIsPinMode(!isPinMode)}
-                className={`flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-black transition-all cursor-pointer active:scale-95 ${
+                className={`flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-2 sm:py-2.5 rounded-xl text-xs font-black transition-all cursor-pointer active:scale-95 shrink-0 ${
                   isPinMode
                     ? 'bg-emerald-600 text-white ring-2 ring-emerald-400 shadow-md animate-pulse'
                     : 'bg-emerald-600/80 hover:bg-emerald-600 text-white shadow-xs'
@@ -1278,8 +1287,11 @@ export default function FieldBoundaryMap({
                 <MapPin className="w-4 h-4" />
                 <span>
                   {isPinMode
-                    ? (isTelugu ? 'తాకండి...' : 'Tap Map...')
-                    : (isTelugu ? '+ పిన్ వేయి' : '+ Add Pin')}
+                    ? (isTelugu ? 'తాకండి...' : 'Tap...')
+                    : (isTelugu ? '+ పిన్' : '+ Pin')}
+                </span>
+                <span className="hidden sm:inline">
+                  {isPinMode ? '' : (isTelugu ? ' వేయి' : '')}
                 </span>
               </button>
 
@@ -1287,11 +1299,12 @@ export default function FieldBoundaryMap({
               <button
                 type="button"
                 onClick={startWalkMode}
-                className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-black bg-sky-600 hover:bg-sky-700 text-white shadow-xs transition-all active:scale-95 cursor-pointer"
+                className="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-2 sm:py-2.5 rounded-xl text-xs font-black bg-sky-600 hover:bg-sky-700 text-white shadow-xs transition-all active:scale-95 cursor-pointer shrink-0"
                 title={isTelugu ? 'నడక ద్వారా పొలం కొలవండి (1 మీటర్ ఖచ్చితత్వం)' : 'Walk field perimeter (1m accuracy)'}
               >
                 <Footprints className="w-4 h-4" />
-                <span>{isTelugu ? 'వాక్ మోడ్' : 'Walk Mode'}</span>
+                <span>{isTelugu ? 'వాక్' : 'Walk'}</span>
+                <span className="hidden sm:inline">{isTelugu ? ' మోడ్' : ' Mode'}</span>
               </button>
 
               {/* 3. Undo Last Pin */}
@@ -1299,7 +1312,7 @@ export default function FieldBoundaryMap({
                 type="button"
                 onClick={handleUndo}
                 disabled={historyIndex <= 0 || pins.length === 0}
-                className="flex items-center gap-1 px-2.5 py-2.5 rounded-xl text-xs font-bold text-slate-200 hover:text-white hover:bg-slate-800 disabled:opacity-30 disabled:pointer-events-none transition-all cursor-pointer"
+                className="flex items-center gap-1 px-2 sm:px-2.5 py-2 sm:py-2.5 rounded-xl text-xs font-bold text-slate-200 hover:text-white hover:bg-slate-800 disabled:opacity-30 disabled:pointer-events-none transition-all cursor-pointer shrink-0"
                 title={isTelugu ? 'చివరి పిన్ రద్దు చేయి' : 'Undo last pin'}
               >
                 <Undo2 className="w-4 h-4" />
@@ -1311,7 +1324,7 @@ export default function FieldBoundaryMap({
                 <button
                   type="button"
                   onClick={handleClearAllPins}
-                  className="flex items-center gap-1 px-2.5 py-2.5 rounded-xl text-xs font-bold text-rose-400 hover:text-rose-300 hover:bg-slate-800 transition-colors cursor-pointer"
+                  className="flex items-center gap-1 px-2 sm:px-2.5 py-2 sm:py-2.5 rounded-xl text-xs font-bold text-rose-400 hover:text-rose-300 hover:bg-slate-800 transition-colors cursor-pointer shrink-0"
                   title={isTelugu ? 'అన్ని పిన్స్ తొలగించండి' : 'Clear all pins'}
                 >
                   <Trash2 className="w-4 h-4" />
@@ -1319,23 +1332,34 @@ export default function FieldBoundaryMap({
                 </button>
               )}
 
-              {/* 5. Recenter Map on Farm */}
+              {/* 5. Auto-Resize & Fit Polygon Boundary to Screen */}
+              <button
+                type="button"
+                onClick={handleAutoFitBounds}
+                className="flex items-center gap-1 px-2 sm:px-2.5 py-2 sm:py-2.5 rounded-xl text-xs font-bold text-teal-300 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer shrink-0"
+                title={isTelugu ? 'మ్యాప్‌ను బౌండరీకి ఆటో-రీసైజ్ చేయి' : 'Auto-Resize view to fit boundary'}
+              >
+                <Maximize2 className="w-4 h-4" />
+                <span className="hidden xs:inline">{isTelugu ? 'ఫ్రేమ్' : 'Fit'}</span>
+              </button>
+
+              {/* 6. Recenter Map on Farm */}
               <button
                 type="button"
                 onClick={centerMap}
-                className="flex items-center gap-1 px-2.5 py-2.5 rounded-xl text-xs font-bold text-emerald-400 hover:text-emerald-300 hover:bg-slate-800 transition-colors cursor-pointer"
+                className="flex items-center gap-1 px-2 sm:px-2.5 py-2 sm:py-2.5 rounded-xl text-xs font-bold text-emerald-400 hover:text-emerald-300 hover:bg-slate-800 transition-colors cursor-pointer shrink-0"
                 title={isTelugu ? 'నా పొలం కేంద్రం' : 'Center on farm'}
               >
                 <Crosshair className="w-4 h-4" />
                 <span className="hidden sm:inline">{isTelugu ? 'నా పొలం' : 'My Farm'}</span>
               </button>
 
-              {/* 6. Survey Deed PDF */}
+              {/* 7. Survey Deed PDF */}
               {onExportPDF && (
                 <button
                   type="button"
                   onClick={onExportPDF}
-                  className="flex items-center gap-1 px-2.5 py-2.5 rounded-xl text-xs font-bold text-slate-200 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+                  className="flex items-center gap-1 px-2 sm:px-2.5 py-2 sm:py-2.5 rounded-xl text-xs font-bold text-slate-200 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer shrink-0"
                   title={isTelugu ? 'సర్వే పత్రం (PDF)' : 'Survey Deed (PDF)'}
                 >
                   <FileText className="w-4 h-4 text-emerald-400" />
@@ -1343,12 +1367,12 @@ export default function FieldBoundaryMap({
                 </button>
               )}
 
-              {/* 7. WhatsApp Share */}
+              {/* 8. WhatsApp Share */}
               {onShare && (
                 <button
                   type="button"
                   onClick={onShare}
-                  className="flex items-center gap-1 px-2.5 py-2.5 rounded-xl text-xs font-bold text-emerald-400 hover:text-emerald-300 hover:bg-slate-800 transition-colors cursor-pointer"
+                  className="flex items-center gap-1 px-2 sm:px-2.5 py-2 sm:py-2.5 rounded-xl text-xs font-bold text-emerald-400 hover:text-emerald-300 hover:bg-slate-800 transition-colors cursor-pointer shrink-0"
                   title={isTelugu ? 'వాట్సాప్ ద్వారా షేర్ చేయండి' : 'Share via WhatsApp'}
                 >
                   <Share2 className="w-4 h-4" />

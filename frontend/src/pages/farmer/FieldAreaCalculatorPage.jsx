@@ -348,7 +348,7 @@ export default function FieldAreaCalculatorPage() {
   // ════════════════════════════════════════════════════════════════════════
   if (surveyTool === 'satellite') {
     return (
-      <div className="relative w-full h-[calc(100vh-4rem)] bg-slate-950 overflow-hidden select-none">
+      <div className="relative w-full h-full flex-1 min-h-0 bg-slate-950 overflow-hidden select-none flex flex-col">
         
         {/* Unified Full-Viewport Map Canvas with Integrated Controls */}
         <FieldBoundaryMap
