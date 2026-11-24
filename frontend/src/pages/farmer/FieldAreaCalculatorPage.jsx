@@ -348,7 +348,13 @@ export default function FieldAreaCalculatorPage() {
   // ════════════════════════════════════════════════════════════════════════
   if (surveyTool === 'satellite') {
     return (
-      <div className="relative w-full h-full flex-1 min-h-0 bg-slate-950 overflow-hidden select-none flex flex-col">
+      <div 
+        className="relative w-full h-[calc(100dvh-8rem-env(safe-area-inset-bottom,0px))] lg:h-[calc(100dvh-4rem)] min-h-[480px] bg-slate-950 overflow-hidden select-none flex flex-col"
+        style={{
+          height: 'calc(100dvh - 8rem - env(safe-area-inset-bottom, 0px))',
+          minHeight: '480px'
+        }}
+      >
         
         {/* Unified Full-Viewport Map Canvas with Integrated Controls */}
         <FieldBoundaryMap

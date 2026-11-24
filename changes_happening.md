@@ -11965,3 +11965,16 @@ equirements.txt with the full production package list (fastapi, uvicorn, pymongo
 5. **Verification & Build:**
    - Production bundle verified via 
 pm --prefix frontend run build (vite v4.5.14 built cleanly in 21.31s with 0 errors).
+
+
+## [2026-11-24 14:35:00] - Fixed /field-calculator Route Full-Viewport Height Collapse
+**Summary of Changes:**
+1. **Route Matching Resolution (frontend/src/App.jsx):**
+   - Corrected route detection predicate for isFieldArea: previously checked /field-area which failed to match the active route path /field-calculator (and /area-calculator).
+   - Enabled isFullViewportPage to evaluate to true on /field-calculator, removing the outer margin/padding and granting full-height flex inheritance.
+2. **Defensive Viewport Height (frontend/src/pages/farmer/FieldAreaCalculatorPage.jsx & frontend/src/components/farm/FieldBoundaryMap.jsx):**
+   - Enforced explicit h-[calc(100dvh-8rem-env(safe-area-inset-bottom,0px))] on mobile and calc(100dvh - 4rem) on desktop with an explicit min-height: 480px.
+   - Set min-height: 400px on FieldBoundaryMap to eliminate any possibility of zero-height container collapse.
+3. **Verification & Build:**
+   - Production bundle verified via 
+pm --prefix frontend run build (vite v4.5.14 built cleanly in 20.50s with 0 errors).

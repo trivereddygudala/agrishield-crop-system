@@ -944,11 +944,12 @@ export default function FieldBoundaryMap({
       className={
         isFullScreenView
           ? 'fixed inset-0 z-[99999] w-screen h-screen h-[100dvh] max-h-[100dvh] bg-slate-950 flex flex-col overflow-hidden overscroll-none touch-none select-none'
-          : 'relative w-full max-w-full min-w-0 flex flex-col rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-md bg-slate-900 overflow-hidden'
+          : 'relative w-full max-w-full min-w-0 flex flex-col rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-md bg-slate-900 overflow-hidden flex-1 h-full min-h-[400px]'
       }
       style={{
-        height: isFullScreenView ? '100dvh' : height,
-        maxHeight: isFullScreenView ? '100dvh' : height
+        height: isFullScreenView ? '100dvh' : (height || '100%'),
+        maxHeight: isFullScreenView ? '100dvh' : (height || '100%'),
+        minHeight: isFullScreenView ? '100dvh' : '400px'
       }}
     >
       {/* ═══════ 1. TOP HEADER BAR: SINGLE, CLEAN, FIXED 56px HEIGHT (NO OVERLAPS) ═══════ */}

@@ -54,7 +54,9 @@ const ProviderDashboardPage = lazyWithRetry(() => import('./pages/provider/Provi
 const DashboardLayout = () => {
   const location = useLocation();
   const isAssistant = location.pathname.startsWith('/assistant');
-  const isFieldArea = location.pathname.startsWith('/field-area');
+  const isFieldArea = location.pathname.startsWith('/field-calculator') || 
+                      location.pathname.startsWith('/area-calculator') || 
+                      location.pathname.startsWith('/field-area');
   const isFullViewportPage = isAssistant || isFieldArea;
 
   const [sidebarOpen, setSidebarOpen] = useState(() => {
