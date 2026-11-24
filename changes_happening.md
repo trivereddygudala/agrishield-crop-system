@@ -1,4 +1,4 @@
-﻿
+
 ## 2026-10-31 - Bug Fix: Rectified ReferenceError (isTe is not defined) in FarmerWelcomeModal
 - **Summary:**
   1. Diagnosed the root runtime crash displayed on the error boundary screen: `ReferenceError: isTe is not defined at FarmerWelcomeModal.jsx:92:10`.
@@ -12020,3 +12020,15 @@ pm --prefix frontend run build (vite v4.5.14 built cleanly in 20.50s with 0 erro
    - Enabled walk mode to automatically transition to step-by-step corner drop if hardware GPS is not accessible on the device.
 6. **Build Verification:**
    - Production bundle compiled cleanly with npm run build: 3,205 modules transformed in 19.31s with 0 errors.
+
+
+## [2026-11-24 20:07:50] - 100% Migration from Render to Hostless Cloud Complete
+- **Description:** Successfully migrated the entire AgriShield cloud backend infrastructure off Render onto the 3-node Hostless Cloud cluster (`hostless.app`).
+- **Cluster Endpoints Mapped:**
+  - `https://agrishield-backend.hostless.app`: Master Gateway, `/api/upload`, `/api/predict`, `/uploads/*`, `/api/*`.
+  - `https://agrishield-worker-1.hostless.app`: Farmer Intelligence, Voice Speech (`/api/speech`), APMC Mandi Market Rates (`/api/market`), Crop Advisor AI (`/api/crop-advisor`), Action Center (`/api/action-center`), and IoT Telemetry (`/api/iot`, `/api/devices`).
+  - `https://agrishield-worker-2.hostless.app`: Botanical Vision & Chemical AI, Plant Identification (`/api/identify-plant`), Agrochemical OCR Scanner (`/api/agrochemical-scan`, `/api/agrochemical/*`), and Regional Language Translation (`/api/translate`).
+- **Files Modified:**
+  - `vercel.json`: Replaced all `*.onrender.com` rewrites with `agrishield-worker-1.hostless.app`, `agrishield-worker-2.hostless.app`, and `agrishield-backend.hostless.app`.
+  - `frontend/vercel.json`: Mirrored all Hostless Cloud reverse proxy rewrites.
+  - `backend/app/core/config.py`: Updated distributed AI worker cluster URLs to Hostless endpoints.

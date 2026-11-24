@@ -24,91 +24,91 @@
     },
     {
       "source": "/api/speech",
-      "destination": "https://agrishield-ai-worker-1.onrender.com/api/speech"
+      "destination": "https://agrishield-worker-1.hostless.app/api/speech"
     },
     {
       "source": "/api/speech/:path*",
-      "destination": "https://agrishield-ai-worker-1.onrender.com/api/speech/:path*"
+      "destination": "https://agrishield-worker-1.hostless.app/api/speech/:path*"
     },
     {
       "source": "/api/market",
-      "destination": "https://agrishield-ai-worker-1.onrender.com/api/market"
+      "destination": "https://agrishield-worker-1.hostless.app/api/market"
     },
     {
       "source": "/api/market/:path*",
-      "destination": "https://agrishield-ai-worker-1.onrender.com/api/market/:path*"
+      "destination": "https://agrishield-worker-1.hostless.app/api/market/:path*"
     },
     {
       "source": "/api/crop-advisor",
-      "destination": "https://agrishield-ai-worker-1.onrender.com/api/crop-advisor"
+      "destination": "https://agrishield-worker-1.hostless.app/api/crop-advisor"
     },
     {
       "source": "/api/crop-advisor/:path*",
-      "destination": "https://agrishield-ai-worker-1.onrender.com/api/crop-advisor/:path*"
+      "destination": "https://agrishield-worker-1.hostless.app/api/crop-advisor/:path*"
     },
     {
       "source": "/api/action-center",
-      "destination": "https://agrishield-ai-worker-1.onrender.com/api/action-center"
+      "destination": "https://agrishield-worker-1.hostless.app/api/action-center"
     },
     {
       "source": "/api/action-center/:path*",
-      "destination": "https://agrishield-ai-worker-1.onrender.com/api/action-center/:path*"
+      "destination": "https://agrishield-worker-1.hostless.app/api/action-center/:path*"
     },
     {
       "source": "/api/iot",
-      "destination": "https://agrishield-ai-worker-1.onrender.com/api/iot"
+      "destination": "https://agrishield-worker-1.hostless.app/api/iot"
     },
     {
       "source": "/api/iot/:path*",
-      "destination": "https://agrishield-ai-worker-1.onrender.com/api/iot/:path*"
+      "destination": "https://agrishield-worker-1.hostless.app/api/iot/:path*"
     },
     {
       "source": "/api/devices",
-      "destination": "https://agrishield-ai-worker-1.onrender.com/api/devices"
+      "destination": "https://agrishield-worker-1.hostless.app/api/devices"
     },
     {
       "source": "/api/devices/:path*",
-      "destination": "https://agrishield-ai-worker-1.onrender.com/api/devices/:path*"
+      "destination": "https://agrishield-worker-1.hostless.app/api/devices/:path*"
     },
     {
       "source": "/api/identify-plant",
-      "destination": "https://agrishield-ai-worker-2.onrender.com/api/identify-plant"
+      "destination": "https://agrishield-worker-2.hostless.app/api/identify-plant"
     },
     {
       "source": "/api/identify-plant/:path*",
-      "destination": "https://agrishield-ai-worker-2.onrender.com/api/identify-plant/:path*"
+      "destination": "https://agrishield-worker-2.hostless.app/api/identify-plant/:path*"
     },
     {
       "source": "/api/agrochemical-scan",
-      "destination": "https://agrishield-ai-worker-3.onrender.com/api/agrochemical-scan"
+      "destination": "https://agrishield-worker-2.hostless.app/api/agrochemical-scan"
     },
     {
       "source": "/api/agrochemical/:path*",
-      "destination": "https://agrishield-ai-worker-3.onrender.com/api/agrochemical/:path*"
+      "destination": "https://agrishield-worker-2.hostless.app/api/agrochemical/:path*"
     },
     {
       "source": "/api/v1/agrochemical/:path*",
-      "destination": "https://agrishield-ai-worker-3.onrender.com/api/v1/agrochemical/:path*"
+      "destination": "https://agrishield-worker-2.hostless.app/api/v1/agrochemical/:path*"
     },
     {
       "source": "/api/translate-plant",
-      "destination": "https://agrishield-ai-worker-3.onrender.com/api/translate-plant"
+      "destination": "https://agrishield-worker-2.hostless.app/api/translate-plant"
     },
     {
       "source": "/api/translate",
-      "destination": "https://agrishield-ai-worker-3.onrender.com/api/translate"
+      "destination": "https://agrishield-worker-2.hostless.app/api/translate"
     },
     {
       "source": "/api/translate/:path*",
-      "destination": "https://agrishield-ai-worker-3.onrender.com/api/translate/:path*"
+      "destination": "https://agrishield-worker-2.hostless.app/api/translate/:path*"
     },
     {
       "source": "/api/:path*",
-      "destination": "https://agrishield-crop-system.onrender.com/api/:path*"
+      "destination": "https://agrishield-backend.hostless.app/api/:path*"
     },
     {
       "source": "/uploads/:path*",
-      "destination": "https://agrishield-ai-worker-3.onrender.com/uploads/:path*"
+      "destination": "https://agrishield-backend.hostless.app/uploads/:path*"
     },
     {
       "source": "/.well-known/assetlinks.json",

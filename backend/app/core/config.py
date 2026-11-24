@@ -87,11 +87,11 @@ class Settings(BaseSettings):
     MONGO_URI: str = ""
     DATABASE_NAME: str = "agrishield_db"
 
-    # Distributed AI Prediction Cluster (Render Multi-Account & Hostless Cloud)
+    # Distributed AI Prediction Cluster (Hostless Cloud Multi-Service Architecture)
     HOSTLESS_BACKEND_URL: str = "https://agrishield-backend.hostless.app"
-    AI_WORKER_1_URL: str = "https://agrishield-ai-worker-1.onrender.com"
-    AI_WORKER_2_URL: str = "https://agrishield-ai-worker-2.onrender.com"
-    AI_WORKER_3_URL: str = "https://agrishield-ai-worker-3.onrender.com"
+    AI_WORKER_1_URL: str = "https://agrishield-worker-1.hostless.app"
+    AI_WORKER_2_URL: str = "https://agrishield-worker-2.hostless.app"
+    AI_WORKER_3_URL: str = "https://agrishield-worker-2.hostless.app"
     IS_PREDICTION_WORKER: bool = False
     AI_WORKER_SECRET: Optional[str] = None
 
