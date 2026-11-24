@@ -18,6 +18,7 @@ import {
   exportToKML,
   exportToGeoJSON
 } from '../../utils/landDeedGenerator';
+import SatelliteNdviRadarCard from '../../components/farm/SatelliteNdviRadarCard';
 
 export default function FieldAreaCalculatorPage() {
   const { t, i18n } = useTranslation();
@@ -35,6 +36,7 @@ export default function FieldAreaCalculatorPage() {
 
   // Drawer / Bottom Sheet State
   const [showDrawer, setShowDrawer] = useState(false);
+  const [showNdviModal, setShowNdviModal] = useState(false);
 
   // Live GPS Center coordinates
   const [centerLat, setCenterLat] = useState(15.5057);
@@ -600,6 +602,33 @@ export default function FieldAreaCalculatorPage() {
                     </button>
                   </div>
 
+                  {/* Multispectral Satellite NDVI & Soil Moisture Radar Card Launcher */}
+                  {boundaryPins.length >= 3 && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowDrawer(false);
+                        setShowNdviModal(true);
+                      }}
+                      className="w-full p-3 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 hover:from-emerald-500 hover:to-cyan-500 text-white font-black text-xs shadow-md shadow-emerald-950/20 flex items-center justify-between cursor-pointer active:scale-98 transition-all mt-2"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="text-base">🛰️</span>
+                        <div className="text-left">
+                          <p className="font-black leading-tight">
+                            {isTe ? 'శాటిలైట్ కెనోపీ & మట్టి తేమ రాడార్' : 'Sentinel-2 NDVI & Moisture Radar'}
+                          </p>
+                          <p className="text-[10px] text-emerald-100 font-medium">
+                            {isTe ? '10మీ మల్టీస్పెక్ట్రల్ కెనోపీ ఆరోగ్యం' : '10m Multispectral Canopy Vigor Scan'}
+                          </p>
+                        </div>
+                      </div>
+                      <span className="px-2 py-1 rounded-lg bg-black/25 text-[10px] font-black uppercase tracking-wider">
+                        {isTe ? 'రిపోర్ట్' : 'Inspect'} →
+                      </span>
+                    </button>
+                  )}
+
                   {boundaryPins.length > 0 && (
                     <button
                       type="button"
@@ -619,6 +648,18 @@ export default function FieldAreaCalculatorPage() {
             </div>
           </div>
         )}
+
+        {/* SATELLITE NDVI & SOIL MOISTURE RADAR MODAL */}
+        <SatelliteNdviRadarCard
+          isOpen={showNdviModal}
+          onClose={() => setShowNdviModal(false)}
+          pins={boundaryPins}
+          areaAcres={activeAreaData.acres}
+          farmName={plotName}
+          cropName="Crop"
+          isTelugu={isTe}
+          spectralMode="ndvi"
+        />
 
       </div>
     );

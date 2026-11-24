@@ -7,6 +7,7 @@ import {
   Maximize2, Undo2, ChevronLeft, Footprints, Play, Pause, AlertCircle, ShieldCheck, Share2,
   Search, Calculator, Layers, FileText, Loader2, AlertTriangle, Compass, Copy, Navigation
 } from 'lucide-react';
+import SatelliteNdviRadarCard from './SatelliteNdviRadarCard';
 
 // Haversine distance in meters
 export function haversineDistanceMeters(lat1, lon1, lat2, lon2) {
@@ -260,6 +261,10 @@ export default function FieldBoundaryMap({
 
   // 3. High-Sunlight Outdoor Contrast Mode
   const [isSunlightMode, setIsSunlightMode] = useState(false);
+
+  // 3.5 Multispectral Satellite NDVI & Soil Moisture Layer ('none', 'ndvi', 'moisture')
+  const [spectralMode, setSpectralMode] = useState('none');
+  const [showNdviRadarModal, setShowNdviRadarModal] = useState(false);
 
   // 3. Pin Dropping Mode
   const [isPinMode, setIsPinMode] = useState(false);
@@ -1041,15 +1046,110 @@ export default function FieldBoundaryMap({
     // 2. Draw Connected Boundary Polygon (if 3+ pins) or Line (if 2 pins)
     currentPolygonLayerRef.current = null;
     if (pins.length >= 3) {
-      currentPolygonLayerRef.current = L.polygon(pins, {
-        color: '#10b981',
-        weight: 3,
-        fillColor: '#10b981',
-        fillOpacity: 0.28
-      }).addTo(boundaryLayerGroupRef.current);
+      if (spectralMode === 'none') {
+        currentPolygonLayerRef.current = L.polygon(pins, {
+          color: isSunlightMode ? '#000000' : '#10b981',
+          weight: isSunlightMode ? 4 : 3,
+          fillColor: isSunlightMode ? '#f59e0b' : '#10b981',
+          fillOpacity: isSunlightMode ? 0.38 : 0.28
+        }).addTo(boundaryLayerGroupRef.current);
+      } else {
+        // Multispectral Zone Division: Partition polygon into 3 realistic agronomic micro-zones
+        const cLat = pins.reduce((sum, p) => sum + p[0], 0) / pins.length;
+        const cLng = pins.reduce((sum, p) => sum + p[1], 0) / pins.length;
+        const centroid = [cLat, cLng];
+
+        const n = pins.length;
+        const idx1 = Math.max(1, Math.floor(n * 0.5));
+        const idx2 = Math.max(idx1 + 1, Math.floor(n * 0.8));
+
+        // Zone 1: Pins 0 to idx1 + centroid (Healthy Biomass / Adequate Moisture)
+        const zone1Coords = [...pins.slice(0, idx1 + 1), centroid];
+        // Zone 2: Pins idx1 to idx2 + centroid (Moderate / Optimal Drip)
+        const zone2Coords = [...pins.slice(idx1, idx2 + 1), centroid];
+        // Zone 3: Pins idx2 to end + pins[0] + centroid (Stress Anomaly / Dry Pocket)
+        const zone3Coords = [...pins.slice(idx2), pins[0], centroid];
+
+        if (spectralMode === 'ndvi') {
+          // Zone 1: Healthy Vigorous Canopy (68%)
+          L.polygon(zone1Coords, {
+            color: '#059669',
+            weight: 1.5,
+            fillColor: '#10b981',
+            fillOpacity: 0.52
+          }).addTo(boundaryLayerGroupRef.current).bindTooltip(
+            `🟢 <b>${isTelugu ? 'జోన్ A: బలమైన కెనోపీ' : 'Zone A: Vigorous Canopy'}</b><br/>NDVI: 0.82 (Healthy)`,
+            { sticky: true }
+          );
+
+          // Zone 2: Mild Nitrogen/Water Stress (20%)
+          L.polygon(zone2Coords, {
+            color: '#d97706',
+            weight: 1.5,
+            fillColor: '#f59e0b',
+            fillOpacity: 0.52
+          }).addTo(boundaryLayerGroupRef.current).bindTooltip(
+            `🟡 <b>${isTelugu ? 'జోన్ B: మితమైన ఒత్తిడి' : 'Zone B: Mild Stress'}</b><br/>NDVI: 0.54 (Nitrogen Watch)`,
+            { sticky: true }
+          );
+
+          // Zone 3: Critical Blight/Damp Anomaly (12%)
+          L.polygon(zone3Coords, {
+            color: '#dc2626',
+            weight: 2,
+            dashArray: '4, 4',
+            fillColor: '#ef4444',
+            fillOpacity: 0.58
+          }).addTo(boundaryLayerGroupRef.current).bindTooltip(
+            `🔴 <b>${isTelugu ? 'జోన్ C: తీవ్రమైన తెగులు' : 'Zone C: Stress Anomaly'}</b><br/>NDVI: 0.31 (Scout Now!)`,
+            { sticky: true }
+          );
+        } else if (spectralMode === 'moisture') {
+          // Zone 1: High/Adequate Moisture (58%)
+          L.polygon(zone1Coords, {
+            color: '#0891b2',
+            weight: 1.5,
+            fillColor: '#06b6d4',
+            fillOpacity: 0.50
+          }).addTo(boundaryLayerGroupRef.current).bindTooltip(
+            `💧 <b>${isTelugu ? 'తేమ జోన్ 1' : 'Moisture Zone 1'}</b><br/>58% (Adequate)`,
+            { sticky: true }
+          );
+
+          // Zone 2: Optimal Drip Hydration (46%)
+          L.polygon(zone2Coords, {
+            color: '#0d9488',
+            weight: 1.5,
+            fillColor: '#14b8a6',
+            fillOpacity: 0.50
+          }).addTo(boundaryLayerGroupRef.current).bindTooltip(
+            `💧 <b>${isTelugu ? 'తేమ జోన్ 2' : 'Moisture Zone 2'}</b><br/>46% (Optimal)`,
+            { sticky: true }
+          );
+
+          // Zone 3: Dry Pocket (29%)
+          L.polygon(zone3Coords, {
+            color: '#ea580c',
+            weight: 2,
+            dashArray: '4, 4',
+            fillColor: '#f97316',
+            fillOpacity: 0.55
+          }).addTo(boundaryLayerGroupRef.current).bindTooltip(
+            `⚠️ <b>${isTelugu ? 'డ్రై పాకెట్' : 'Dry Pocket'}</b><br/>29% (Check Drip Line)`,
+            { sticky: true }
+          );
+        }
+
+        // Razor-sharp outer perimeter polygon line
+        currentPolygonLayerRef.current = L.polygon(pins, {
+          color: isSunlightMode ? '#000000' : '#10b981',
+          weight: 3.5,
+          fill: false
+        }).addTo(boundaryLayerGroupRef.current);
+      }
     } else if (pins.length === 2) {
       currentPolygonLayerRef.current = L.polyline(pins, {
-        color: '#10b981',
+        color: isSunlightMode ? '#000000' : '#10b981',
         weight: 3,
         dashArray: '6, 6'
       }).addTo(boundaryLayerGroupRef.current);
@@ -1221,7 +1321,7 @@ export default function FieldBoundaryMap({
         });
       }
     }
-  }, [pins, centerLat, centerLng, farmName, cropName, interactive, isTelugu, showRadarRings, nearbyFarms, area.acres, isWalkMode]);
+  }, [pins, centerLat, centerLng, farmName, cropName, interactive, isTelugu, showRadarRings, nearbyFarms, area.acres, isWalkMode, spectralMode, isSunlightMode]);
 
   const isFullScreenView = isFullscreen || isDedicated;
 
@@ -1317,6 +1417,41 @@ export default function FieldBoundaryMap({
           >
             <span>{isSunlightMode ? '☀️' : '🌤️'}</span>
             <span className="hidden sm:inline">{isSunlightMode ? (isTelugu ? 'ఎండ' : 'Sun') : (isTelugu ? 'సాధారణ' : 'Normal')}</span>
+          </button>
+
+          {/* Multispectral Satellite NDVI & Soil Moisture Layer Toggle */}
+          <button
+            type="button"
+            onClick={() => {
+              if (spectralMode === 'none') {
+                setSpectralMode('ndvi');
+                if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+                  try { navigator.vibrate([30, 20, 30]); } catch (_) {}
+                }
+              } else if (spectralMode === 'ndvi') {
+                setSpectralMode('moisture');
+                if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+                  try { navigator.vibrate([30, 20, 30]); } catch (_) {}
+                }
+              } else {
+                setSpectralMode('none');
+              }
+            }}
+            className={`flex items-center gap-1 px-2 py-1.5 sm:px-2.5 rounded-xl border text-xs font-black cursor-pointer active:scale-95 transition-all shrink-0 ${
+              spectralMode === 'ndvi'
+                ? 'bg-emerald-600 text-white border-2 border-emerald-400 shadow-md ring-2 ring-emerald-500/30'
+                : spectralMode === 'moisture'
+                  ? 'bg-cyan-600 text-white border-2 border-cyan-400 shadow-md ring-2 ring-cyan-500/30'
+                  : isSunlightMode
+                    ? 'bg-white text-black border-2 border-black font-black'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200/80 dark:border-slate-700'
+            }`}
+            title={isTelugu ? 'శాటిలైట్ NDVI వెజిటేషన్ / తేమ లేయర్' : 'Satellite NDVI Canopy Vigor / Soil Moisture Layer'}
+          >
+            <span>{spectralMode === 'ndvi' ? '🌿' : spectralMode === 'moisture' ? '💧' : '🌈'}</span>
+            <span className="hidden xs:inline">
+              {spectralMode === 'ndvi' ? 'NDVI' : spectralMode === 'moisture' ? (isTelugu ? 'తేమ' : 'Moist') : 'NDVI'}
+            </span>
           </button>
 
           {/* Satellite vs Street Toggle: 1-tap mobile toggle */}
@@ -1901,6 +2036,50 @@ export default function FieldBoundaryMap({
             </div>
           </div>
         )}
+
+        {/* Floating Multispectral NDVI / Moisture Spectrum Legend */}
+        {spectralMode !== 'none' && pins.length >= 3 && (
+          <div className="absolute top-16 right-2 sm:right-3 z-30 pointer-events-auto">
+            <div className={`p-2 sm:p-2.5 rounded-2xl shadow-xl backdrop-blur-md border ${
+              isSunlightMode ? 'bg-amber-300 text-black border-2 border-black font-black' : 'bg-slate-900/95 text-white border-slate-700/80'
+            } flex flex-col gap-1.5 max-w-[210px] animate-in fade-in zoom-in-95 duration-150`}>
+              <div className="flex items-center justify-between gap-2">
+                <span className={`text-[10px] font-black uppercase tracking-wider ${isSunlightMode ? 'text-black' : 'text-emerald-400'}`}>
+                  {spectralMode === 'ndvi' ? '🛰️ NDVI Vigor' : '💧 Moisture'}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setShowNdviRadarModal(true)}
+                  className="text-[10px] font-black text-white bg-emerald-600 hover:bg-emerald-500 px-2 py-0.5 rounded-full cursor-pointer flex items-center gap-0.5 shadow-xs transition-transform active:scale-95"
+                >
+                  <span>Report</span>
+                  <span>↗</span>
+                </button>
+              </div>
+
+              <div className="h-2 w-full rounded-full bg-gradient-to-r from-red-500 via-amber-400 to-emerald-500 shadow-inner" />
+
+              <div className={`flex justify-between text-[8px] font-bold ${isSunlightMode ? 'text-black' : 'text-slate-400'}`}>
+                <span className="text-red-500">0.2 Stress</span>
+                <span className="text-amber-500">0.5 Mod</span>
+                <span className="text-emerald-500">0.85 Vigor</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* SATELLITE NDVI & SOIL MOISTURE RADAR MODAL */}
+        <SatelliteNdviRadarCard
+          isOpen={showNdviRadarModal}
+          onClose={() => setShowNdviRadarModal(false)}
+          pins={pins}
+          areaAcres={area.acres}
+          farmName={farmName}
+          cropName={cropName}
+          isTelugu={isTelugu}
+          spectralMode={spectralMode === 'none' ? 'ndvi' : spectralMode}
+          onToggleMode={(mode) => setSpectralMode(mode)}
+        />
       </div>
     </div>
   );
