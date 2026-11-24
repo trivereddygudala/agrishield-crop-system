@@ -11922,3 +11922,25 @@ equirements.txt with the full production package list (fastapi, uvicorn, pymongo
      - **Bottom Farmer Action Dock:** Neatly unified `+ Add Pin`, `Pinpoint GPS Walk`, `Undo`, `Clear`, `My Farm`, `Survey Deed (PDF)`, and `WhatsApp Share` into a single, cohesive, horizontal action bar.
 2. **Verification & Build:**
    - Production bundle verified via `npm --prefix frontend run build` (vite v4.5.14 built in 19.93s with 0 errors).
+
+
+## [2026-11-24 11:20:00] - Standardized Indian Standard Time (IST) & Telugu Date Formatting across Alerts
+**Summary of Changes:**
+1. **Enhanced Date & Time Utilities (frontend/src/utils/dateUtils.js):**
+   - **parseServerDate**: Added multi-format resilience supporting MongoDB \ objects, numeric/string epoch timestamps, space-separated SQL strings, and ISO strings without UTC 'Z'.
+   - **getISTDateKey**: Added canonical date key generator (YYYY-MM-DD) operating strictly in Indian Standard Time (timeZone: 'Asia/Kolkata') to eliminate calendar boundary discrepancies.
+   - **timeAgo**: Added full bilingual Telugu support (isTe). Formats: 'ఇప్పుడే', 'X నిమి క్రితం', 'X గం క్రితం', 'X రోజుల క్రితం' (English: 'Just now', 'Xm ago', 'Xh ago', 'Xd ago').
+   - **formatGoogleMessagesTime**: Standardized Google Messages / WhatsApp mobile timestamp engine. Outputs 'Just now', 'X min' (< 60m), 12-hour 'hh:mm A' in IST for today, 'Yesterday' / 'నిన్న' for yesterday, and 'DD Mon' / 'DD Mon YYYY' for past dates with complete Telugu localization.
+   - **formatChatDayDivider**: Standardized chat day divider labels ('ఈ రోజు (Today)' / 'Today', 'నిన్న (Yesterday)' / 'Yesterday', and localized short weekday/date in IST).
+   - **formatDateTime**: Enforced IST timezone (Asia/Kolkata) and added optional Telugu locale support.
+2. **Alerts & Notifications Page (frontend/src/pages/common/NotificationsPage.jsx):**
+   - Fixed timestamp extraction: Switched from item.created_at || item.timestamp to getNotificationTimestamp(item) which safely resolves lifecycle.created_at, createdAt, date, time, and epoch IDs.
+   - Wired formatGoogleMessagesTime to thread list rows and critical emergency alerts, providing familiar mobile messaging timestamps.
+   - Enhanced groupNotificationsByDate to group calendar days using canonical IST keys (getISTDateKey), preventing late-night UTC timezone flips.
+3. **Google Messages Reader (frontend/src/components/common/GoogleMessageReader.jsx):**
+   - Initialized time property on seeded threadItems so initial chat bubbles display exact timestamps rather than empty spans.
+   - Added safe fallback on chat bubble timestamp: {msg.time || formattedTimestamp}.
+   - Enforced IST 12-hour format on outbound chat messages, voice notes, location shares, and system notices.
+   - Fixed alert detail date pill to reflect the actual notification creation timestamp rather than hardcoded 'Today'.
+4. **Verification & Build:**
+   - Production bundle verified via npm --prefix frontend run build (vite v4.5.14 built cleanly in 39.23s with 0 errors).

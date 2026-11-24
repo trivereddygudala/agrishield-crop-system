@@ -13,7 +13,7 @@ import {
   BatteryWarning, CloudRain, WifiOff, AlertOctagon, HelpCircle,
   Globe, Square, StopCircle, Edit2, ArrowDown, Languages, RotateCcw
 } from 'lucide-react';
-import { formatDateTime, timeAgo, parseServerDate } from '../../utils/dateUtils';
+import { formatDateTime, timeAgo, parseServerDate, formatChatDayDivider, formatGoogleMessagesTime } from '../../utils/dateUtils';
 import { useSpeechReader } from '../../hooks/useSpeechReader';
 import {
   getDiseaseDetails,
@@ -40,32 +40,7 @@ export const READER_LANGUAGES = [
   { code: 'en', name: 'English', flag: '🌐', label: 'English' }
 ];
 
-/**
- * Format chat stream day dividers in native Google Messages style:
- * "Today", "Yesterday", "Sat, 14 Nov 2026"
- */
-function formatChatDayDivider(dateInput, isTelugu = false) {
-  if (!dateInput) return isTelugu ? 'ఈ రోజు (Today)' : 'Today';
-  const d = (dateInput instanceof Date) ? dateInput : (parseServerDate(dateInput) || new Date(dateInput));
-  if (!d || isNaN(d.getTime())) return isTelugu ? 'ఈ రోజు (Today)' : 'Today';
 
-  const now = new Date();
-  if (d.toDateString() === now.toDateString()) {
-    return isTelugu ? 'ఈ రోజు (Today)' : 'Today';
-  }
-  const yesterday = new Date(now);
-  yesterday.setDate(now.getDate() - 1);
-  if (d.toDateString() === yesterday.toDateString()) {
-    return isTelugu ? 'నిన్న (Yesterday)' : 'Yesterday';
-  }
-  const isCurrentYear = d.getFullYear() === now.getFullYear();
-  return d.toLocaleDateString(isTelugu ? 'te-IN' : 'en-IN', {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-    year: isCurrentYear ? undefined : 'numeric'
-  });
-}
 
 /**
  * Intelligent crop & disease extractor supporting all 7 regional languages
@@ -918,12 +893,20 @@ export default function GoogleMessageReader({
     if (Array.isArray(message?.threadItems) && message.threadItems.length > 0) {
       return message.threadItems
         .filter(item => item && (item.message || item.title))
-        .map((item, idx) => ({
-          id: item.notification_id || item.id || `thread_seed_${idx}`,
-          sender: item.sender || (item.isFarmerDecision || item.type === 'booking_farmer_message' ? 'farmer' : (isProvider ? 'farmer' : 'provider')),
-          text: item.message || item.title || '',
-          timestamp: item.created_at || item.timestamp || new Date().toISOString()
-        }));
+        .map((item, idx) => {
+          const rawTs = item.created_at || item.timestamp || item.lifecycle?.created_at || new Date().toISOString();
+          const d = parseServerDate(rawTs) || new Date(rawTs);
+          const timeStr = !isNaN(d.getTime())
+            ? d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' })
+            : '';
+          return {
+            id: item.notification_id || item.id || `thread_seed_${idx}`,
+            sender: item.sender || (item.isFarmerDecision || item.type === 'booking_farmer_message' ? 'farmer' : (isProvider ? 'farmer' : 'provider')),
+            text: item.message || item.title || '',
+            timestamp: rawTs,
+            time: timeStr
+          };
+        });
     }
     return [];
   });
@@ -1264,7 +1247,7 @@ export default function GoogleMessageReader({
       senderName: user?.name || (isProviderViewer ? (isTelugu ? 'పరికర ప్రొవైడర్' : 'Equipment Provider') : (isTelugu ? 'రైతు' : 'Farmer')),
       type: 'text',
       text: textToSend,
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      time: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' }),
       timestamp: new Date().toISOString(),
       status: 'sent'
     };
@@ -1358,7 +1341,7 @@ export default function GoogleMessageReader({
         lng: lng,
         mapsUrl: `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`
       },
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      time: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' }),
       timestamp: new Date().toISOString(),
       status: 'sent'
     };
@@ -1422,7 +1405,7 @@ export default function GoogleMessageReader({
       audioUrl: audioDataUrl,
       duration: durationSec || 1,
       text: isTelugu ? `🎤 వాయిస్ సందేశం (${durationSec}s)` : `🎤 Voice Message (${durationSec}s)`,
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      time: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' }),
       timestamp: new Date().toISOString(),
       status: 'sent'
     };
@@ -1503,7 +1486,7 @@ export default function GoogleMessageReader({
         text: isTelugu
           ? `✅ పరికర ప్రొవైడర్ మీ బుకింగ్‌ను ఆమోదించారు (${bookingDate} కోసం షెడ్యూల్ చేయబడింది)`
           : `✅ Booking Accepted by Provider (Scheduled for ${bookingDate})`,
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        time: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' })
       };
       setChatMessages(prev => {
         const next = [...prev, noticeMsg];
@@ -1729,7 +1712,7 @@ export default function GoogleMessageReader({
         {/* Date Divider Pill */}
         <div className="flex justify-center my-1">
           <div className="px-3.5 py-1 rounded-full bg-white/90 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60 text-[11px] font-bold text-slate-700 dark:text-slate-300 shadow-xs backdrop-blur-sm">
-            {isTelugu ? 'ఈ రోజు' : 'Today'} • {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            {formatChatDayDivider(message?.created_at || message?.timestamp || message?.lifecycle?.created_at, isTelugu)} • {formatGoogleMessagesTime(message?.created_at || message?.timestamp || message?.lifecycle?.created_at, isTelugu)}
           </div>
         </div>
 
@@ -1918,7 +1901,7 @@ export default function GoogleMessageReader({
                       {activeNotification.title || (isTelugu ? 'సిస్టమ్ అలర్ట్' : 'System Hardware Alert')}
                     </h3>
                     <span className="text-[10px] text-slate-500 font-medium">
-                      {formatDateTime(message.lifecycle?.created_at || message.created_at)}
+                      {formatDateTime(message.lifecycle?.created_at || message.created_at || message.timestamp || message.createdAt, {}, isTelugu)}
                     </span>
                   </div>
                 </div>
@@ -2177,7 +2160,7 @@ export default function GoogleMessageReader({
                         <div className="px-3.5 py-1.5 rounded-full bg-slate-200/80 dark:bg-slate-800 text-[11px] font-bold text-slate-700 dark:text-slate-300 border border-slate-300/80 dark:border-slate-700 shadow-xs flex items-center gap-1.5 max-w-[90%] text-center">
                           <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
                           <span>{msg.text}</span>
-                          <span className="text-[9px] text-slate-400 font-mono ml-1">{msg.time}</span>
+                          <span className="text-[9px] text-slate-400 font-mono ml-1">{msg.time || (msg.timestamp ? (parseServerDate(msg.timestamp) || new Date(msg.timestamp)).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' }) : '')}</span>
                         </div>
                       </motion.div>
                     </React.Fragment>
@@ -2395,7 +2378,7 @@ export default function GoogleMessageReader({
                             {isTelugu ? '(సవరించబడింది)' : '(edited)'}
                           </span>
                         )}
-                        <span>{msg.time}</span>
+                        <span>{msg.time || (msg.timestamp ? (parseServerDate(msg.timestamp) || new Date(msg.timestamp)).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' }) : '')}</span>
                         {isMyMessage && <CheckCheck className="w-3.5 h-3.5 text-blue-100 inline ml-0.5" />}
                       </div>
                     </div>
