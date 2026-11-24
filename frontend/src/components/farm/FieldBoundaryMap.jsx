@@ -4,7 +4,8 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { 
   MapPin, Trash2, Plus, Crosshair, X, Check,
-  Maximize2, Undo2, ChevronLeft, Footprints, Play, Pause, AlertCircle, ShieldCheck, Share2
+  Maximize2, Undo2, ChevronLeft, Footprints, Play, Pause, AlertCircle, ShieldCheck, Share2,
+  Search, Calculator, Layers, FileText
 } from 'lucide-react';
 
 // Haversine distance in meters
@@ -176,7 +177,11 @@ export default function FieldBoundaryMap({
   backLabel,
   isDedicated = false,
   mode = 'farm',
-  onShare = null
+  onShare = null,
+  onSwitchToTape = null,
+  onOpen8Units = null,
+  onExportPDF = null,
+  onSearchLocation = null
 }) {
   const mapContainerRef = useRef(null);
   const mapInstanceRef = useRef(null);
@@ -189,6 +194,59 @@ export default function FieldBoundaryMap({
 
   // Sync tracking to prevent infinite update loops
   const isUserActionRef = useRef(false);
+
+  // Search State for Calculator Mode
+  const [showSearch, setShowSearch] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchError, setSearchError] = useState('');
+
+  const handleLocationSearch = async (e) => {
+    e?.preventDefault();
+    if (!searchQuery.trim()) return;
+    setSearchLoading(true);
+    setSearchError('');
+    const query = searchQuery.trim();
+    const latLngMatch = query.match(/^([-+]?\d{1,2}\.\d+)[,\s]+([-+]?\d{1,3}\.\d+)$/);
+    if (latLngMatch) {
+      const lat = parseFloat(latLngMatch[1]);
+      const lng = parseFloat(latLngMatch[2]);
+      if (lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+        if (mapInstanceRef.current) mapInstanceRef.current.setView([lat, lng], 17);
+        if (onSearchLocation) onSearchLocation(lat, lng);
+        setSearchLoading(false);
+        setShowSearch(false);
+        return;
+      }
+    }
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query + ', Andhra Pradesh, India')}&limit=1`);
+      const data = await res.json();
+      if (data && data.length > 0) {
+        const lat = parseFloat(data[0].lat);
+        const lng = parseFloat(data[0].lon);
+        if (mapInstanceRef.current) mapInstanceRef.current.setView([lat, lng], 17);
+        if (onSearchLocation) onSearchLocation(lat, lng);
+        setShowSearch(false);
+      } else {
+        const res2 = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`);
+        const data2 = await res2.json();
+        if (data2 && data2.length > 0) {
+          const lat = parseFloat(data2[0].lat);
+          const lng = parseFloat(data2[0].lon);
+          if (mapInstanceRef.current) mapInstanceRef.current.setView([lat, lng], 17);
+          if (onSearchLocation) onSearchLocation(lat, lng);
+          setShowSearch(false);
+        } else {
+          setSearchError(isTelugu ? 'స్థలం కనుగొనబడలేదు' : 'Location not found');
+        }
+      }
+    } catch {
+      setSearchError(isTelugu ? 'శోధన విఫలమైంది' : 'Search failed');
+    } finally {
+      setSearchLoading(false);
+    }
+  };
 
   // 1. Single Field Boundary Pins: [[lat, lng], ...]
   const [pins, setPins] = useState(() => normalizeIncomingPins(boundaryCoordinates));
@@ -937,17 +995,30 @@ export default function FieldBoundaryMap({
 
           {/* Mode-Gated Action Button: No confusing "Save" in Calculator Mode */}
           {mode === 'calculator' ? (
-            isFullScreenView && onShare ? (
+            <div className="flex items-center gap-1.5 shrink-0">
               <button
                 type="button"
-                onClick={onShare}
-                className="flex items-center gap-1 px-3 py-2 rounded-xl text-xs font-black bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm active:scale-95 transition-all cursor-pointer shrink-0"
-                title={isTelugu ? 'వాట్సాప్ ద్వారా షేర్ చేయండి' : 'Share via WhatsApp'}
+                onClick={() => setShowSearch(!showSearch)}
+                className={`p-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
+                  showSearch ? 'bg-emerald-600 text-white border-emerald-400' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700'
+                }`}
+                title={isTelugu ? 'గ్రామం లేదా GPS వెతకండి' : 'Search Village or GPS'}
               >
-                <Share2 className="w-3.5 h-3.5" />
-                <span className="font-extrabold">{isTelugu ? 'షేర్' : 'Share'}</span>
+                <Search className="w-3.5 h-3.5" />
               </button>
-            ) : null
+
+              {onSwitchToTape && (
+                <button
+                  type="button"
+                  onClick={onSwitchToTape}
+                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-black bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 cursor-pointer active:scale-95 transition-all shrink-0"
+                  title={isTelugu ? 'టేపు / గొలుసు కొలతలు' : 'Tape / Chain Dimensions'}
+                >
+                  <Calculator className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                  <span className="font-bold">{isTelugu ? 'టేపు' : 'Tape'}</span>
+                </button>
+              )}
+            </div>
           ) : isFullScreenView ? (
             <button
               type="button"
@@ -978,6 +1049,37 @@ export default function FieldBoundaryMap({
         </div>
       </div>
 
+      {/* Search Input Bar (Dropdown under header when showSearch is true) */}
+      {showSearch && (
+        <div className="px-3 py-2 bg-slate-900 border-b border-slate-800 flex items-center gap-2 z-30 shrink-0">
+          <Search className="w-4 h-4 text-emerald-400 shrink-0 ml-1" />
+          <input
+            type="text"
+            autoFocus
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') handleLocationSearch(e); }}
+            placeholder={isTelugu ? 'గ్రామం పేరు లేదా 15.5057, 80.0499' : 'Village name or 15.5057, 80.0499'}
+            className="flex-1 bg-slate-800 px-3 py-1.5 rounded-xl text-xs font-bold text-white outline-none"
+          />
+          <button
+            type="button"
+            onClick={handleLocationSearch}
+            disabled={searchLoading}
+            className="px-3 py-1.5 rounded-xl text-xs font-black bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer shrink-0"
+          >
+            {searchLoading ? '...' : (isTelugu ? 'వెతుకు' : 'Find')}
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowSearch(false)}
+            className="p-1 rounded-lg text-slate-400 hover:text-white"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
       {/* ═══════ 2. MAP CANVAS AREA: ZERO OVERFLOW, ABSOLUTE LEAFLET CONTAINER ═══════ */}
       <div className="flex-1 w-full relative z-0 min-h-0 overflow-hidden touch-none">
         {/* 📐 PROMINENT FLOATING LIVE AREA MEASUREMENT HUD (ALWAYS VISIBLE & PROMINENT ON SCREEN) */}
@@ -995,10 +1097,20 @@ export default function FieldBoundaryMap({
                         ({area.cents} {isTelugu ? 'సెంట్లు' : 'Cents'})
                       </span>
                     </div>
-                    <div className="text-right shrink-0">
-                      <span className="text-[11px] font-black text-emerald-300/90">
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="text-[11px] font-black text-emerald-300/90 hidden sm:inline">
                         {area.gunthas} {isTelugu ? 'గుంటలు' : 'Gunthas'}
                       </span>
+                      {onOpen8Units && (
+                        <button
+                          type="button"
+                          onClick={onOpen8Units}
+                          className="px-2.5 py-1 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-black flex items-center gap-1 shadow-sm active:scale-95 transition-all cursor-pointer"
+                        >
+                          <Layers className="w-3.5 h-3.5" />
+                          <span>{isTelugu ? '8 యూనిట్లు' : '8 Units'}</span>
+                        </button>
+                      )}
                     </div>
                   </div>
 
@@ -1021,28 +1133,56 @@ export default function FieldBoundaryMap({
                   <div className="flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping shrink-0" />
                     <span className="text-xs font-bold text-amber-300">
-                      📍 2 {isTelugu ? 'పిన్స్' : 'pins'} • 📏 {area.perimeterMeters}m ({area.perimeterFeet} ft)
+                      📍 2 {isTelugu ? 'పిన్స్' : 'pins'} • 📏 {area.perimeterMeters}m
                     </span>
                   </div>
-                  <span className="text-[11px] font-semibold text-slate-300">
-                    {isTelugu ? 'విస్తీర్ణం కోసం మరో 1 పిన్ వేయండి' : 'Add 1 more pin for area'}
-                  </span>
+                  {onOpen8Units && (
+                    <button
+                      type="button"
+                      onClick={onOpen8Units}
+                      className="px-2 py-0.5 rounded-lg bg-emerald-600/80 hover:bg-emerald-600 text-white text-[10px] font-bold flex items-center gap-1 shadow-xs cursor-pointer"
+                    >
+                      <Layers className="w-3 h-3" />
+                      <span>{isTelugu ? '8 యూనిట్లు' : '8 Units'}</span>
+                    </button>
+                  )}
                 </div>
               ) : pins.length === 1 ? (
-                <div className="flex items-center gap-2 py-0.5">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping shrink-0" />
-                  <span className="text-xs font-bold text-emerald-300">
-                    📍 1 {isTelugu ? 'వ పిన్ నమోదయింది — తదుపరి మూల తాకండి' : 'pin dropped — Tap next corner of field'}
-                  </span>
+                <div className="flex items-center justify-between gap-2 py-0.5">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping shrink-0" />
+                    <span className="text-xs font-bold text-emerald-300">
+                      📍 1 {isTelugu ? 'వ పిన్ నమోదయింది' : 'pin dropped'}
+                    </span>
+                  </div>
+                  {onOpen8Units && (
+                    <button
+                      type="button"
+                      onClick={onOpen8Units}
+                      className="px-2 py-0.5 rounded-lg bg-emerald-600/80 hover:bg-emerald-600 text-white text-[10px] font-bold flex items-center gap-1 shadow-xs cursor-pointer"
+                    >
+                      <Layers className="w-3 h-3" />
+                      <span>{isTelugu ? '8 యూనిట్లు' : '8 Units'}</span>
+                    </button>
+                  )}
                 </div>
               ) : (
                 <div className="flex items-center justify-between gap-2 py-0.5">
                   <span className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
-                    📍 {isTelugu ? 'క్రింద "+ పిన్ వేయి" లేదా "వాక్ మోడ్" తాకండి' : 'Tap "+ Add Pin" or "Walk Mode" below'}
+                    📍 {isTelugu ? 'క్రింద "+ పిన్ వేయి" లేదా "వాక్" తాకండి' : 'Tap "+ Add Pin" or "Walk" below'}
                   </span>
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30 shrink-0">
-                    {isTelugu ? '100% ఖచ్చితం' : 'Pinpoint GPS'}
-                  </span>
+                  <div className="flex items-center gap-1.5">
+                    {onOpen8Units && (
+                      <button
+                        type="button"
+                        onClick={onOpen8Units}
+                        className="px-2 py-0.5 rounded-lg bg-emerald-600/80 hover:bg-emerald-600 text-white text-[10px] font-bold flex items-center gap-1 shadow-xs cursor-pointer"
+                      >
+                        <Layers className="w-3 h-3" />
+                        <span>{isTelugu ? '8 యూనిట్లు' : '8 Units'}</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
@@ -1189,6 +1329,32 @@ export default function FieldBoundaryMap({
                 <Crosshair className="w-4 h-4" />
                 <span className="hidden sm:inline">{isTelugu ? 'నా పొలం' : 'My Farm'}</span>
               </button>
+
+              {/* 6. Survey Deed PDF */}
+              {onExportPDF && (
+                <button
+                  type="button"
+                  onClick={onExportPDF}
+                  className="flex items-center gap-1 px-2.5 py-2.5 rounded-xl text-xs font-bold text-slate-200 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+                  title={isTelugu ? 'సర్వే పత్రం (PDF)' : 'Survey Deed (PDF)'}
+                >
+                  <FileText className="w-4 h-4 text-emerald-400" />
+                  <span className="hidden sm:inline">{isTelugu ? 'డీడ్' : 'Deed'}</span>
+                </button>
+              )}
+
+              {/* 7. WhatsApp Share */}
+              {onShare && (
+                <button
+                  type="button"
+                  onClick={onShare}
+                  className="flex items-center gap-1 px-2.5 py-2.5 rounded-xl text-xs font-bold text-emerald-400 hover:text-emerald-300 hover:bg-slate-800 transition-colors cursor-pointer"
+                  title={isTelugu ? 'వాట్సాప్ ద్వారా షేర్ చేయండి' : 'Share via WhatsApp'}
+                >
+                  <Share2 className="w-4 h-4" />
+                  <span className="hidden sm:inline">{isTelugu ? 'షేర్' : 'Share'}</span>
+                </button>
+              )}
             </div>
           </div>
         )}

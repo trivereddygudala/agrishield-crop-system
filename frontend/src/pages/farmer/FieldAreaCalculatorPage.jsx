@@ -33,18 +33,12 @@ export default function FieldAreaCalculatorPage() {
   const [boundaryPins, setBoundaryPins] = useState([]);
   const [copied, setCopied] = useState(false);
 
-  // Drawer / Bottom Sheet & Search Modal States
+  // Drawer / Bottom Sheet State
   const [showDrawer, setShowDrawer] = useState(false);
-  const [showSearch, setShowSearch] = useState(false);
 
   // Live GPS Center coordinates
   const [centerLat, setCenterLat] = useState(15.5057);
   const [centerLng, setCenterLng] = useState(80.0499);
-
-  // Location / Village / GPS Search State
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchLoading, setSearchLoading] = useState(false);
-  const [searchError, setSearchError] = useState('');
 
   // ═══════ MANUAL TAPE / CHAIN DIMENSION CALCULATOR STATE ═══════
   const [dimensionShape, setDimensionShape] = useState('rectangle'); // 'rectangle' | 'quadrilateral' | 'triangle'
@@ -183,52 +177,6 @@ export default function FieldAreaCalculatorPage() {
     }
     return segments;
   }, [boundaryPins]);
-
-  // Location / Village / Coordinates Search Handler
-  const handleLocationSearch = async (e) => {
-    e?.preventDefault();
-    if (!searchQuery.trim()) return;
-    setSearchLoading(true);
-    setSearchError('');
-
-    const query = searchQuery.trim();
-    const latLngMatch = query.match(/^([-+]?\d{1,2}\.\d+)[,\s]+([-+]?\d{1,3}\.\d+)$/);
-    if (latLngMatch) {
-      const lat = parseFloat(latLngMatch[1]);
-      const lng = parseFloat(latLngMatch[2]);
-      if (lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
-        setCenterLat(lat);
-        setCenterLng(lng);
-        setSearchLoading(false);
-        setShowSearch(false);
-        return;
-      }
-    }
-
-    try {
-      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query + ', Andhra Pradesh, India')}&limit=1`);
-      const data = await res.json();
-      if (data && data.length > 0) {
-        setCenterLat(parseFloat(data[0].lat));
-        setCenterLng(parseFloat(data[0].lon));
-        setShowSearch(false);
-      } else {
-        const res2 = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`);
-        const data2 = await res2.json();
-        if (data2 && data2.length > 0) {
-          setCenterLat(parseFloat(data2[0].lat));
-          setCenterLng(parseFloat(data2[0].lon));
-          setShowSearch(false);
-        } else {
-          setSearchError(isTe ? 'స్థలం కనుగొనబడలేదు. సరైన గ్రామం పేరు లేదా GPS కోఆర్డినేట్స్ ఇవ్వండి.' : 'Location not found. Try village name or lat,lng coordinates.');
-        }
-      }
-    } catch {
-      setSearchError(isTe ? 'శోధన విఫలమైంది. దయచేసి ఇంటర్నెట్ సరిచూడండి.' : 'Search failed. Please check internet connection.');
-    } finally {
-      setSearchLoading(false);
-    }
-  };
 
   // WhatsApp Land Survey Report
   const handleWhatsAppShare = () => {
@@ -402,153 +350,29 @@ export default function FieldAreaCalculatorPage() {
     return (
       <div className="relative w-full h-[calc(100vh-4rem)] bg-slate-950 overflow-hidden select-none">
         
-        {/* 1. FLOATING TOP CONTROLS ISLAND (Back + Title + Mode Switcher + Search) */}
-        <div className="absolute top-3 inset-x-3 z-20 flex items-center justify-between gap-2 pointer-events-none">
-          
-          {/* Left: Back to More & Title */}
-          <div className="flex items-center gap-1.5 pointer-events-auto">
-            <button
-              type="button"
-              onClick={() => navigate('/more')}
-              className="p-2.5 rounded-2xl bg-slate-900/90 hover:bg-slate-800 text-white backdrop-blur-md border border-slate-700/80 shadow-xl cursor-pointer active:scale-95 transition-all"
-              title={isTe ? 'ఇతర సేవలు' : 'Back to More'}
-            >
-              <ArrowLeft className="w-4 h-4" />
-            </button>
+        {/* Unified Full-Viewport Map Canvas with Integrated Controls */}
+        <FieldBoundaryMap
+          centerLat={centerLat}
+          centerLng={centerLng}
+          farmName={plotName}
+          boundaryCoordinates={boundaryPins}
+          onBoundaryChange={(newPins) => setBoundaryPins(newPins)}
+          isTelugu={isTe}
+          interactive={true}
+          mode="calculator"
+          height="100%"
+          onBack={() => navigate('/more')}
+          onSwitchToTape={() => setSurveyTool('dimensions')}
+          onOpen8Units={() => setShowDrawer(true)}
+          onExportPDF={handleExportPDF}
+          onShare={handleWhatsAppShare}
+          onSearchLocation={(lat, lng) => {
+            setCenterLat(lat);
+            setCenterLng(lng);
+          }}
+        />
 
-            <div className="px-3 py-1.5 rounded-2xl bg-slate-900/90 backdrop-blur-md border border-slate-700/80 shadow-xl flex items-center gap-2">
-              <Ruler className="w-4 h-4 text-emerald-400 shrink-0" />
-              <input
-                type="text"
-                value={plotName}
-                onChange={(e) => setPlotName(e.target.value)}
-                placeholder="Plot Name"
-                className="bg-transparent text-xs font-black text-white outline-none w-28 sm:w-40 truncate"
-              />
-            </div>
-          </div>
-
-          {/* Right: Search + Mode Switcher */}
-          <div className="flex items-center gap-1.5 pointer-events-auto">
-            <button
-              type="button"
-              onClick={() => setShowSearch(!showSearch)}
-              className={`p-2.5 rounded-2xl backdrop-blur-md border shadow-xl cursor-pointer active:scale-95 transition-all ${
-                showSearch 
-                  ? 'bg-emerald-600 text-white border-emerald-400' 
-                  : 'bg-slate-900/90 hover:bg-slate-800 text-white border-slate-700/80'
-              }`}
-              title={isTe ? 'గ్రామం లేదా GPS వెతకండి' : 'Search Village or GPS'}
-            >
-              <Search className="w-4 h-4" />
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setSurveyTool('dimensions')}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-2xl bg-slate-900/90 hover:bg-slate-800 text-white backdrop-blur-md border border-slate-700/80 shadow-xl text-xs font-black cursor-pointer active:scale-95 transition-all"
-            >
-              <Calculator className="w-3.5 h-3.5 text-emerald-400" />
-              <span className="hidden sm:inline">{isTe ? 'టేపు కొలతలు' : 'Tape'}</span>
-            </button>
-          </div>
-        </div>
-
-        {/* 2. SEARCH BAR OVERLAY (Opens when search icon is tapped) */}
-        {showSearch && (
-          <div className="absolute top-16 inset-x-3 z-30 pointer-events-auto max-w-md mx-auto">
-            <form onSubmit={handleLocationSearch} className="p-2.5 rounded-2xl bg-slate-900/95 text-white backdrop-blur-xl border border-slate-700 shadow-2xl flex items-center gap-2">
-              <Search className="w-4 h-4 text-emerald-400 shrink-0 ml-1" />
-              <input
-                type="text"
-                autoFocus
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={isTe ? 'గ్రామం పేరు లేదా 15.5057, 80.0499' : 'Village name or 15.5057, 80.0499'}
-                className="flex-1 bg-transparent text-xs font-bold text-white outline-none"
-              />
-              <button
-                type="submit"
-                disabled={searchLoading}
-                className="px-3 py-1.5 rounded-xl text-xs font-black bg-emerald-600 hover:bg-emerald-700 text-white transition-all cursor-pointer"
-              >
-                {searchLoading ? '...' : (isTe ? 'వెతుకు' : 'Find')}
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowSearch(false)}
-                className="p-1 rounded-lg text-slate-400 hover:text-white"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </form>
-            {searchError && <p className="text-[11px] font-bold text-rose-400 mt-1 px-3 py-1 rounded-lg bg-slate-900/90 border border-rose-500/30">{searchError}</p>}
-          </div>
-        )}
-
-        {/* 3. FLOATING LIVE MEASURED AREA PILL (Top-Left of map, compact & non-intrusive) */}
-        <div className="absolute top-16 left-3 z-20 pointer-events-auto">
-          <div className="flex items-center gap-2.5 px-3 py-2 rounded-2xl bg-slate-900/90 text-white backdrop-blur-md border border-slate-700/80 shadow-xl">
-            <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
-            <div>
-              <p className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider">
-                {boundaryPins.length} {isTe ? 'పిన్స్' : 'Pins'} • {activeAreaData.perimeterMeters}m
-              </p>
-              <p className="text-sm font-black text-white">
-                {activeAreaData.acres} {isTe ? 'ఎకరాలు' : 'Ac'} <span className="text-teal-300 font-bold text-xs">({activeAreaData.cents} {isTe ? 'సెంట్లు' : 'Cents'})</span>
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => setShowDrawer(true)}
-              className="ml-1 px-2.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-black flex items-center gap-1 transition-all active:scale-95 cursor-pointer shadow-xs"
-            >
-              <Layers className="w-3.5 h-3.5" />
-              <span>{isTe ? '8 యూనిట్లు' : '8 Units'}</span>
-            </button>
-          </div>
-        </div>
-
-        {/* 4. FLOATING QUICK ACTION BUTTONS (Deed & WhatsApp at bottom-right) */}
-        <div className="absolute bottom-20 sm:bottom-24 right-3 z-20 pointer-events-auto flex items-center gap-2">
-          <button
-            type="button"
-            onClick={handleExportPDF}
-            className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-2xl bg-slate-900/90 hover:bg-slate-800 text-white backdrop-blur-md border border-slate-700/80 shadow-xl text-xs font-black cursor-pointer active:scale-95 transition-all"
-            title={isTe ? 'సర్వే పత్రం (PDF)' : 'Print Survey Deed (PDF)'}
-          >
-            <FileText className="w-4 h-4 text-emerald-400" />
-            <span className="hidden sm:inline">{isTe ? 'సర్వే పత్రం' : 'Survey Deed'}</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={handleWhatsAppShare}
-            className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white backdrop-blur-md border border-emerald-500/80 shadow-xl text-xs font-black cursor-pointer active:scale-95 transition-all"
-            title={isTe ? 'వాట్సాప్ షేర్' : 'WhatsApp Share'}
-          >
-            <Share2 className="w-4 h-4" />
-            <span className="hidden sm:inline">WhatsApp</span>
-          </button>
-        </div>
-
-        {/* 5. THE ACTUAL THING: 100% FULL-VIEWPORT MAP CANVAS */}
-        <div className="w-full h-full relative z-0">
-          <FieldBoundaryMap
-            centerLat={centerLat}
-            centerLng={centerLng}
-            farmName={plotName}
-            boundaryCoordinates={boundaryPins}
-            onBoundaryChange={(newPins) => setBoundaryPins(newPins)}
-            isTelugu={isTe}
-            interactive={true}
-            mode="calculator"
-            onShare={handleWhatsAppShare}
-            height="100%"
-          />
-        </div>
-
-        {/* 6. BOTTOM DRAWER (MODAL SHEET FOR 8 UNITS & FULL GIS EXPORTS) */}
+        {/* BOTTOM DRAWER (MODAL SHEET FOR 8 UNITS & FULL GIS EXPORTS) */}
         {showDrawer && (
           <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-xs p-0 sm:p-4">
             <div className="w-full max-w-xl bg-white dark:bg-slate-900 rounded-t-3xl sm:rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl max-h-[85vh] flex flex-col overflow-hidden animate-in slide-in-from-bottom duration-200">

@@ -11909,3 +11909,16 @@ equirements.txt with the full production package list (fastapi, uvicorn, pymongo
    - Dedicated clean workspace for Tape/Chain dimensions mode with dynamic SVG Patwari preview.
 2. **Verification & Build:**
    - Production bundle verified via `npm --prefix frontend run build` (vite v4.5.14 built in 18.59s with 0 errors).
+
+
+## [2026-11-23 20:30:00] - Elimination of Control Overlaps & Unified Seamless GIS Viewport
+**Summary of Changes:**
+1. **Root-Cause Architectural Resolution (frontend/src/components/farm/FieldBoundaryMap.jsx & frontend/src/pages/farmer/FieldAreaCalculatorPage.jsx):**
+   - Eliminated the root cause of button collisions where `FieldAreaCalculatorPage` was mounting redundant floating overlay elements directly on top of `FieldBoundaryMap`'s native header, HUD, and dock.
+   - Removed all secondary duplicate floating wrappers from `FieldAreaCalculatorPage.jsx` (-193 lines of competing UI).
+   - Embedded dedicated calculator controls directly into `FieldBoundaryMap.jsx`:
+     - **Top Header Bar (56px):** Single unified bar holding `← Back` navigation, Plot Name badge, `🛰️ Sat / 🗺️ Map` switcher, expandable `🔍 Search` dropdown, and `📐 Tape` mode switcher.
+     - **Live Area Measurement HUD:** Integrated the `[8 Units]` button cleanly inside the existing floating HUD, preventing it from floating over or covering the pinpoint GPS indicator.
+     - **Bottom Farmer Action Dock:** Neatly unified `+ Add Pin`, `Pinpoint GPS Walk`, `Undo`, `Clear`, `My Farm`, `Survey Deed (PDF)`, and `WhatsApp Share` into a single, cohesive, horizontal action bar.
+2. **Verification & Build:**
+   - Production bundle verified via `npm --prefix frontend run build` (vite v4.5.14 built in 19.93s with 0 errors).
