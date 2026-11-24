@@ -16,6 +16,7 @@ import API from '../../services/api';
 import { useTranslation } from 'react-i18next';
 import { translateCrop } from '../../utils/diseaseAdvisoryData';
 import YieldProfitEstimator from '../../components/market/YieldProfitEstimator';
+import MandiArbitrageCalculator from '../../components/market/MandiArbitrageCalculator';
 
 // Crop Icons & Metadata Mapping
 const CROP_ICONS = {
@@ -85,6 +86,10 @@ const MarketPricesPage = () => {
   const [syncTimestamp, setSyncTimestamp] = useState('');
   const [syncSource, setSyncSource] = useState('');
   
+  // 2-Way View Switcher: 'arbitrage' (Mandi Arbitrage & Route Profit) vs 'rates' (Full Mandi List & Estimator)
+  const [marketTab, setMarketTab] = useState('arbitrage');
+  const isTe = (i18n?.language || 'en').toLowerCase().startsWith('te');
+
   // Cascading Location & Filter States
   const [selectedState, setSelectedState] = useState(() => activeFarm?.state || 'Andhra Pradesh');
   const [selectedDistrict, setSelectedDistrict] = useState(() => activeFarm?.district || activeFarm?.farm_location || 'Guntur');
@@ -411,11 +416,48 @@ const MarketPricesPage = () => {
         </div>
       )}
 
-      {/* ── Enterprise Crop Yield & Harvest Profit Estimator ── */}
-      <YieldProfitEstimator 
-        initialCrop={selectedCrop !== 'All' ? selectedCrop : (activeFarm?.crop_type || activeFarm?.crop_name || "")}
-        initialAcres={activeFarm?.farm_size || 2.0}
-      />
+      {/* ── 2-WAY VIEW SELECTOR: MANDI RATES vs PROFIT ARBITRAGE RADAR ── */}
+      <div className="flex items-center gap-2 p-1.5 rounded-2xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 w-full sm:w-auto">
+        <button
+          type="button"
+          onClick={() => setMarketTab('arbitrage')}
+          className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
+            marketTab === 'arbitrage'
+              ? 'bg-gradient-to-r from-amber-500 to-emerald-600 text-white shadow-md'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+          }`}
+        >
+          <TrendingUp className="w-4 h-4" />
+          <span>{isTe ? '💰 మండీ ఆర్బిట్రేజ్ & లాభ రాడార్' : '💰 Mandi Arbitrage & Profit Radar'}</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setMarketTab('rates')}
+          className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
+            marketTab === 'rates'
+              ? 'bg-emerald-600 text-white shadow-md'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+          }`}
+        >
+          <Store className="w-4 h-4" />
+          <span>{isTe ? '📊 రోజువారీ మార్కెట్ ధరలు & ఫిల్టర్లు' : '📊 Daily Mandi Rates & Filters'}</span>
+        </button>
+      </div>
+
+      {marketTab === 'arbitrage' ? (
+        <MandiArbitrageCalculator
+          defaultCrop={selectedCrop !== 'All' ? selectedCrop : (activeFarm?.crop_type || activeFarm?.crop_name || 'Tomato')}
+          defaultQuantityQtl={20}
+          userLocationName={selectedDistrict !== 'All' ? `${selectedDistrict}, ${selectedState}` : 'Lalapet, Guntur'}
+          isTelugu={isTe}
+        />
+      ) : (
+        <>
+          {/* ── Enterprise Crop Yield & Harvest Profit Estimator ── */}
+          <YieldProfitEstimator 
+            initialCrop={selectedCrop !== 'All' ? selectedCrop : (activeFarm?.crop_type || activeFarm?.crop_name || "")}
+            initialAcres={activeFarm?.farm_size || 2.0}
+          />
 
       {/* 3. Professional Hierarchical Filter Bar: State -> District -> Mandi Market Yard */}
       <Card glass className="p-5 border-slate-200/90 dark:border-slate-800 space-y-4 shadow-sm">
@@ -866,6 +908,8 @@ const MarketPricesPage = () => {
             </table>
           </div>
         </Card>
+      )}
+        </>
       )}
 
       {/* 7. Farmer Revenue & Profit Calculator Modal */}

@@ -12032,3 +12032,23 @@ pm --prefix frontend run build (vite v4.5.14 built cleanly in 20.50s with 0 erro
   - `vercel.json`: Replaced all `*.onrender.com` rewrites with `agrishield-worker-1.hostless.app`, `agrishield-worker-2.hostless.app`, and `agrishield-backend.hostless.app`.
   - `frontend/vercel.json`: Mirrored all Hostless Cloud reverse proxy rewrites.
   - `backend/app/core/config.py`: Updated distributed AI worker cluster URLs to Hostless endpoints.
+
+
+## [2026-11-24 21:05:00] - Release of Upgrade Trifecta: Options A, B, and C
+- **Phase 1 (Option A) — Field Calculator Mobile Polish & High-Sunlight Outdoor Mode:**
+  - `FieldBoundaryMap.jsx`: Added 1-click `[☀️ Sun]` High-Sunlight Outdoor Contrast Mode toggle (amber/white high luminescence, black bold borders), haptic vibration on corner drops and perimeter walking (`navigator.vibrate`), and widened mobile title display.
+  - `FieldAreaCalculatorPage.jsx`: Fixed mobile viewport height to `h-[calc(100dvh-4.5rem)]` eliminating mobile browser address bar blank screens.
+- **Phase 2 (Option B) — Spray-Weather Radar Card:**
+  - `SprayWeatherRadarCard.jsx`: Built new agronomic spray intelligence card implementing Stull's Wet Bulb and Delta-T ($\Delta T$) evaporation formula ($2^\circ\text{C}-8^\circ\text{C}$ optimal range), wind drift vector compass, 4-hour rain-fast washout lockout, 12-hour hourly timeline, and 1-click WhatsApp crew dispatch.
+  - `FarmPage.jsx`: Integrated `SprayWeatherRadarCard` into the Overview modules section and the Smart Farmer Action Center.
+- **Phase 3 (Option C) — Mandi Price Arbitrage & Route Profit Calculator:**
+  - `MandiArbitrageCalculator.jsx`: Built multi-mandi regional comparison engine across Guntur, Vijayawada, Tenali, Ongole, and local farm gate. Automatically deducts vehicle fuel (Auto/Tata Ace/Tractor) and APMC cess to output true **Net Cash in Hand** with dynamic extra profit badges (+₹17,400) and verified commission agent phone dialers.
+  - `MarketPricesPage.jsx`: Added top 2-way segment switcher: `[ 💰 Mandi Arbitrage & Profit Radar ]` vs `[ 📊 Daily Mandi Rates & Filters ]`.
+- **Files Modified/Created:**
+  - `frontend/src/components/farm/FieldBoundaryMap.jsx`
+  - `frontend/src/pages/farmer/FieldAreaCalculatorPage.jsx`
+  - `frontend/src/components/farm/SprayWeatherRadarCard.jsx`
+  - `frontend/src/pages/farmer/FarmPage.jsx`
+  - `frontend/src/components/market/MandiArbitrageCalculator.jsx`
+  - `frontend/src/pages/farmer/MarketPricesPage.jsx`
+  - `changes_happening.md`

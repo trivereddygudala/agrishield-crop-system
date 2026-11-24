@@ -258,6 +258,9 @@ export default function FieldBoundaryMap({
   // 2. Map Layer: 'hybrid' (Google Satellite) or 'street' (OpenStreetMap)
   const [mapType, setMapType] = useState('hybrid');
 
+  // 3. High-Sunlight Outdoor Contrast Mode
+  const [isSunlightMode, setIsSunlightMode] = useState(false);
+
   // 3. Pin Dropping Mode
   const [isPinMode, setIsPinMode] = useState(false);
 
@@ -510,6 +513,9 @@ export default function FieldBoundaryMap({
         const next = [...prev, newPin];
         pushToHistory(next);
         notifyChange(next);
+        if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+          try { navigator.vibrate([40, 25, 40]); } catch (_) {}
+        }
         return next;
       });
     };
@@ -700,6 +706,9 @@ export default function FieldBoundaryMap({
       const next = [...prev, coord];
       pushToHistory(next);
       notifyChange(next);
+      if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+        try { navigator.vibrate([40, 25, 40]); } catch (_) {}
+      }
       return next;
     });
     speakGuidance(isTelugu ? `మూల పిన్ ${pins.length + 1} జోడించబడింది.` : `Corner pin ${pins.length + 1} added.`);
@@ -813,6 +822,9 @@ export default function FieldBoundaryMap({
       const next = [...prev, coord];
       pushToHistory(next);
       notifyChange(next);
+      if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+        try { navigator.vibrate([60, 30, 60]); } catch (_) {}
+      }
       return next;
     });
   };
@@ -1248,9 +1260,11 @@ export default function FieldBoundaryMap({
     >
       {/* ═══════ 1. TOP HEADER BAR: SINGLE, CLEAN, FIXED 56px HEIGHT (NO OVERLAPS) ═══════ */}
       <div className={`h-14 shrink-0 px-2 sm:px-3 py-2 flex items-center justify-between gap-1 sm:gap-1.5 z-30 min-w-0 max-w-full ${
-        isFullScreenView
-          ? 'bg-slate-900 text-white border-b border-slate-800 shadow-md'
-          : 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white border-b border-slate-200 dark:border-slate-800'
+        isSunlightMode
+          ? 'bg-amber-300 text-black border-b-2 border-black font-black shadow-md'
+          : isFullScreenView
+            ? 'bg-slate-900 text-white border-b border-slate-800 shadow-md'
+            : 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white border-b border-slate-200 dark:border-slate-800'
       }`}>
         {/* Left: ONLY ONE Prominent Back Button + Title Badge */}
         <div className="flex items-center gap-1 sm:gap-1.5 min-w-0 overflow-hidden">
@@ -1258,7 +1272,9 @@ export default function FieldBoundaryMap({
             <button
               type="button"
               onClick={handleBackNavigation}
-              className="flex items-center gap-1 p-2 sm:px-3 sm:py-2 rounded-xl text-xs font-black bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm transition-all cursor-pointer shrink-0 active:scale-95"
+              className={`flex items-center gap-1 p-2 sm:px-3 sm:py-2 rounded-xl text-xs font-black transition-all cursor-pointer shrink-0 active:scale-95 ${
+                isSunlightMode ? 'bg-black text-amber-300 border border-black shadow-sm' : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm'
+              }`}
               title={isTelugu ? 'వెనుకకు' : 'Back'}
             >
               <ChevronLeft className="w-4 h-4 stroke-[3]" />
@@ -1269,11 +1285,13 @@ export default function FieldBoundaryMap({
           )}
 
           {/* Title Badge: Differentiates Calculator Mode from Farm Sector */}
-          <div className="flex items-center gap-1.5 px-2 py-1.5 sm:px-2.5 sm:py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 text-xs font-bold min-w-0 shrink">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
-            <span className="truncate max-w-[80px] xs:max-w-[125px] sm:max-w-[180px] text-slate-900 dark:text-white font-black">
+          <div className={`flex items-center gap-1.5 px-2 py-1.5 sm:px-2.5 sm:py-1.5 rounded-xl border text-xs font-bold min-w-0 shrink ${
+            isSunlightMode ? 'bg-white text-black border-2 border-black shadow-xs' : 'bg-slate-100 dark:bg-slate-800 border-slate-200/80 dark:border-slate-700'
+          }`}>
+            <span className={`w-2 h-2 rounded-full shrink-0 ${isSunlightMode ? 'bg-black' : 'bg-emerald-500'}`} />
+            <span className="truncate max-w-[110px] xs:max-w-[150px] sm:max-w-[200px] text-slate-900 dark:text-white font-black">
               {mode === 'calculator' 
-                ? (farmName ? farmName : (isTelugu ? 'భూమి సర్వే' : 'Land Survey'))
+                ? (farmName ? farmName : (isTelugu ? 'భూమి సర్వే' : 'Plot Survey'))
                 : farmName}
             </span>
             {mode !== 'calculator' && (
@@ -1286,11 +1304,28 @@ export default function FieldBoundaryMap({
 
         {/* Right: Satellite/Street Toggle & Action Button */}
         <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
+          {/* Sunlight Mode High-Contrast Outdoor Toggle */}
+          <button
+            type="button"
+            onClick={() => setIsSunlightMode(!isSunlightMode)}
+            className={`flex items-center gap-1 px-2 py-1.5 sm:px-2.5 rounded-xl border text-xs font-black cursor-pointer active:scale-95 transition-all shrink-0 ${
+              isSunlightMode
+                ? 'bg-amber-400 text-black border-2 border-black shadow-sm'
+                : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200/80 dark:border-slate-700'
+            }`}
+            title={isTelugu ? 'ఎండ వెలుతురు హై-కాంట్రాస్ట్ మోడ్' : 'High-Sunlight Outdoor Contrast Mode'}
+          >
+            <span>{isSunlightMode ? '☀️' : '🌤️'}</span>
+            <span className="hidden sm:inline">{isSunlightMode ? (isTelugu ? 'ఎండ' : 'Sun') : (isTelugu ? 'సాధారణ' : 'Normal')}</span>
+          </button>
+
           {/* Satellite vs Street Toggle: 1-tap mobile toggle */}
           <button
             type="button"
             onClick={() => switchMapType(mapType === 'hybrid' ? 'street' : 'hybrid')}
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-300 hover:text-white cursor-pointer active:scale-95 transition-all shrink-0"
+            className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl border text-xs font-bold hover:text-white cursor-pointer active:scale-95 transition-all shrink-0 ${
+              isSunlightMode ? 'bg-white text-black border-2 border-black font-black' : 'bg-slate-100 dark:bg-slate-800 border-slate-200/80 dark:border-slate-700 text-slate-700 dark:text-slate-300'
+            }`}
             title={mapType === 'hybrid' ? (isTelugu ? 'శాటిలైట్ మోడ్ (వీధి మ్యాప్‌కి మార్చు)' : 'Satellite Mode (Switch to Street Map)') : (isTelugu ? 'వీధి మ్యాప్ (శాటిలైట్‌కి మార్చు)' : 'Street Mode (Switch to Satellite)')}
           >
             <span>{mapType === 'hybrid' ? '🛰️' : '🗺️'}</span>
@@ -1624,7 +1659,11 @@ export default function FieldBoundaryMap({
         {/* Simple Farmer Action Dock (Bottom Center of Map) */}
         {interactive && !isWalkMode && (
           <div className="absolute bottom-3 sm:bottom-5 inset-x-2 sm:inset-x-3 z-30 flex justify-center pointer-events-none">
-            <div className="flex items-center gap-1 sm:gap-2 bg-slate-900/95 text-white backdrop-blur-xl p-1 sm:p-1.5 rounded-2xl shadow-2xl border border-slate-700/80 pointer-events-auto max-w-full overflow-x-auto no-scrollbar">
+            <div className={`flex items-center gap-1 sm:gap-2 ${
+              isSunlightMode 
+                ? 'bg-amber-300 text-black border-2 border-black shadow-2xl font-black' 
+                : 'bg-slate-900/95 text-white backdrop-blur-xl border border-slate-700/80'
+            } p-1 sm:p-1.5 rounded-2xl shadow-2xl pointer-events-auto max-w-full overflow-x-auto no-scrollbar`}>
               {/* 1. Add Pin Toggle Button */}
               <button
                 type="button"

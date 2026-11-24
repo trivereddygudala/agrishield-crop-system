@@ -26,6 +26,7 @@ import SmartIrrigationScheduler from '../../components/farm/SmartIrrigationSched
 import FarmInventoryManager from '../../components/farm/FarmInventoryManager';
 import HarvestSeasonManager from '../../components/farm/HarvestSeasonManager';
 import SmartFarmerActionCenter from '../../components/farm/SmartFarmerActionCenter';
+import SprayWeatherRadarCard from '../../components/farm/SprayWeatherRadarCard';
 import WidgetErrorBoundary from '../../components/WidgetErrorBoundary';
 
 export const INDIAN_CROPS_LIST = [
@@ -1053,6 +1054,20 @@ const FarmPage = () => {
       {/* ═══════ FIELD MODULES — Thematic 2-Section Responsive Grid with Live Status Badges ═══════ */}
       {activeTab === 'modules' && (
         <div className="space-y-6 pt-1">
+          {/* Module: Spray-Weather Radar Card (Delta-T & Optimum Spraying Hours) */}
+          <WidgetErrorBoundary name="Spray Weather Radar">
+            <SprayWeatherRadarCard
+              temperature={28}
+              humidity={65}
+              windSpeed={8}
+              windDeg={85}
+              rainProbability={12}
+              cropName={cropName || activeFarm?.crop_name || 'Tomato'}
+              locationName={activeFarm?.location || activeFarm?.village || 'Guntur, Andhra Pradesh'}
+              isTelugu={isTe}
+            />
+          </WidgetErrorBoundary>
+
           {/* Section 1: Active Field & Agronomic Operations */}
           <div className="space-y-3">
             <div className="flex items-center justify-between px-1">
@@ -2008,6 +2023,18 @@ const FarmPage = () => {
             {/* ═══════ DRILL: Smart Farmer Action Center ═══════ */}
       {activeTab === 'smart-actions' && (
         <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3 }} className="space-y-4">
+          <WidgetErrorBoundary name="Spray Weather Radar">
+            <SprayWeatherRadarCard
+              temperature={28}
+              humidity={65}
+              windSpeed={8}
+              windDeg={85}
+              rainProbability={12}
+              cropName={cropName || activeFarm?.crop_name || 'Tomato'}
+              locationName={activeFarm?.location || activeFarm?.village || 'Guntur, Andhra Pradesh'}
+              isTelugu={isTe}
+            />
+          </WidgetErrorBoundary>
           <WidgetErrorBoundary name="Field Actions">
             <SmartFarmerActionCenter
               farmId={activeFarm?.id || activeFarm?._id || farms?.[0]?.id || farms?.[0]?._id}

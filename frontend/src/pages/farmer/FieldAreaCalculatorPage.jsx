@@ -403,9 +403,9 @@ export default function FieldAreaCalculatorPage() {
   if (surveyTool === 'satellite') {
     return (
       <div 
-        className="relative w-full h-[calc(100dvh-8rem-env(safe-area-inset-bottom,0px))] lg:h-[calc(100dvh-4rem)] min-h-[480px] bg-slate-950 overflow-hidden select-none flex flex-col"
+        className="relative w-full flex-1 h-[calc(100dvh-4.5rem)] lg:h-[calc(100dvh-4rem)] min-h-[480px] bg-slate-950 overflow-hidden select-none flex flex-col"
         style={{
-          height: 'calc(100dvh - 8rem - env(safe-area-inset-bottom, 0px))',
+          height: 'calc(100dvh - 4.5rem)',
           minHeight: '480px'
         }}
       >
