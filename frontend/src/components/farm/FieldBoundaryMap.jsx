@@ -5,7 +5,7 @@ import 'leaflet/dist/leaflet.css';
 import { 
   MapPin, Trash2, Plus, Crosshair, X, Check,
   Maximize2, Undo2, ChevronLeft, Footprints, Play, Pause, AlertCircle, ShieldCheck, Share2,
-  Search, Calculator, Layers, FileText
+  Search, Calculator, Layers, FileText, Loader2, AlertTriangle, Compass, Copy, Navigation
 } from 'lucide-react';
 
 // Haversine distance in meters
@@ -181,7 +181,9 @@ export default function FieldBoundaryMap({
   onSwitchToTape = null,
   onOpen8Units = null,
   onExportPDF = null,
-  onSearchLocation = null
+  onSearchLocation = null,
+  initialUserLocation = null,
+  initialGpsAccuracy = null
 }) {
   const mapContainerRef = useRef(null);
   const mapInstanceRef = useRef(null);
@@ -190,6 +192,8 @@ export default function FieldBoundaryMap({
   const pinsGroupRef = useRef(null);
   const radarGroupRef = useRef(null);
   const walkLayerGroupRef = useRef(null);
+  const liveGpsLayerGroupRef = useRef(null);
+  const simulationIntervalRef = useRef(null);
   const currentPolygonLayerRef = useRef(null);
 
   // Sync tracking to prevent infinite update loops
@@ -264,12 +268,17 @@ export default function FieldBoundaryMap({
   const [history, setHistory] = useState(() => [normalizeIncomingPins(boundaryCoordinates)]);
   const [historyIndex, setHistoryIndex] = useState(0);
 
-  // ═══════ 6. HIGH-PRECISION GPS WALKING SURVEY MODE ═══════
+  // ═══════ 6. HIGH-PRECISION GPS WALKING SURVEY & LIVE LOCATION MODE ═══════
   const [isWalkMode, setIsWalkMode] = useState(false);
   const [isWalking, setIsWalking] = useState(false);
-  const [gpsAccuracy, setGpsAccuracy] = useState(null); // accuracy in meters (e.g. 1.8m)
+  const [gpsAccuracy, setGpsAccuracy] = useState(() => initialGpsAccuracy || null); // accuracy in meters (e.g. 1.8m)
   const [walkDistance, setWalkDistance] = useState(0);   // total meters walked
-  const [liveLocation, setLiveLocation] = useState(null); // [lat, lng]
+  const [liveLocation, setLiveLocation] = useState(() => initialUserLocation || null); // [lat, lng]
+  const [isLocating, setIsLocating] = useState(false);
+  const [gpsErrorMsg, setGpsErrorMsg] = useState(null);
+  const [showInsecureOriginModal, setShowInsecureOriginModal] = useState(false);
+  const [deviceHeading, setDeviceHeading] = useState(null);
+
   const watchIdRef = useRef(null);
   const walkTrailRef = useRef([]); // continuous high-res coordinates
   const lastLoggedCoordRef = useRef(null);
@@ -277,6 +286,32 @@ export default function FieldBoundaryMap({
   const lastBearingRef = useRef(null);
   const kalmanRef = useRef(new KalmanFilter2D());
   const [voiceGuidanceEnabled, setVoiceGuidanceEnabled] = useState(true);
+
+  // Compass device orientation tracking for directional live puck beam
+  useEffect(() => {
+    const handleOrientation = (e) => {
+      let heading = null;
+      if (e.webkitCompassHeading !== undefined && e.webkitCompassHeading !== null) {
+        heading = e.webkitCompassHeading;
+      } else if (e.alpha !== null && e.alpha !== undefined) {
+        heading = (360 - e.alpha) % 360;
+      }
+      if (heading !== null) {
+        setDeviceHeading(Math.round(heading));
+      }
+    };
+
+    if (typeof window !== 'undefined' && 'DeviceOrientationEvent' in window) {
+      window.addEventListener('deviceorientationabsolute', handleOrientation, true);
+      window.addEventListener('deviceorientation', handleOrientation, true);
+    }
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('deviceorientationabsolute', handleOrientation, true);
+        window.removeEventListener('deviceorientation', handleOrientation, true);
+      }
+    };
+  }, []);
 
   const speakGuidance = useCallback((text) => {
     if (!voiceGuidanceEnabled) return;
@@ -367,10 +402,15 @@ export default function FieldBoundaryMap({
     pinsGroupRef.current = L.layerGroup().addTo(map);
     radarGroupRef.current = L.layerGroup().addTo(map);
     walkLayerGroupRef.current = L.layerGroup().addTo(map);
+    liveGpsLayerGroupRef.current = L.layerGroup().addTo(map);
 
     mapInstanceRef.current = map;
 
     return () => {
+      if (simulationIntervalRef.current) {
+        clearInterval(simulationIntervalRef.current);
+        simulationIntervalRef.current = null;
+      }
       map.remove();
       mapInstanceRef.current = null;
     };
@@ -480,10 +520,163 @@ export default function FieldBoundaryMap({
     };
   }, [isPinMode, interactive, isWalkMode, pushToHistory, notifyChange]);
 
+  // ═══════ GOOGLE MAPS STYLE HIGH-PRECISION LIVE GPS & BLUE DOT PUCK ═══════
+  const renderLiveLocationPuck = useCallback((coord, accuracy, heading = null) => {
+    const map = mapInstanceRef.current;
+    if (!map || !liveGpsLayerGroupRef.current || !coord) return;
+
+    liveGpsLayerGroupRef.current.clearLayers();
+
+    // 1. Accuracy margin circle (translucent blue)
+    if (accuracy && accuracy > 0) {
+      L.circle(coord, {
+        radius: Math.min(accuracy, 120),
+        color: '#0284c7',
+        fillColor: '#38bdf8',
+        fillOpacity: 0.16,
+        weight: 1.5,
+        dashArray: accuracy > 30 ? '4, 4' : undefined
+      }).addTo(liveGpsLayerGroupRef.current);
+    }
+
+    // 2. High-Precision Google Maps Pulsing Blue Dot with optional directional heading cone
+    const headingCone = (heading !== null && heading !== undefined)
+      ? `<div style="position: absolute; top: -14px; left: -14px; width: 56px; height: 56px; transform: rotate(${heading}deg); pointer-events: none; z-index: 1;">
+          <div style="width: 0; height: 0; border-left: 28px solid transparent; border-right: 28px solid transparent; border-top: 32px solid rgba(56, 189, 248, 0.45); filter: blur(1px); margin: 0 auto;"></div>
+         </div>`
+      : '';
+
+    const puckIcon = L.divIcon({
+      className: 'gmaps-live-puck',
+      html: `
+        <div style="position: relative; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;">
+          ${headingCone}
+          <div style="position: absolute; inset: -4px; border-radius: 50%; background: #0284c7; opacity: 0.35; animation: ping 2s cubic-bezier(0, 0, 0.2, 1) infinite; z-index: 2;"></div>
+          <div style="width: 20px; height: 20px; border-radius: 50%; background: #0284c7; border: 3px solid #ffffff; box-shadow: 0 0 10px rgba(2, 132, 199, 0.8), 0 2px 6px rgba(0,0,0,0.4); position: relative; z-index: 3;"></div>
+        </div>
+      `,
+      iconSize: [28, 28],
+      iconAnchor: [14, 14]
+    });
+
+    L.marker(coord, { icon: puckIcon, interactive: false, zIndexOffset: 1000 }).addTo(liveGpsLayerGroupRef.current);
+  }, []);
+
+  // Synchronize live location blue dot whenever location, accuracy, or compass heading updates
+  useEffect(() => {
+    if (liveLocation) {
+      renderLiveLocationPuck(liveLocation, gpsAccuracy, deviceHeading);
+    }
+  }, [liveLocation, gpsAccuracy, deviceHeading, renderLiveLocationPuck]);
+
+  // GPS Error Handler with farmer-friendly messages
+  const handleGpsError = useCallback((err) => {
+    let msg = '';
+    if (err?.code === 1) { // PERMISSION_DENIED
+      msg = isTelugu
+        ? 'లొకేషన్ అనుమతి తిరస్కరించబడింది. దయచేసి బ్రౌజర్ సెట్టింగ్స్‌లో లొకేషన్ అనుమతించండి.'
+        : 'Location permission was denied. Please allow Location access in browser settings.';
+    } else if (err?.code === 2) { // POSITION_UNAVAILABLE
+      msg = isTelugu
+        ? 'GPS సిగ్నల్ అందుబాటులో లేదు. దయచేసి ఆకాశం క్రింద నిలబడండి.'
+        : 'GPS signal unavailable. Please step outdoors under open sky.';
+    } else if (err?.code === 3) { // TIMEOUT
+      msg = isTelugu
+        ? 'GPS సిగ్నల్ పొందడంలో ఆలస్యమైంది. దయచేసి మళ్లీ ప్రయత్నించండి.'
+        : 'GPS acquisition timed out. Please try again.';
+    } else {
+      msg = isTelugu ? 'GPS లోపం సంభవించింది.' : 'GPS acquisition error occurred.';
+    }
+    setGpsErrorMsg(msg);
+    setTimeout(() => setGpsErrorMsg(null), 8000);
+  }, [isTelugu]);
+
+  // Dedicated Google Maps "Locate Me" Action
+  const handleLocateMe = useCallback(() => {
+    if (typeof navigator === 'undefined' || !navigator.geolocation) {
+      alert(isTelugu ? 'మీ బ్రౌజర్‌లో లేదా ఫోన్‌లో GPS సపోర్ట్ లేదు.' : 'Geolocation is not supported on this browser.');
+      return;
+    }
+
+    // Check if running on an insecure HTTP LAN IP (e.g. http://10.63.76.146:3000)
+    const isLocalhost = typeof window !== 'undefined' && (
+      window.location.hostname === 'localhost' ||
+      window.location.hostname === '127.0.0.1' ||
+      window.location.protocol === 'https:'
+    );
+
+    if (typeof window !== 'undefined' && !window.isSecureContext && !isLocalhost) {
+      setShowInsecureOriginModal(true);
+      return;
+    }
+
+    setIsLocating(true);
+    setGpsErrorMsg(null);
+
+    // Fallback to low-accuracy network fix if high-accuracy times out
+    const tryLowAccuracy = () => {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          setIsLocating(false);
+          const { latitude, longitude, accuracy } = pos.coords;
+          const coord = [roundCoord(latitude), roundCoord(longitude)];
+          setLiveLocation(coord);
+          setGpsAccuracy(Math.round(accuracy));
+          renderLiveLocationPuck(coord, accuracy);
+          if (mapInstanceRef.current) {
+            mapInstanceRef.current.flyTo(coord, 18, { animate: true, duration: 1.2 });
+          }
+          speakGuidance(isTelugu ? `లొకేషన్ లాక్ అయింది. ఖచ్చితత్వం ±${Math.round(accuracy)} మీటర్లు.` : `Location locked. Accuracy ±${Math.round(accuracy)} meters.`);
+        },
+        (err) => {
+          setIsLocating(false);
+          handleGpsError(err);
+        },
+        { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 }
+      );
+    };
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setIsLocating(false);
+        const { latitude, longitude, accuracy } = pos.coords;
+        const coord = [roundCoord(latitude), roundCoord(longitude)];
+        setLiveLocation(coord);
+        setGpsAccuracy(Math.round(accuracy));
+        renderLiveLocationPuck(coord, accuracy);
+        if (mapInstanceRef.current) {
+          mapInstanceRef.current.flyTo(coord, 18, { animate: true, duration: 1.2 });
+        }
+        speakGuidance(isTelugu ? `లొకేషన్ లాక్ అయింది. ఖచ్చితత్వం ±${Math.round(accuracy)} మీటర్లు.` : `Location locked. Accuracy ±${Math.round(accuracy)} meters.`);
+      },
+      (err) => {
+        if (err.code === err.TIMEOUT) {
+          tryLowAccuracy();
+        } else {
+          setIsLocating(false);
+          handleGpsError(err);
+        }
+      },
+      { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
+    );
+  }, [isTelugu, renderLiveLocationPuck, handleGpsError, speakGuidance]);
+
   // ═══════ HIGH-PRECISION GPS WALKING SURVEY IMPLEMENTATION ═══════
   const startWalkMode = () => {
-    if (!navigator.geolocation) {
+    if (typeof navigator === 'undefined' || !navigator.geolocation) {
       alert(isTelugu ? 'మీ ఫోన్‌లో GPS సపోర్ట్ లేదు.' : 'GPS Geolocation is not supported on your device.');
+      return;
+    }
+
+    // Check secure context
+    const isLocalhost = typeof window !== 'undefined' && (
+      window.location.hostname === 'localhost' ||
+      window.location.hostname === '127.0.0.1' ||
+      window.location.protocol === 'https:'
+    );
+
+    if (typeof window !== 'undefined' && !window.isSecureContext && !isLocalhost) {
+      setShowInsecureOriginModal(true);
       return;
     }
 
@@ -506,25 +699,27 @@ export default function FieldBoundaryMap({
     // High accuracy Geolocation Watch
     watchIdRef.current = navigator.geolocation.watchPosition(
       (pos) => {
-        const { latitude, longitude, accuracy } = pos.coords;
-        setGpsAccuracy(Math.round(accuracy * 10) / 10);
+        const { latitude, longitude, accuracy, heading } = pos.coords;
+        const currentAcc = Math.round(accuracy * 10) / 10;
+        setGpsAccuracy(currentAcc);
 
-        // Quality Gate: Filter out loose GPS drift fixes (> 9m)
-        if (accuracy > 9) return;
+        // Quality Gate: Filter out wildly inaccurate drift fixes (> 35m) while allowing realistic field smartphone GPS (5m - 25m)
+        if (accuracy > 35) return;
 
         // 2D Kalman Filter update for sub-meter drift reduction
         const [kLat, kLng] = kalmanRef.current.update(latitude, longitude, accuracy);
         const smoothCoord = [roundCoord(kLat), roundCoord(kLng)];
 
         setLiveLocation(smoothCoord);
+        renderLiveLocationPuck(smoothCoord, currentAcc, heading);
 
         // Update live walk trail
         const last = lastLoggedCoordRef.current;
         if (last) {
           const stepDist = haversineDistanceMeters(last[0], last[1], smoothCoord[0], smoothCoord[1]);
           
-          // Only log point if moved more than 2.5 meters
-          if (stepDist >= 2.5) {
+          // Log point if moved more than 2.0 meters
+          if (stepDist >= 2.0) {
             setWalkDistance((prev) => Math.round(prev + stepDist));
             walkTrailRef.current.push(smoothCoord);
             lastLoggedCoordRef.current = smoothCoord;
@@ -538,23 +733,21 @@ export default function FieldBoundaryMap({
               const diff = Math.abs(currentBearing - newBearing);
               const turnAngle = diff > 180 ? 360 - diff : diff;
 
-              if (turnAngle >= 28 && stepDist >= 4) {
+              if (turnAngle >= 28 && stepDist >= 3.5) {
                 // Auto drop corner pin on turn
                 addWalkPin(smoothCoord);
                 speakGuidance(isTelugu ? 'మలుపు గుర్తించబడింది. మూల పిన్ జోడించబడింది.' : 'Corner turn detected. Pin added.');
               }
             }
 
-            drawWalkHUDTrail(walkTrailRef.current, smoothCoord, accuracy);
-          } else {
-            drawWalkHUDTrail(walkTrailRef.current, smoothCoord, accuracy);
+            drawWalkHUDTrail(walkTrailRef.current);
           }
         } else {
           // First point: drop initial starting corner pin
           walkTrailRef.current.push(smoothCoord);
           lastLoggedCoordRef.current = smoothCoord;
           addWalkPin(smoothCoord);
-          drawWalkHUDTrail(walkTrailRef.current, smoothCoord, accuracy);
+          drawWalkHUDTrail(walkTrailRef.current);
           speakGuidance(isTelugu ? 'మొదటి మూల నమోదయింది. సరిహద్దు వెంబడి నడవండి.' : 'Corner 1 recorded. Walk along the field boundary.');
         }
 
@@ -565,11 +758,12 @@ export default function FieldBoundaryMap({
       },
       (err) => {
         console.warn('GPS Walking Survey error:', err);
+        handleGpsError(err);
       },
       {
         enableHighAccuracy: true,
         maximumAge: 0,
-        timeout: 12000
+        timeout: 15000
       }
     );
   };
@@ -595,48 +789,107 @@ export default function FieldBoundaryMap({
     speakGuidance(isTelugu ? `సరిహద్దు రాయి నమోదయింది. మూల పిన్ ${pins.length + 1}.` : `Boundary stone pinned. Corner ${pins.length + 1}.`);
   };
 
-  // Draw Walk Trail & High Accuracy Live Puck on Map
-  const drawWalkHUDTrail = (trail, livePoint, acc) => {
+  // Interactive Simulated Field Walk Demo (for testing without physical walking)
+  const handleStartSimulatedWalk = () => {
+    setShowInsecureOriginModal(false);
+    setIsWalkMode(true);
+    setIsWalking(true);
+    setIsPinMode(false);
+    setWalkDistance(0);
+    walkTrailRef.current = [];
+    lastLoggedCoordRef.current = null;
+    recentGpsBufferRef.current = [];
+    lastBearingRef.current = null;
+    kalmanRef.current.reset();
+
+    if (walkLayerGroupRef.current) {
+      walkLayerGroupRef.current.clearLayers();
+    }
+
+    speakGuidance(isTelugu ? 'నడక అనుకరణ ప్రారంభమైంది. పొలం అంచుల వెంట నడక రికార్డ్ అవుతోంది.' : 'Simulated walk started. Recording field boundary corners.');
+
+    const map = mapInstanceRef.current;
+    const center = map ? map.getCenter() : { lat: centerLat, lng: centerLng };
+    const baseLat = center.lat;
+    const baseLng = center.lng;
+
+    // ~64m x ~64m square (~1 Acre / 4046 sq.m)
+    const deltaLat = 0.00058;
+    const deltaLng = 0.00060;
+
+    const cornerWaypoints = [
+      [baseLat, baseLng],
+      [baseLat + deltaLat, baseLng],
+      [baseLat + deltaLat, baseLng + deltaLng],
+      [baseLat, baseLng + deltaLng],
+      [baseLat, baseLng]
+    ];
+
+    let currentWaypointIdx = 0;
+    let currentStep = 0;
+    const stepsPerEdge = 7;
+
+    const simInterval = setInterval(() => {
+      if (currentWaypointIdx >= cornerWaypoints.length - 1) {
+        clearInterval(simInterval);
+        simulationIntervalRef.current = null;
+        finishWalkMode();
+        return;
+      }
+
+      const start = cornerWaypoints[currentWaypointIdx];
+      const end = cornerWaypoints[currentWaypointIdx + 1];
+      const t = currentStep / stepsPerEdge;
+      const simLat = start[0] + (end[0] - start[0]) * t;
+      const simLng = start[1] + (end[1] - start[1]) * t;
+      const simCoord = [roundCoord(simLat), roundCoord(simLng)];
+      const simAcc = Math.round(1.5 + Math.random() * 2);
+
+      setLiveLocation(simCoord);
+      setGpsAccuracy(simAcc);
+      renderLiveLocationPuck(simCoord, simAcc);
+
+      const last = lastLoggedCoordRef.current;
+      if (last) {
+        const stepDist = haversineDistanceMeters(last[0], last[1], simCoord[0], simCoord[1]);
+        setWalkDistance((prev) => Math.round(prev + stepDist));
+      }
+      walkTrailRef.current.push(simCoord);
+      lastLoggedCoordRef.current = simCoord;
+      drawWalkHUDTrail(walkTrailRef.current);
+
+      if (currentStep === 0) {
+        addWalkPin(simCoord);
+      }
+
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.panTo(simCoord);
+      }
+
+      currentStep++;
+      if (currentStep > stepsPerEdge) {
+        currentStep = 0;
+        currentWaypointIdx++;
+      }
+    }, 450);
+
+    simulationIntervalRef.current = simInterval;
+  };
+
+  // Draw Walk Trail
+  const drawWalkHUDTrail = (trail) => {
     const map = mapInstanceRef.current;
     if (!map || !walkLayerGroupRef.current) return;
 
     walkLayerGroupRef.current.clearLayers();
 
-    // 1. Continuous High-Visibility Walking Trail
+    // High-Visibility Walking Trail
     if (trail.length >= 2) {
       L.polyline(trail, {
         color: '#0284c7',
         weight: 3.5,
         dashArray: '6, 6'
       }).addTo(walkLayerGroupRef.current);
-    }
-
-    // 2. High-Accuracy Live Location Puck with Pulsing Accuracy Ring
-    if (livePoint) {
-      // Precision circle representing GPS accuracy in meters
-      if (acc && acc <= 10) {
-        L.circle(livePoint, {
-          radius: acc,
-          color: '#0284c7',
-          fillColor: '#0284c7',
-          fillOpacity: 0.15,
-          weight: 1.5
-        }).addTo(walkLayerGroupRef.current);
-      }
-
-      const puckIcon = L.divIcon({
-        className: 'gps-live-puck',
-        html: `
-          <div style="position: relative; width: 26px; height: 26px;">
-            <div style="position: absolute; inset: 0; border-radius: 50%; background: #0284c7; opacity: 0.4; animation: ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;"></div>
-            <div style="position: absolute; top: 4px; left: 4px; width: 18px; height: 18px; border-radius: 50%; background: #0284c7; border: 3px solid white; box-shadow: 0 0 12px rgba(2,132,199,0.9);"></div>
-          </div>
-        `,
-        iconSize: [26, 26],
-        iconAnchor: [13, 13]
-      });
-
-      L.marker(livePoint, { icon: puckIcon }).addTo(walkLayerGroupRef.current);
     }
   };
 
@@ -646,12 +899,15 @@ export default function FieldBoundaryMap({
       navigator.geolocation.clearWatch(watchIdRef.current);
       watchIdRef.current = null;
     }
+    if (simulationIntervalRef.current) {
+      clearInterval(simulationIntervalRef.current);
+      simulationIntervalRef.current = null;
+    }
     if (walkLayerGroupRef.current) {
       walkLayerGroupRef.current.clearLayers();
     }
     setIsWalkMode(false);
     setIsWalking(false);
-    setLiveLocation(null);
     speakGuidance(isTelugu ? `సర్వే పూర్తయింది. మొత్తం విస్తీర్ణం ${area.acres} ఎకరాలు.` : `Survey finished. Total area is ${area.acres} Acres.`);
   };
 
@@ -661,12 +917,15 @@ export default function FieldBoundaryMap({
       navigator.geolocation.clearWatch(watchIdRef.current);
       watchIdRef.current = null;
     }
+    if (simulationIntervalRef.current) {
+      clearInterval(simulationIntervalRef.current);
+      simulationIntervalRef.current = null;
+    }
     if (walkLayerGroupRef.current) {
       walkLayerGroupRef.current.clearLayers();
     }
     setIsWalkMode(false);
     setIsWalking(false);
-    setLiveLocation(null);
   };
 
   // ═══════ PIN MANAGEMENT ACTIONS ═══════
@@ -1221,11 +1480,13 @@ export default function FieldBoundaryMap({
 
                 {/* GPS Accuracy Indicator */}
                 <div className={`px-2 py-1 rounded-xl text-[10px] font-black flex items-center gap-1 border ${
-                  gpsAccuracy !== null && gpsAccuracy <= 3
+                  gpsAccuracy !== null && gpsAccuracy <= 5
                     ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
-                    : gpsAccuracy !== null && gpsAccuracy <= 6
+                    : gpsAccuracy !== null && gpsAccuracy <= 15
                     ? 'bg-sky-500/20 text-sky-300 border-sky-500/40'
-                    : 'bg-amber-500/20 text-amber-300 border-amber-500/40 animate-pulse'
+                    : gpsAccuracy !== null && gpsAccuracy <= 30
+                    ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                    : 'bg-rose-500/20 text-rose-300 border-rose-500/40 animate-pulse'
                 }`}>
                   <ShieldCheck className="w-3 h-3" />
                   <span>{gpsAccuracy !== null ? `±${gpsAccuracy}m GPS` : 'Acquiring GPS...'}</span>
@@ -1271,6 +1532,46 @@ export default function FieldBoundaryMap({
           className="w-full h-full relative z-0 outline-none overflow-hidden touch-none"
         />
 
+        {/* Floating Google Maps Style Locate Me (GPS Crosshair) Button */}
+        {interactive && !isWalkMode && (
+          <button
+            type="button"
+            onClick={handleLocateMe}
+            disabled={isLocating}
+            className={`absolute right-3 top-20 sm:top-24 z-20 w-11 h-11 rounded-2xl bg-slate-900/95 text-white backdrop-blur-xl border shadow-2xl flex items-center justify-center transition-all cursor-pointer active:scale-90 ${
+              isLocating
+                ? 'border-sky-400 text-sky-400'
+                : liveLocation
+                ? 'border-emerald-500/70 text-emerald-400 bg-emerald-950/40 ring-2 ring-emerald-500/20'
+                : 'border-slate-700 hover:border-slate-500 text-slate-200 hover:text-white'
+            }`}
+            title={isTelugu ? 'నా ప్రత్యక్ష లొకేషన్ (GPS)' : 'Locate Me (Live GPS)'}
+          >
+            {isLocating ? (
+              <Loader2 className="w-5 h-5 animate-spin" />
+            ) : (
+              <Crosshair className={`w-5 h-5 ${liveLocation ? 'stroke-[2.5]' : ''}`} />
+            )}
+          </button>
+        )}
+
+        {/* Floating GPS Error Toast Notification */}
+        {gpsErrorMsg && (
+          <div className="absolute top-16 inset-x-3 sm:inset-x-6 z-40 flex justify-center pointer-events-none">
+            <div className="bg-rose-950/95 text-rose-200 border border-rose-500/60 backdrop-blur-xl px-3.5 py-2 rounded-2xl shadow-2xl text-xs font-bold flex items-center gap-2 pointer-events-auto max-w-md animate-fade-in">
+              <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
+              <span>{gpsErrorMsg}</span>
+              <button
+                type="button"
+                onClick={() => setGpsErrorMsg(null)}
+                className="ml-auto p-1 rounded-lg text-rose-300 hover:text-white"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Simple Farmer Action Dock (Bottom Center of Map) */}
         {interactive && !isWalkMode && (
           <div className="absolute bottom-3 sm:bottom-5 inset-x-2 sm:inset-x-3 z-30 flex justify-center pointer-events-none">
@@ -1301,7 +1602,7 @@ export default function FieldBoundaryMap({
                 type="button"
                 onClick={startWalkMode}
                 className="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-2 sm:py-2.5 rounded-xl text-xs font-black bg-sky-600 hover:bg-sky-700 text-white shadow-xs transition-all active:scale-95 cursor-pointer shrink-0"
-                title={isTelugu ? 'నడక ద్వారా పొలం కొలవండి (1 మీటర్ ఖచ్చితత్వం)' : 'Walk field perimeter (1m accuracy)'}
+                title={isTelugu ? 'నడక ద్వారా పొలం కొలవండి (ఖచ్చితమైన సర్వే)' : 'Walk field perimeter (Live GPS)'}
               >
                 <Footprints className="w-4 h-4" />
                 <span>{isTelugu ? 'వాక్' : 'Walk'}</span>
@@ -1344,15 +1645,24 @@ export default function FieldBoundaryMap({
                 <span className="hidden xs:inline">{isTelugu ? 'ఫ్రేమ్' : 'Fit'}</span>
               </button>
 
-              {/* 6. Recenter Map on Farm */}
+              {/* 6. Live GPS Locate Me Button */}
               <button
                 type="button"
-                onClick={centerMap}
-                className="flex items-center gap-1 px-2 sm:px-2.5 py-2 sm:py-2.5 rounded-xl text-xs font-bold text-emerald-400 hover:text-emerald-300 hover:bg-slate-800 transition-colors cursor-pointer shrink-0"
-                title={isTelugu ? 'నా పొలం కేంద్రం' : 'Center on farm'}
+                onClick={handleLocateMe}
+                disabled={isLocating}
+                className={`flex items-center gap-1 px-2 sm:px-2.5 py-2 sm:py-2.5 rounded-xl text-xs font-black transition-all cursor-pointer shrink-0 ${
+                  liveLocation
+                    ? 'bg-sky-500/20 text-sky-300 border border-sky-500/50'
+                    : 'text-sky-400 hover:text-sky-300 hover:bg-slate-800'
+                }`}
+                title={isTelugu ? 'నా ప్రత్యక్ష లొకేషన్ (GPS)' : 'Locate Me (Live GPS)'}
               >
-                <Crosshair className="w-4 h-4" />
-                <span className="hidden sm:inline">{isTelugu ? 'నా పొలం' : 'My Farm'}</span>
+                {isLocating ? (
+                  <Loader2 className="w-4 h-4 animate-spin text-sky-400" />
+                ) : (
+                  <Crosshair className="w-4 h-4 text-sky-400" />
+                )}
+                <span className="hidden xs:inline">{isTelugu ? 'జీపీఎస్' : 'Live GPS'}</span>
               </button>
 
               {/* 7. Survey Deed PDF */}
@@ -1380,6 +1690,113 @@ export default function FieldBoundaryMap({
                   <span className="hidden sm:inline">{isTelugu ? 'షేర్' : 'Share'}</span>
                 </button>
               )}
+            </div>
+          </div>
+        )}
+
+        {/* INSECURE ORIGIN MODAL (Android Chrome LAN HTTP GPS Fix) */}
+        {showInsecureOriginModal && (
+          <div className="fixed inset-0 z-[100000] flex items-center justify-center bg-black/75 backdrop-blur-xs p-4">
+            <div className="w-full max-w-md bg-slate-900 border border-amber-500/50 rounded-2xl p-5 shadow-2xl text-white flex flex-col gap-3 max-h-[90dvh] overflow-y-auto">
+              <div className="flex items-start justify-between gap-3 border-b border-slate-800 pb-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center shrink-0">
+                    <AlertTriangle className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-black text-white">
+                      {isTelugu ? 'మొబైల్ క్రోమ్ జీపీఎస్ సెట్టింగ్' : 'Chrome GPS Security Notice'}
+                    </h3>
+                    <p className="text-[11px] text-slate-400">
+                      {isTelugu ? 'HTTP ఐపీ ద్వారా లైవ్ లొకేషన్ క్రోమ్ నిరోధిస్తుంది' : 'Chrome blocks GPS on plain HTTP LAN IPs'}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowInsecureOriginModal(false)}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="text-xs text-slate-300 space-y-2.5 leading-relaxed">
+                <p>
+                  {isTelugu
+                    ? 'గూగుల్ క్రోమ్ సెక్యూరిటీ రూల్స్ ప్రకారం, లోకల్ నెట్‌వర్క్ ఐపీ (http://10.63.76...) లో నేరుగా జీపీఎస్ రన్ అవ్వడానికి క్రోమ్‌లో 1 చిన్న పర్మిషన్ అవసరం:'
+                    : 'Google Chrome on Android blocks GPS hardware on insecure network IPs (http://10.63.76...). Choose one of the solutions below:'}
+                </p>
+
+                {/* Option 1: 30-Second Chrome Flag */}
+                <div className="p-3 rounded-xl bg-slate-800/90 border border-slate-700/80 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="font-black text-amber-400 text-xs flex items-center gap-1.5">
+                      <span>⚡</span> {isTelugu ? 'విధానం 1: 30 సెకన్ల క్రోమ్ సెట్టింగ్ (సిఫార్సు చేయబడింది)' : 'Method 1: 30-Sec Chrome Flag (Recommended)'}
+                    </span>
+                  </div>
+                  <ol className="list-decimal list-inside space-y-1 text-[11px] text-slate-300">
+                    <li>
+                      {isTelugu ? 'మొబైల్ క్రోమ్‌లో కొత్త ట్యాబ్ తెరిచి టైప్ చేయండి:' : 'Open new Chrome tab and go to:'}{' '}
+                      <code className="text-sky-300 font-mono text-[10px] bg-slate-900 px-1.5 py-0.5 rounded">chrome://flags/#unsafely-treat-insecure-origin-as-secure</code>
+                    </li>
+                    <li>
+                      {isTelugu ? 'ఈ URL ను పేస్ట్ చేయండి:' : 'Paste this URL:'}{' '}
+                      <span className="inline-flex items-center gap-1 font-mono text-[11px] text-emerald-400 bg-slate-900 px-2 py-0.5 rounded border border-slate-700">
+                        {typeof window !== 'undefined' ? window.location.origin : 'http://10.63.76.146:3000'}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (typeof navigator !== 'undefined' && navigator.clipboard) {
+                              navigator.clipboard.writeText(window.location.origin);
+                              alert(isTelugu ? 'URL కాపీ అయింది!' : 'URL copied to clipboard!');
+                            }
+                          }}
+                          className="ml-1 text-slate-400 hover:text-white cursor-pointer"
+                          title="Copy URL"
+                        >
+                          <Copy className="w-3 h-3" />
+                        </button>
+                      </span>
+                    </li>
+                    <li>
+                      {isTelugu ? 'డ్రాప్‌డౌన్‌లో "Enabled" ఎంచుకుని, "Relaunch" నొక్కండి.' : 'Select "Enabled" and tap "Relaunch".'}
+                    </li>
+                  </ol>
+                </div>
+
+                {/* Option 2: Satellite Tap Mode */}
+                <div className="p-3 rounded-xl bg-slate-800/90 border border-slate-700/80 space-y-1">
+                  <span className="font-black text-emerald-400 text-xs flex items-center gap-1.5">
+                    <span>🛰️</span> {isTelugu ? 'విధానం 2: శాటిలైట్ మ్యాప్‌పై పిన్స్ తాకడం' : 'Method 2: Tap Corners on Satellite Map'}
+                  </span>
+                  <p className="text-[11px] text-slate-300">
+                    {isTelugu
+                      ? 'జీపీఎస్ లేకుండానే మీ పొలం మూలలను హై-రిజల్యూషన్ గూగుల్ శాటిలైట్ మ్యాప్‌పై తాకి ఖచ్చితమైన విస్తీర్ణం కొలవవచ్చు.'
+                      : 'You do not need GPS! Tap the boundary corners directly on the ultra-zoom Google Satellite view.'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-col sm:flex-row gap-2 pt-2 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={handleStartSimulatedWalk}
+                  className="flex-1 py-2.5 px-3 rounded-xl text-xs font-black bg-sky-600 hover:bg-sky-500 text-white flex items-center justify-center gap-1.5 shadow-md active:scale-95 transition-all cursor-pointer"
+                >
+                  <Footprints className="w-4 h-4" />
+                  <span>{isTelugu ? 'నడక డెమోని ప్రారంభించండి' : 'Simulate Walk Demo'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setShowInsecureOriginModal(false)}
+                  className="py-2.5 px-4 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 cursor-pointer text-center"
+                >
+                  {isTelugu ? 'సరే, అర్థమైంది' : 'Got it'}
+                </button>
+              </div>
             </div>
           </div>
         )}

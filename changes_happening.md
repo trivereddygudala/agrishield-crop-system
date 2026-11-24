@@ -1,4 +1,4 @@
-
+ï»¿
 ## 2026-10-31 - Bug Fix: Rectified ReferenceError (isTe is not defined) in FarmerWelcomeModal
 - **Summary:**
   1. Diagnosed the root runtime crash displayed on the error boundary screen: `ReferenceError: isTe is not defined at FarmerWelcomeModal.jsx:92:10`.
@@ -10113,22 +10113,22 @@ pm run build) succeeded in 20.67s with 0 errors.
    - Frontend production build: 3,168 modules transformed in 22.52s with 0 errors.
 
 ---
-## [2026-11-11 21:01:53] Maintenance Mode Improvements — COMPLETED ?
+## [2026-11-11 21:01:53] Maintenance Mode Improvements ï¿½ COMPLETED ?
 
 ### Changes Made:
 
-#### 1. rontend/src/components/common/MaintenanceModeBanner.jsx — FULL REDESIGN
+#### 1. rontend/src/components/common/MaintenanceModeBanner.jsx ï¿½ FULL REDESIGN
 - Completely rewritten: warm amber/brown tone (not AI-generated red/panic look)
-- Now uses useTranslation() — all text shows in farmer's language (Telugu, Hindi, Tamil, Kannada, Malayalam, Odia, English)
+- Now uses useTranslation() ï¿½ all text shows in farmer's language (Telugu, Hindi, Tamil, Kannada, Malayalam, Odia, English)
 - Shows friendly expandable panel with:
   - What is paused (AI scan, edits, booking, uploads)
   - What still works (view data, market prices, weather, WhatsApp support)
   - Estimated duration pill with formatted time
   - 'Back soon' badge
-  - Dismiss (X) button — collapses to nothing, resets when maintenance re-activates
+  - Dismiss (X) button ï¿½ collapses to nothing, resets when maintenance re-activates
   - Sorry note + ?? at the bottom of expanded view
 
-#### 2. rontend/src/pages/admin/AdminPage.jsx — MAINTENANCE PANEL UPGRADED
+#### 2. rontend/src/pages/admin/AdminPage.jsx ï¿½ MAINTENANCE PANEL UPGRADED
 - Added maintenanceDraft state for custom message + duration
 - Added showMaintenancePanel toggle state  
 - Added isExtendingMaintenance state
@@ -10146,7 +10146,7 @@ pm run build) succeeded in 20.67s with 0 errors.
   - End Maintenance button (green, not red)
 - Action dock button changed to use Wrench icon and open the panel
 
-#### 3. rontend/src/i18n/comprehensiveTranslations.js — MAINTENANCE TRANSLATIONS
+#### 3. rontend/src/i18n/comprehensiveTranslations.js ï¿½ MAINTENANCE TRANSLATIONS
 - Added maintenance_banner namespace to: en, te, hi, ta, kn, ml, or
 - Full translations for all 20 keys in each language
 - Native script: Telugu (??????), Hindi (??????), Tamil (?????), Kannada (?????), Malayalam (??????), Odia (?????)
@@ -10157,13 +10157,13 @@ pm run build) succeeded in 20.67s with 0 errors.
 - frontend/src/i18n/comprehensiveTranslations.js
 
 ---
-## [2026-11-11 21:24:17] Banner Beauty + Mini-Pill — COMPLETED ?
+## [2026-11-11 21:24:17] Banner Beauty + Mini-Pill ï¿½ COMPLETED ?
 
 ### Changes:
 
 #### rontend/src/components/common/MaintenanceModeBanner.jsx
 - **Deep brown gradient** (not flat red): #451a03 ? #78350f ? #92400e with dot-grid overlay and top/bottom golden glow lines
-- **X button now collapses to MiniPill** — farmer is never left in the dark:
+- **X button now collapses to MiniPill** ï¿½ farmer is never left in the dark:
   - Fixed position bottom-right floating pill
   - Pulsing amber dot + Wrench icon + duration + "Back soon"
   - nimate-bounce-slow gentle float
@@ -11978,3 +11978,27 @@ pm --prefix frontend run build (vite v4.5.14 built cleanly in 21.31s with 0 erro
 3. **Verification & Build:**
    - Production bundle verified via 
 pm --prefix frontend run build (vite v4.5.14 built cleanly in 20.50s with 0 errors).
+
+
+## [2026-11-24 14:40:03] - Field Area Calculator: Google Maps-Grade Live GPS & Walking Survey Implementation
+**Summary of Changes:**
+1. **Persistent Live GPS Blue Dot Puck (frontend/src/components/farm/FieldBoundaryMap.jsx):**
+   - Implemented high-precision Google Maps-style live location rendering with pulsing animated radar aura, white-bordered blue dot, and dynamic accuracy circle reflecting satellite error margin.
+2. **Compass Heading Cone (frontend/src/components/farm/FieldBoundaryMap.jsx):**
+   - Added WebKit/Android device orientation listeners (deviceorientationabsolute / deviceorientation) that rotate a directional heading cone when the farmer turns their phone in the field.
+3. **Dedicated Google Maps Locate Me Crosshair FAB (frontend/src/components/farm/FieldBoundaryMap.jsx):**
+   - Added floating GPS button on the map canvas (right-3 top-20 sm:top-24) with spin-locating feedback, high-accuracy GPS acquisition, and smooth animated fly-to camera centering (map.flyTo(coord, 18)).
+4. **Dock GPS Target Button (frontend/src/components/farm/FieldBoundaryMap.jsx):**
+   - Replaced static 'My Farm' button with live GPS locate button and localized status chips.
+5. **Agricultural Walk Mode Quality Gate Fix (frontend/src/components/farm/FieldBoundaryMap.jsx):**
+   - Relaxed the restrictive accuracy > 9 filter to accuracy > 35 to accommodate realistic smartphone GPS in rural crop fields (5mâ€“25m). Preserved 2D Kalman filter for sub-meter jitter reduction.
+6. **Auto & Manual Corner Detection (frontend/src/components/farm/FieldBoundaryMap.jsx):**
+   - Enhanced walking survey with automatic bend detection (>28 degree turn) and added a dedicated [Drop Corner Pin] button for marking physical boundary stones/posts.
+7. **Insecure Origin (HTTP LAN) Handling & Guidance (frontend/src/components/farm/FieldBoundaryMap.jsx):**
+   - Added detection for mobile Chrome blocking GPS on plain HTTP LAN IPs (http://10.63.76.146:3000). Provided an intuitive modal with 1-tap URL copy, 30-second Chrome Flag tutorial, and interactive Simulated Field Walk Demo for testing without physical field walking.
+8. **Initial Auto-Locate with Network Fallback (frontend/src/pages/farmer/FieldAreaCalculatorPage.jsx):**
+   - Implemented dual-stage location acquisition on page load: tries high accuracy first (12s), automatically falls back to network/cell tower fix, and passes initial coords/accuracy to the map.
+9. **Vite HTTPS & Basic-SSL Support (frontend/vite.config.js & frontend/package.json):**
+   - Configured frontend/vite.config.js to automatically attach @vitejs/plugin-basic-ssl whenever --https or HTTPS=true is supplied, and added npm run dev:https to package.json.
+10. **Build Verification:**
+    - Production bundle compiled cleanly with npm run build: 3,205 modules transformed in 23.76s with 0 errors.

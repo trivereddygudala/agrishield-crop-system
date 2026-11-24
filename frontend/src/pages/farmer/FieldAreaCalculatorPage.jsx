@@ -39,6 +39,8 @@ export default function FieldAreaCalculatorPage() {
   // Live GPS Center coordinates
   const [centerLat, setCenterLat] = useState(15.5057);
   const [centerLng, setCenterLng] = useState(80.0499);
+  const [initialUserLocation, setInitialUserLocation] = useState(null);
+  const [initialGpsAccuracy, setInitialGpsAccuracy] = useState(null);
 
   // ═══════ MANUAL TAPE / CHAIN DIMENSION CALCULATOR STATE ═══════
   const [dimensionShape, setDimensionShape] = useState('rectangle'); // 'rectangle' | 'quadrilateral' | 'triangle'
@@ -62,15 +64,34 @@ export default function FieldAreaCalculatorPage() {
 
   useEffect(() => {
     if (typeof navigator !== 'undefined' && navigator.geolocation) {
+      // First attempt: High accuracy GPS
       navigator.geolocation.getCurrentPosition(
         (pos) => {
-          setCenterLat(pos.coords.latitude);
-          setCenterLng(pos.coords.longitude);
+          const lat = parseFloat(Number(pos.coords.latitude).toFixed(6));
+          const lng = parseFloat(Number(pos.coords.longitude).toFixed(6));
+          setCenterLat(lat);
+          setCenterLng(lng);
+          setInitialUserLocation([lat, lng]);
+          setInitialGpsAccuracy(Math.round(pos.coords.accuracy));
         },
         (err) => {
-          console.log('Using default AP-TS coordinates for land calculator:', err);
+          // Fallback to low-accuracy network fix if high-accuracy times out
+          navigator.geolocation.getCurrentPosition(
+            (pos2) => {
+              const lat = parseFloat(Number(pos2.coords.latitude).toFixed(6));
+              const lng = parseFloat(Number(pos2.coords.longitude).toFixed(6));
+              setCenterLat(lat);
+              setCenterLng(lng);
+              setInitialUserLocation([lat, lng]);
+              setInitialGpsAccuracy(Math.round(pos2.coords.accuracy));
+            },
+            (err2) => {
+              console.log('Using default AP-TS coordinates for land calculator:', err2);
+            },
+            { timeout: 10000, enableHighAccuracy: false, maximumAge: 300000 }
+          );
         },
-        { timeout: 8000, enableHighAccuracy: true }
+        { timeout: 12000, enableHighAccuracy: true, maximumAge: 60000 }
       );
     }
   }, []);
@@ -360,6 +381,8 @@ export default function FieldAreaCalculatorPage() {
         <FieldBoundaryMap
           centerLat={centerLat}
           centerLng={centerLng}
+          initialUserLocation={initialUserLocation}
+          initialGpsAccuracy={initialGpsAccuracy}
           farmName={plotName}
           boundaryCoordinates={boundaryPins}
           onBoundaryChange={(newPins) => setBoundaryPins(newPins)}
