@@ -63,36 +63,69 @@ export default function FieldAreaCalculatorPage() {
   const [triSideC, setTriSideC] = useState('');
 
   useEffect(() => {
+    let resolved = false;
+
+    const applyLocation = (lat, lng, acc) => {
+      if (resolved) return;
+      resolved = true;
+      setCenterLat(lat);
+      setCenterLng(lng);
+      setInitialUserLocation([lat, lng]);
+      setInitialGpsAccuracy(acc);
+    };
+
+    // 1. Hardware Geolocation Attempt
     if (typeof navigator !== 'undefined' && navigator.geolocation) {
-      // First attempt: High accuracy GPS
       navigator.geolocation.getCurrentPosition(
         (pos) => {
           const lat = parseFloat(Number(pos.coords.latitude).toFixed(6));
           const lng = parseFloat(Number(pos.coords.longitude).toFixed(6));
-          setCenterLat(lat);
-          setCenterLng(lng);
-          setInitialUserLocation([lat, lng]);
-          setInitialGpsAccuracy(Math.round(pos.coords.accuracy));
+          applyLocation(lat, lng, Math.round(pos.coords.accuracy || 10));
         },
-        (err) => {
-          // Fallback to low-accuracy network fix if high-accuracy times out
-          navigator.geolocation.getCurrentPosition(
-            (pos2) => {
-              const lat = parseFloat(Number(pos2.coords.latitude).toFixed(6));
-              const lng = parseFloat(Number(pos2.coords.longitude).toFixed(6));
-              setCenterLat(lat);
-              setCenterLng(lng);
-              setInitialUserLocation([lat, lng]);
-              setInitialGpsAccuracy(Math.round(pos2.coords.accuracy));
-            },
-            (err2) => {
-              console.log('Using default AP-TS coordinates for land calculator:', err2);
-            },
-            { timeout: 10000, enableHighAccuracy: false, maximumAge: 300000 }
-          );
+        () => {
+          // Hardware GPS failed -> Instant IP Geolocation Fallback
+          fetch('https://ipwho.is/')
+            .then((r) => r.json())
+            .then((d) => {
+              if (d && d.success && d.latitude && d.longitude) {
+                applyLocation(
+                  parseFloat(Number(d.latitude).toFixed(6)),
+                  parseFloat(Number(d.longitude).toFixed(6)),
+                  1500
+                );
+              }
+            })
+            .catch(() => {
+              fetch('https://freeipapi.com/api/json')
+                .then((r) => r.json())
+                .then((d2) => {
+                  if (d2 && d2.latitude && d2.longitude) {
+                    applyLocation(
+                      parseFloat(Number(d2.latitude).toFixed(6)),
+                      parseFloat(Number(d2.longitude).toFixed(6)),
+                      1500
+                    );
+                  }
+                })
+                .catch(() => {});
+            });
         },
-        { timeout: 12000, enableHighAccuracy: true, maximumAge: 60000 }
+        { timeout: 8000, enableHighAccuracy: true, maximumAge: 60000 }
       );
+    } else {
+      // Direct IP Geolocation if geolocation is missing
+      fetch('https://ipwho.is/')
+        .then((r) => r.json())
+        .then((d) => {
+          if (d && d.success && d.latitude && d.longitude) {
+            applyLocation(
+              parseFloat(Number(d.latitude).toFixed(6)),
+              parseFloat(Number(d.longitude).toFixed(6)),
+              1500
+            );
+          }
+        })
+        .catch(() => {});
     }
   }, []);
 

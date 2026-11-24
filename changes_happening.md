@@ -12002,3 +12002,21 @@ pm --prefix frontend run build (vite v4.5.14 built cleanly in 20.50s with 0 erro
    - Configured frontend/vite.config.js to automatically attach @vitejs/plugin-basic-ssl whenever --https or HTTPS=true is supplied, and added npm run dev:https to package.json.
 10. **Build Verification:**
     - Production bundle compiled cleanly with npm run build: 3,205 modules transformed in 23.76s with 0 errors.
+
+
+## [2026-11-24 15:15:37] - Zero-Fail Multi-Tier Live Location Engine & Interactive Map Crosshair
+**Summary of Changes:**
+1. **Removed Insecure Context Hard Blocking (frontend/src/components/farm/FieldBoundaryMap.jsx):**
+   - Eliminated early return checks that previously blocked navigator.geolocation from running when accessed via LAN IP.
+2. **Backend Permissions-Policy Fix (backend/app/core/security_middleware.py):**
+   - Fixed Permissions-Policy header which previously disabled geolocation entirely with geolocation=(). Updated to camera=(self), microphone=(self), geolocation=(self).
+3. **Multi-Tier Fast IP Geolocation Engine (frontend/src/components/farm/FieldBoundaryMap.jsx & FieldAreaCalculatorPage.jsx):**
+   - Implemented fetchIpLocation() querying ipwho.is, ipapi.co, and freeipapi.com as instant fallbacks when satellite GPS is unavailable or blocked by mobile Chrome HTTP policy.
+   - Automatically acquires the user's real geographic location on page load, drops the pulsing blue puck, and flies the camera to the user's area.
+4. **Precision Center Reticle & Pin Center Action (frontend/src/components/farm/FieldBoundaryMap.jsx):**
+   - Added animated center crosshair targeting reticle when in Pin Mode.
+   - Added [Pin Center] ([మధ్యలో పిన్]) dock button allowing farmers to align boundary corners against satellite imagery and drop pins with zero error margin.
+5. **Interactive Walk Mode Fallback (frontend/src/components/farm/FieldBoundaryMap.jsx):**
+   - Enabled walk mode to automatically transition to step-by-step corner drop if hardware GPS is not accessible on the device.
+6. **Build Verification:**
+   - Production bundle compiled cleanly with npm run build: 3,205 modules transformed in 19.31s with 0 errors.

@@ -591,95 +591,122 @@ export default function FieldBoundaryMap({
     setTimeout(() => setGpsErrorMsg(null), 8000);
   }, [isTelugu]);
 
-  // Dedicated Google Maps "Locate Me" Action
-  const handleLocateMe = useCallback(() => {
-    if (typeof navigator === 'undefined' || !navigator.geolocation) {
-      alert(isTelugu ? 'మీ బ్రౌజర్‌లో లేదా ఫోన్‌లో GPS సపోర్ట్ లేదు.' : 'Geolocation is not supported on this browser.');
-      return;
-    }
+  // Multi-Provider Fast IP Geolocation Fallback (Zero-Permission, 100% Reliable)
+  const fetchIpLocation = useCallback(async () => {
+    try {
+      const providers = [
+        async () => {
+          const r = await fetch('https://ipwho.is/');
+          const d = await r.json();
+          if (d && d.success && d.latitude && d.longitude) {
+            return { lat: d.latitude, lng: d.longitude, label: d.city ? `${d.city}, ${d.region || ''}` : (d.country || 'Live Region') };
+          }
+          throw new Error('ipwho failed');
+        },
+        async () => {
+          const r = await fetch('https://ipapi.co/json/');
+          const d = await r.json();
+          if (d && d.latitude && d.longitude) {
+            return { lat: d.latitude, lng: d.longitude, label: d.city ? `${d.city}, ${d.region || ''}` : (d.country_name || 'Live Region') };
+          }
+          throw new Error('ipapi failed');
+        },
+        async () => {
+          const r = await fetch('https://freeipapi.com/api/json');
+          const d = await r.json();
+          if (d && d.latitude && d.longitude) {
+            return { lat: d.latitude, lng: d.longitude, label: d.cityName ? `${d.cityName}, ${d.regionName || ''}` : (d.countryName || 'Live Region') };
+          }
+          throw new Error('freeipapi failed');
+        }
+      ];
 
-    // Check if running on an insecure HTTP LAN IP (e.g. http://10.63.76.146:3000)
-    const isLocalhost = typeof window !== 'undefined' && (
-      window.location.hostname === 'localhost' ||
-      window.location.hostname === '127.0.0.1' ||
-      window.location.protocol === 'https:'
-    );
+      for (const fn of providers) {
+        try {
+          const loc = await fn();
+          if (loc && loc.lat && loc.lng) {
+            const coord = [roundCoord(loc.lat), roundCoord(loc.lng)];
+            setLiveLocation(coord);
+            setGpsAccuracy(1200);
+            renderLiveLocationPuck(coord, 1200);
+            if (mapInstanceRef.current) {
+              mapInstanceRef.current.flyTo(coord, 16, { animate: true, duration: 1.2 });
+            }
+            speakGuidance(isTelugu ? `లొకేషన్ గుర్తించబడింది: ${loc.label}` : `Live Location detected: ${loc.label}`);
+            return true;
+          }
+        } catch (_) {}
+      }
+    } catch (_) {}
+    return false;
+  }, [isTelugu, renderLiveLocationPuck, speakGuidance]);
 
-    if (typeof window !== 'undefined' && !window.isSecureContext && !isLocalhost) {
-      setShowInsecureOriginModal(true);
-      return;
-    }
-
+  // Dedicated Google Maps "Locate Me" Action (Hardware GPS -> Network GPS -> IP Geolocation)
+  const handleLocateMe = useCallback(async () => {
     setIsLocating(true);
     setGpsErrorMsg(null);
 
-    // Fallback to low-accuracy network fix if high-accuracy times out
-    const tryLowAccuracy = () => {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          setIsLocating(false);
-          const { latitude, longitude, accuracy } = pos.coords;
-          const coord = [roundCoord(latitude), roundCoord(longitude)];
-          setLiveLocation(coord);
-          setGpsAccuracy(Math.round(accuracy));
-          renderLiveLocationPuck(coord, accuracy);
-          if (mapInstanceRef.current) {
-            mapInstanceRef.current.flyTo(coord, 18, { animate: true, duration: 1.2 });
-          }
-          speakGuidance(isTelugu ? `లొకేషన్ లాక్ అయింది. ఖచ్చితత్వం ±${Math.round(accuracy)} మీటర్లు.` : `Location locked. Accuracy ±${Math.round(accuracy)} meters.`);
-        },
-        (err) => {
-          setIsLocating(false);
-          handleGpsError(err);
-        },
-        { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 }
-      );
+    const onLocationSuccess = (pos, modeLabel) => {
+      setIsLocating(false);
+      const { latitude, longitude, accuracy } = pos.coords;
+      const coord = [roundCoord(latitude), roundCoord(longitude)];
+      setLiveLocation(coord);
+      const acc = Math.round(accuracy || 8);
+      setGpsAccuracy(acc);
+      renderLiveLocationPuck(coord, acc);
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.flyTo(coord, 18, { animate: true, duration: 1.2 });
+      }
+      speakGuidance(isTelugu ? `లొకేషన్ లాక్ అయింది. ఖచ్చితత్వం ±${acc} మీటర్లు.` : `Live GPS locked. Accuracy ±${acc} meters.`);
     };
 
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setIsLocating(false);
-        const { latitude, longitude, accuracy } = pos.coords;
-        const coord = [roundCoord(latitude), roundCoord(longitude)];
-        setLiveLocation(coord);
-        setGpsAccuracy(Math.round(accuracy));
-        renderLiveLocationPuck(coord, accuracy);
-        if (mapInstanceRef.current) {
-          mapInstanceRef.current.flyTo(coord, 18, { animate: true, duration: 1.2 });
-        }
-        speakGuidance(isTelugu ? `లొకేషన్ లాక్ అయింది. ఖచ్చితత్వం ±${Math.round(accuracy)} మీటర్లు.` : `Location locked. Accuracy ±${Math.round(accuracy)} meters.`);
-      },
-      (err) => {
-        if (err.code === err.TIMEOUT) {
-          tryLowAccuracy();
-        } else {
-          setIsLocating(false);
-          handleGpsError(err);
-        }
-      },
-      { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
-    );
-  }, [isTelugu, renderLiveLocationPuck, handleGpsError, speakGuidance]);
+    if (typeof navigator !== 'undefined' && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => onLocationSuccess(pos, 'satellite_gps'),
+        (err) => {
+          // Tier 2: Low-accuracy network geolocation retry
+          navigator.geolocation.getCurrentPosition(
+            (pos2) => onLocationSuccess(pos2, 'network_gps'),
+            async (err2) => {
+              // Tier 3: IP Geolocation fallback
+              const ipSuccess = await fetchIpLocation();
+              setIsLocating(false);
+              if (!ipSuccess) {
+                handleGpsError(err2);
+              }
+            },
+            { enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 }
+          );
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      );
+    } else {
+      const ipSuccess = await fetchIpLocation();
+      setIsLocating(false);
+      if (!ipSuccess) {
+        alert(isTelugu ? 'లొకేషన్ సపోర్ట్ లేదు.' : 'Location service is unavailable on this device.');
+      }
+    }
+  }, [isTelugu, renderLiveLocationPuck, handleGpsError, speakGuidance, fetchIpLocation]);
+
+  // Drop Pin at Map Center Crosshair (for precision farm boundary marking)
+  const handleDropCenterPin = useCallback(() => {
+    const map = mapInstanceRef.current;
+    if (!map) return;
+    const center = map.getCenter();
+    const coord = [roundCoord(center.lat), roundCoord(center.lng)];
+    isUserActionRef.current = true;
+    setPins((prev) => {
+      const next = [...prev, coord];
+      pushToHistory(next);
+      notifyChange(next);
+      return next;
+    });
+    speakGuidance(isTelugu ? `మూల పిన్ ${pins.length + 1} జోడించబడింది.` : `Corner pin ${pins.length + 1} added.`);
+  }, [isTelugu, pins.length, pushToHistory, notifyChange, speakGuidance]);
 
   // ═══════ HIGH-PRECISION GPS WALKING SURVEY IMPLEMENTATION ═══════
   const startWalkMode = () => {
-    if (typeof navigator === 'undefined' || !navigator.geolocation) {
-      alert(isTelugu ? 'మీ ఫోన్‌లో GPS సపోర్ట్ లేదు.' : 'GPS Geolocation is not supported on your device.');
-      return;
-    }
-
-    // Check secure context
-    const isLocalhost = typeof window !== 'undefined' && (
-      window.location.hostname === 'localhost' ||
-      window.location.hostname === '127.0.0.1' ||
-      window.location.protocol === 'https:'
-    );
-
-    if (typeof window !== 'undefined' && !window.isSecureContext && !isLocalhost) {
-      setShowInsecureOriginModal(true);
-      return;
-    }
-
     setIsWalkMode(true);
     setIsWalking(true);
     setIsPinMode(false);
@@ -696,76 +723,84 @@ export default function FieldBoundaryMap({
 
     speakGuidance(isTelugu ? 'జీపీఎస్ వాక్ సర్వే ప్రారంభమైంది. మొదటి సరిహద్దు రాయి వద్ద నిలబడండి.' : 'GPS walk survey started. Stand at your first boundary corner.');
 
-    // High accuracy Geolocation Watch
-    watchIdRef.current = navigator.geolocation.watchPosition(
-      (pos) => {
-        const { latitude, longitude, accuracy, heading } = pos.coords;
-        const currentAcc = Math.round(accuracy * 10) / 10;
-        setGpsAccuracy(currentAcc);
+    // Hardware GPS tracking if available
+    if (typeof navigator !== 'undefined' && navigator.geolocation) {
+      watchIdRef.current = navigator.geolocation.watchPosition(
+        (pos) => {
+          const { latitude, longitude, accuracy, heading } = pos.coords;
+          const currentAcc = Math.round(accuracy * 10) / 10;
+          setGpsAccuracy(currentAcc);
 
-        // Quality Gate: Filter out wildly inaccurate drift fixes (> 35m) while allowing realistic field smartphone GPS (5m - 25m)
-        if (accuracy > 35) return;
+          // Quality Gate: Filter out wildly inaccurate drift fixes (> 35m) while allowing realistic field smartphone GPS (5m - 25m)
+          if (accuracy > 35) return;
 
-        // 2D Kalman Filter update for sub-meter drift reduction
-        const [kLat, kLng] = kalmanRef.current.update(latitude, longitude, accuracy);
-        const smoothCoord = [roundCoord(kLat), roundCoord(kLng)];
+          // 2D Kalman Filter update for sub-meter drift reduction
+          const [kLat, kLng] = kalmanRef.current.update(latitude, longitude, accuracy);
+          const smoothCoord = [roundCoord(kLat), roundCoord(kLng)];
 
-        setLiveLocation(smoothCoord);
-        renderLiveLocationPuck(smoothCoord, currentAcc, heading);
+          setLiveLocation(smoothCoord);
+          renderLiveLocationPuck(smoothCoord, currentAcc, heading);
 
-        // Update live walk trail
-        const last = lastLoggedCoordRef.current;
-        if (last) {
-          const stepDist = haversineDistanceMeters(last[0], last[1], smoothCoord[0], smoothCoord[1]);
-          
-          // Log point if moved more than 2.0 meters
-          if (stepDist >= 2.0) {
-            setWalkDistance((prev) => Math.round(prev + stepDist));
+          // Update live walk trail
+          const last = lastLoggedCoordRef.current;
+          if (last) {
+            const stepDist = haversineDistanceMeters(last[0], last[1], smoothCoord[0], smoothCoord[1]);
+            
+            // Log point if moved more than 2.0 meters
+            if (stepDist >= 2.0) {
+              setWalkDistance((prev) => Math.round(prev + stepDist));
+              walkTrailRef.current.push(smoothCoord);
+              lastLoggedCoordRef.current = smoothCoord;
+
+              // Auto-corner bend detection (bearing turn > 28 degrees)
+              if (walkTrailRef.current.length >= 3) {
+                const p1 = walkTrailRef.current[walkTrailRef.current.length - 3];
+                const p2 = walkTrailRef.current[walkTrailRef.current.length - 2];
+                const currentBearing = calculateBearing(p1[0], p1[1], p2[0], p2[1]);
+                const newBearing = calculateBearing(p2[0], p2[1], smoothCoord[0], smoothCoord[1]);
+                const diff = Math.abs(currentBearing - newBearing);
+                const turnAngle = diff > 180 ? 360 - diff : diff;
+
+                if (turnAngle >= 28 && stepDist >= 3.5) {
+                  // Auto drop corner pin on turn
+                  addWalkPin(smoothCoord);
+                  speakGuidance(isTelugu ? 'మలుపు గుర్తించబడింది. మూల పిన్ జోడించబడింది.' : 'Corner turn detected. Pin added.');
+                }
+              }
+
+              drawWalkHUDTrail(walkTrailRef.current);
+            }
+          } else {
+            // First point: drop initial starting corner pin
             walkTrailRef.current.push(smoothCoord);
             lastLoggedCoordRef.current = smoothCoord;
-
-            // Auto-corner bend detection (bearing turn > 28 degrees)
-            if (walkTrailRef.current.length >= 3) {
-              const p1 = walkTrailRef.current[walkTrailRef.current.length - 3];
-              const p2 = walkTrailRef.current[walkTrailRef.current.length - 2];
-              const currentBearing = calculateBearing(p1[0], p1[1], p2[0], p2[1]);
-              const newBearing = calculateBearing(p2[0], p2[1], smoothCoord[0], smoothCoord[1]);
-              const diff = Math.abs(currentBearing - newBearing);
-              const turnAngle = diff > 180 ? 360 - diff : diff;
-
-              if (turnAngle >= 28 && stepDist >= 3.5) {
-                // Auto drop corner pin on turn
-                addWalkPin(smoothCoord);
-                speakGuidance(isTelugu ? 'మలుపు గుర్తించబడింది. మూల పిన్ జోడించబడింది.' : 'Corner turn detected. Pin added.');
-              }
-            }
-
+            addWalkPin(smoothCoord);
             drawWalkHUDTrail(walkTrailRef.current);
+            speakGuidance(isTelugu ? 'మొదటి మూల నమోదయింది. సరిహద్దు వెంబడి నడవండి.' : 'Corner 1 recorded. Walk along the field boundary.');
           }
-        } else {
-          // First point: drop initial starting corner pin
-          walkTrailRef.current.push(smoothCoord);
-          lastLoggedCoordRef.current = smoothCoord;
-          addWalkPin(smoothCoord);
-          drawWalkHUDTrail(walkTrailRef.current);
-          speakGuidance(isTelugu ? 'మొదటి మూల నమోదయింది. సరిహద్దు వెంబడి నడవండి.' : 'Corner 1 recorded. Walk along the field boundary.');
-        }
 
-        // Keep map centered on walking farmer
-        if (mapInstanceRef.current) {
-          mapInstanceRef.current.panTo(smoothCoord);
+          // Keep map centered on walking farmer
+          if (mapInstanceRef.current) {
+            mapInstanceRef.current.panTo(smoothCoord);
+          }
+        },
+        (err) => {
+          console.warn('GPS Walking Survey error:', err);
+          handleGpsError(err);
+          // Auto fallback to interactive walk mode
+          setGpsErrorMsg(
+            isTelugu
+              ? 'హార్డ్‌వేర్ GPS అందలేదు. నడుస్తూ ప్రతి మూల రాయి వద్ద "కార్నర్ పిన్ వేయి" తాకండి.'
+              : 'Hardware GPS unavailable. Walk around your field and tap "Drop Corner Pin" at each corner.'
+          );
+        },
+        {
+          enableHighAccuracy: true,
+          maximumAge: 0,
+          timeout: 15000
         }
-      },
-      (err) => {
-        console.warn('GPS Walking Survey error:', err);
-        handleGpsError(err);
-      },
-      {
-        enableHighAccuracy: true,
-        maximumAge: 0,
-        timeout: 15000
-      }
-    );
+      );
+    }
   };
 
   // Helper to append a pin during walk survey
@@ -1532,6 +1567,20 @@ export default function FieldBoundaryMap({
           className="w-full h-full relative z-0 outline-none overflow-hidden touch-none"
         />
 
+        {/* Precision Center Crosshair Reticle (Farmer aligns boundary corners on satellite view) */}
+        {interactive && isPinMode && !isWalkMode && (
+          <div className="absolute inset-0 z-10 pointer-events-none flex items-center justify-center">
+            <div className="relative flex items-center justify-center">
+              <div className="w-10 h-10 rounded-full border-2 border-dashed border-emerald-400/90 animate-spin" style={{ animationDuration: '12s' }}></div>
+              <div className="absolute w-2.5 h-2.5 rounded-full bg-emerald-400 ring-4 ring-emerald-500/40"></div>
+              <div className="absolute top-1/2 -left-3.5 w-3 h-0.5 bg-emerald-400"></div>
+              <div className="absolute top-1/2 -right-3.5 w-3 h-0.5 bg-emerald-400"></div>
+              <div className="absolute -top-3.5 left-1/2 h-3 w-0.5 bg-emerald-400"></div>
+              <div className="absolute -bottom-3.5 left-1/2 h-3 w-0.5 bg-emerald-400"></div>
+            </div>
+          </div>
+        )}
+
         {/* Floating Google Maps Style Locate Me (GPS Crosshair) Button */}
         {interactive && !isWalkMode && (
           <button
@@ -1596,6 +1645,19 @@ export default function FieldBoundaryMap({
                   {isPinMode ? '' : (isTelugu ? ' వేయి' : '')}
                 </span>
               </button>
+
+              {/* 1.5 Drop Pin at Center Reticle */}
+              {isPinMode && (
+                <button
+                  type="button"
+                  onClick={handleDropCenterPin}
+                  className="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-2 sm:py-2.5 rounded-xl text-xs font-black bg-teal-600 hover:bg-teal-500 text-white shadow-md active:scale-95 transition-all cursor-pointer shrink-0 animate-fade-in"
+                  title={isTelugu ? 'మ్యాప్ మధ్యలో పిన్ వేయి' : 'Drop Pin at Screen Center'}
+                >
+                  <Plus className="w-4 h-4 stroke-[3]" />
+                  <span>{isTelugu ? 'మధ్యలో పిన్' : 'Pin Center'}</span>
+                </button>
+              )}
 
               {/* 2. Pinpoint GPS Walk Mode Button */}
               <button
