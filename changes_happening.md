@@ -12241,3 +12241,28 @@ pm --prefix frontend run build (vite v4.5.14 built cleanly in 20.50s with 0 erro
   - Upgraded stepper labels to dynamic localized tags.
 - **Verification:**
   - Production build `npm.cmd run build` transformed 3,208 modules in 23.80s with 0 errors.
+
+## [2026-11-27 17:15:00] - Full Suite 8-Language Localization & Hardcoded String Eradication Across Entire Website
+- **Architecture & Modular Hub Pipeline (`frontend/src/i18n/`):**
+  - Created 5 high-performance modular translation files covering all 8 supported languages (`en`, `te`, `hi`, `ta`, `kn`, `ml`, `mr`, `or`):
+    - `farmHubTranslations.js`: Full localization for Farm Page and 9 Agronomic child modules (NPK Calculator, Digital Farm Khata seasons, Harvest Season units, Government Schemes eligibility checklist, CIBRC toxicity badges).
+    - `scanHubTranslations.js`: Full localization for AI Crop Doctor & Prescription Result (v2.4 Precision badges, clinical guidance advice pills, WhatsApp sharing triggers, PDF slip generation, multi-lingual Voice Doctor buttons).
+    - `providerHubTranslations.js`: Complete Equipment Provider Portal localization restoring 100% parity to Marathi (`mr`) (175 keys), plus base hub locations, farmer identity labels, direct settlement badges, and machine telemetry status tags across all 8 languages.
+    - `toolsHubTranslations.js`: Full localization for Secondary Tools & IoT modules (AI Chat Assistant consultation history, session search placeholders, Node Control panels, Live Screen Monitor stream badges, MicroSD storage modules, ESP32 DevKit hardware telemetry, diagnostic reports, and system settings).
+    - `adminHubTranslations.js`: Full localization for Admin Control Center across all 10 sub-tabs (Registered Users, Scans Audit, Live API Radar, Global Broadcasts, Farmer Geography, IoT Hardware Fleet, Firmware OTA, Security Audit Logs, Helpdesk & Support, Security Defense Walls).
+  - Deep-merged all modular hubs into `resources[lang].translation` in `frontend/src/i18n/config.js` via recursive `deepMerge`.
+- **Eradication of Hardcoded Strings Across All Target Pages & Components:**
+  - `frontend/src/pages/farmer/PredictionResultPage.jsx`: Localized all prescription actions, WhatsApp share, PDF Rx download, and Voice Doctor CTA buttons.
+  - `frontend/src/pages/farmer/UploadImagePage.jsx`: Localized model precision badge.
+  - `frontend/src/pages/provider/ProviderDashboardPage.jsx`: Localized base hub, farmer labels, and payment settlement indicators.
+  - `frontend/src/components/farm/SoilNPKCalculatorModal.jsx`: Localized ICAR fertigation certification and macro-nutrients (pH, N, P, K).
+  - `frontend/src/components/farm/GovernmentSchemeNavigator.jsx`: Localized 4 documentation eligibility requirement strings.
+  - `frontend/src/components/farm/DigitalFarmKhata.jsx`: Localized agricultural seasons (Kharif, Rabi, Zaid, Perennial).
+  - `frontend/src/components/farm/HarvestSeasonManager.jsx`: Localized harvest measurement units (Quintal, Kilogram, Tonne, Crates).
+  - `frontend/src/pages/common/AIAssistantPage.jsx`: Localized Chat History header, AgriShield Sessions subtitle, consultation search placeholder, and Start New Consultation CTA.
+  - `frontend/src/pages/common/NodeControlPage.jsx`: Integrated `useTranslation` and localized Node Control Panel header and Live Screen Monitor badge.
+  - `frontend/src/pages/common/SDCardPage.jsx`: Localized MicroSD Storage Module header and Refresh action.
+  - `frontend/src/pages/common/DevicesPage.jsx`: Localized MCU Hardware and firmware telemetry tags.
+  - `frontend/src/pages/admin/AdminPage.jsx`: Localized all 10 administrative tab titles and descriptions.
+- **Verification:**
+  - Production build `npm.cmd run build` transformed 3,213 modules with 0 compilation errors in 30.46s.

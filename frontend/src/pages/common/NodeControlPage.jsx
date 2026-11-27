@@ -5,10 +5,12 @@ import {
   SkipBack, SkipForward, Server, Activity, Thermometer, Droplets,
   Sun, Wifi, Clock, RotateCw, Moon, Battery, ChevronRight
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Card, Button, Badge } from '../../components/ui/index';
 import API from '../../services/api';
 
 const NodeControlPage = () => {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState('dashboard');
 
   const [nodeIp, setNodeIp] = useState('');
@@ -220,7 +222,7 @@ const NodeControlPage = () => {
         <div>
           <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2.5" style={{ fontFamily: 'var(--font-display)' }}>
             <Terminal className="w-8 h-8 text-emerald-500" />
-            Node Control Panel
+            {t('iot.node_control_title', 'Node Control Panel')}
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-white/40 mt-1">
             Directly configure and trigger diagnostic testing on your paired ESP32 hardware device.
@@ -285,7 +287,7 @@ const NodeControlPage = () => {
                 <div>
                   <h3 className="text-xs font-black text-slate-550 dark:text-white/40 uppercase tracking-widest flex items-center gap-2 mb-4">
                     <Activity className="w-4 h-4 text-emerald-555" />
-                    Live Screen Monitor
+                    {t('iot.live_monitor', 'Live Screen Monitor')}
                   </h3>
                   
                   <div className="bg-[#0b1019] border border-white/5 rounded-2xl p-6 flex flex-col justify-center min-h-[220px] items-center relative overflow-hidden shadow-inner">

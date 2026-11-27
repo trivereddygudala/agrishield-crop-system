@@ -814,10 +814,10 @@ export default function HarvestSeasonManager({ farmId, farmName, cropName, farmS
                     onChange={(e) => setHarvestForm({ ...harvestForm, unit: e.target.value })}
                     className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-medium"
                   >
-                    <option value="quintal">Quintal (Qtl)</option>
-                    <option value="kg">Kilogram (kg)</option>
-                    <option value="tonne">Tonne / Ton</option>
-                    <option value="crates">Crates</option>
+                    <option value="quintal">{t('farm_harvest.unit_quintal', 'Quintal (Qtl)')}</option>
+                    <option value="kg">{t('farm_harvest.unit_kg', 'Kilogram (kg)')}</option>
+                    <option value="tonne">{t('farm_harvest.unit_tonne', 'Tonne / Ton')}</option>
+                    <option value="crates">{t('farm_harvest.unit_crates', 'Crates')}</option>
                     <option value="bags">Bags</option>
                   </select>
                 </div>
@@ -905,10 +905,10 @@ export default function HarvestSeasonManager({ farmId, farmName, cropName, farmS
                     onChange={(e) => setSaleForm({ ...saleForm, unit: e.target.value })}
                     className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-medium"
                   >
-                    <option value="quintal">Quintal (Qtl)</option>
-                    <option value="kg">Kilogram (kg)</option>
-                    <option value="tonne">Tonne</option>
-                    <option value="crates">Crates</option>
+                    <option value="quintal">{t('farm_harvest.unit_quintal', 'Quintal (Qtl)')}</option>
+                    <option value="kg">{t('farm_harvest.unit_kg', 'Kilogram (kg)')}</option>
+                    <option value="tonne">{t('farm_harvest.unit_tonne', 'Tonne')}</option>
+                    <option value="crates">{t('farm_harvest.unit_crates', 'Crates')}</option>
                     <option value="bags">Bags</option>
                   </select>
                 </div>

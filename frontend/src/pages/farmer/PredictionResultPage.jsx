@@ -278,7 +278,7 @@ const PredictionResultPage = () => {
           <div className="pt-2">
             <Link to="/upload">
               <Button variant="solid" size="sm" leftIcon={<ArrowLeft className="w-4 h-4" />}>
-                Back to Scan Center
+                {t('scan_hub.back_to_scan', 'Back to Scan Center')}
               </Button>
             </Link>
           </div>
@@ -413,7 +413,7 @@ const PredictionResultPage = () => {
       <div className="flex flex-wrap items-center justify-between gap-2.5">
         <Link to="/upload">
           <Button variant="outline" size="sm" leftIcon={<ArrowLeft className="w-4 h-4" />}>
-            Back to Scan Center
+            {t('scan_hub.back_to_scan', 'Back to Scan Center')}
           </Button>
         </Link>
 
@@ -426,7 +426,7 @@ const PredictionResultPage = () => {
             className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black shadow-md border-0 active:scale-95"
             leftIcon={<Stethoscope className="w-4 h-4 text-emerald-200" />}
           >
-            Ask Voice Doctor
+            {t('scan_hub.ask_voice_doctor', 'Ask Voice Doctor')}
           </Button>
 
           {/* Voice Readout Button */}
@@ -458,7 +458,7 @@ const PredictionResultPage = () => {
             className="bg-[#25D366] hover:bg-[#20bd5a] text-white font-black shadow-md shadow-[#25D366]/20 border-0 active:scale-95"
             leftIcon={<MessageCircle className="w-4 h-4 fill-white" />}
           >
-            Send to WhatsApp
+            {t('scan_hub.send_whatsapp', 'Send to WhatsApp')}
           </Button>
 
           {/* Download Clinical Prescription PDF */}
@@ -469,7 +469,7 @@ const PredictionResultPage = () => {
             className="font-extrabold border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-100 active:scale-95"
             leftIcon={<Download className="w-4 h-4 text-emerald-500" />}
           >
-            Download Rx (PDF)
+            {t('scan_hub.download_prescription', 'Download Rx (PDF)')}
           </Button>
 
           <Button 

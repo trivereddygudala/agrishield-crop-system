@@ -1143,7 +1143,7 @@ const UploadImagePage = () => {
           <div className="flex flex-col gap-1 pb-2">
             <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white flex items-center gap-2">
               <span>{t('scan_page.title', 'AI Crop Health Diagnostic Center')}</span>
-              <Badge variant="primary" size="sm" className="hidden sm:inline-flex">v2.4 Precision</Badge>
+              <Badge variant="primary" size="sm" className="hidden sm:inline-flex">{t('scan_hub.v24_precision', 'v2.4 Precision')}</Badge>
             </h1>
             <p className="text-xs sm:text-sm text-slate-500 dark:text-white/40 mt-1">
               {t('scan_page.subtitle', 'Intelligent multi-modal crop diagnostics, species identification & agrochemical OCR scanner.')}

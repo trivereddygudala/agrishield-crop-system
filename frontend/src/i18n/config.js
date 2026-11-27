@@ -5,6 +5,11 @@ import { resources } from './translations.js';
 import { extendedResources } from './extendedTranslations.js';
 import { comprehensiveResources } from './comprehensiveTranslations.js';
 import { equipmentHubResources } from './equipmentHubTranslations.js';
+import { farmHubResources } from './farmHubTranslations.js';
+import { scanHubResources } from './scanHubTranslations.js';
+import { providerHubResources } from './providerHubTranslations.js';
+import { toolsHubResources } from './toolsHubTranslations.js';
+import { adminHubResources } from './adminHubTranslations.js';
 
 // Deep merge helper so sub-objects and nested domains are never overwritten
 function deepMerge(target, source) {
@@ -41,12 +46,23 @@ if (comprehensiveResources && typeof comprehensiveResources === 'object') {
   }
 }
 
-// 3. Deep merge equipment hub resources (100% complete coverage for all 8 languages)
-if (equipmentHubResources && typeof equipmentHubResources === 'object') {
-  for (const [lang, domains] of Object.entries(equipmentHubResources)) {
-    if (resources && resources[lang]) {
-      if (!resources[lang].translation) resources[lang].translation = {};
-      deepMerge(resources[lang].translation, domains);
+// 3. Deep merge modular hub resources (100% complete coverage for all 8 languages)
+const modularHubs = [
+  equipmentHubResources,
+  farmHubResources,
+  scanHubResources,
+  providerHubResources,
+  toolsHubResources,
+  adminHubResources
+];
+
+for (const hubResource of modularHubs) {
+  if (hubResource && typeof hubResource === 'object') {
+    for (const [lang, domains] of Object.entries(hubResource)) {
+      if (resources && resources[lang]) {
+        if (!resources[lang].translation) resources[lang].translation = {};
+        deepMerge(resources[lang].translation, domains);
+      }
     }
   }
 }

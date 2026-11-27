@@ -203,7 +203,7 @@ export default function SoilNPKCalculatorModal({ isOpen, onClose, initialCrop = 
               <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
                 {isTe ? 'రైతు బస్తాల లెక్క' : 'Farmer Bag Units'}
               </span>
-              <span className="text-[10px] text-slate-500 dark:text-white/50 hidden sm:inline font-semibold">ICAR Certified Fertigation</span>
+              <span className="text-[10px] text-slate-500 dark:text-white/50 hidden sm:inline font-semibold">{t('farm_npk.icar_certified', 'ICAR Certified Fertigation')}</span>
             </div>
             <h2 className="text-base sm:text-lg font-black text-slate-900 dark:text-white" style={{ fontFamily: 'var(--font-display)' }}>
               {isTe ? 'స్మార్ట్ నేల NPK ఎరువుల కాలిక్యులేటర్' : 'Smart Soil NPK Fertilizer & Dose Schedule'}
@@ -289,7 +289,7 @@ export default function SoilNPKCalculatorModal({ isOpen, onClose, initialCrop = 
             <p className="text-slate-600 dark:text-white/60 text-[11px] leading-tight">{soil.desc}</p>
           </div>
           <div className="text-right shrink-0 bg-white dark:bg-white/[0.04] px-3 py-1.5 rounded-xl border border-slate-200/80 dark:border-white/10 shadow-xs">
-            <span className="text-[10px] text-slate-500 dark:text-white/50 block font-semibold">pH Level</span>
+            <span className="text-[10px] text-slate-500 dark:text-white/50 block font-semibold">{t('farm_npk.ph_level', 'pH Level')}</span>
             <span className="text-xs font-black text-emerald-700 dark:text-emerald-300">{soil.pH}</span>
           </div>
         </div>
@@ -309,7 +309,7 @@ export default function SoilNPKCalculatorModal({ isOpen, onClose, initialCrop = 
             {/* Card 1: Urea */}
             <div className="p-3.5 rounded-2xl bg-blue-50/70 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-500/35 space-y-1 relative overflow-hidden shadow-xs">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-black uppercase tracking-wider text-blue-700 dark:text-blue-400">Nitrogen (N)</span>
+                <span className="text-[10px] font-black uppercase tracking-wider text-blue-700 dark:text-blue-400">{t('farm_npk.nitrogen', 'Nitrogen (N)')}</span>
                 <span className="text-[10px] px-2 py-0.5 rounded-md bg-blue-100 text-blue-800 dark:bg-blue-500/20 dark:text-blue-300 font-bold">45 kg Bag</span>
               </div>
               <p className="text-xs font-black text-slate-900 dark:text-white">Urea (46% N)</p>
@@ -326,7 +326,7 @@ export default function SoilNPKCalculatorModal({ isOpen, onClose, initialCrop = 
             {/* Card 2: DAP */}
             <div className="p-3.5 rounded-2xl bg-emerald-50/70 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-500/35 space-y-1 relative overflow-hidden shadow-xs">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-black uppercase tracking-wider text-emerald-700 dark:text-emerald-400">Phosphorus (P)</span>
+                <span className="text-[10px] font-black uppercase tracking-wider text-emerald-700 dark:text-emerald-400">{t('farm_npk.phosphorus', 'Phosphorus (P)')}</span>
                 <span className="text-[10px] px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300 font-bold">50 kg Bag</span>
               </div>
               <p className="text-xs font-black text-slate-900 dark:text-white">DAP (18:46:0)</p>
@@ -343,7 +343,7 @@ export default function SoilNPKCalculatorModal({ isOpen, onClose, initialCrop = 
             {/* Card 3: MOP Potash */}
             <div className="p-3.5 rounded-2xl bg-amber-50/70 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-500/35 space-y-1 relative overflow-hidden shadow-xs">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-black uppercase tracking-wider text-amber-700 dark:text-amber-400">Potassium (K)</span>
+                <span className="text-[10px] font-black uppercase tracking-wider text-amber-700 dark:text-amber-400">{t('farm_npk.potassium', 'Potassium (K)')}</span>
                 <span className="text-[10px] px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300 font-bold">50 kg Bag</span>
               </div>
               <p className="text-xs font-black text-slate-900 dark:text-white">MOP Potash (60% K₂O)</p>

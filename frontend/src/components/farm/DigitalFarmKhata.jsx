@@ -2,10 +2,10 @@ import { getLocalizedField } from '../../utils/localizationHelper';
 import React, { useState, useEffect, useMemo } from 'react';
 import API from '../../services/api';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Wallet, TrendingUp, TrendingDown, Plus, Trash2, 
-  Share2, Calendar, Tag, FileText, CheckCircle2, 
-  ArrowUpRight, ArrowDownRight, RefreshCw, Download, 
+import {
+  Wallet, TrendingUp, TrendingDown, Plus, Trash2,
+  Share2, Calendar, Tag, FileText, CheckCircle2,
+  ArrowUpRight, ArrowDownRight, RefreshCw, Download,
   DollarSign, PieChart, Sparkles, Filter, AlertCircle,
   Clock, ShieldCheck, MapPin, Layers, Briefcase
 } from 'lucide-react';
@@ -39,14 +39,14 @@ const INITIAL_INCOME = [
   { id: 'tx-inc-1', type: 'income', category: 'harvest', description: 'First Picking Harvest Sale (42 Crates @ ₹750/Crate)', amount: 31500, date: '2026-09-20', crop_name: 'Tomato', field_id: 'Field-1', payment_status: 'paid', is_estimated: false }
 ];
 
-export default function DigitalFarmKhata({ 
+export default function DigitalFarmKhata({
   farmId,
-  farmName = "My Farm", 
-  acreage = 2.0, 
+  farmName = "My Farm",
+  acreage = 2.0,
   cropName = "Tomato",
   village = "Pasupugallu",
   prefilledTask = null,
-  onClose 
+  onClose
 }) {
   const { t, i18n } = useTranslation();
   const currentLang = (i18n?.language || 'en').split('-')[0].toLowerCase();
@@ -91,7 +91,7 @@ export default function DigitalFarmKhata({
             setTransactions(normalized);
             try {
               localStorage.setItem(storageKey, JSON.stringify(normalized));
-            } catch (_) {}
+            } catch (_) { }
           }
         }
 
@@ -269,7 +269,7 @@ export default function DigitalFarmKhata({
           // Re-fetch analytics asynchronously
           API.get(`/api/farms/${farmId}/khata/analytics`)
             .then(anRes => { if (anRes.data) setAnalytics(anRes.data); })
-            .catch(() => {});
+            .catch(() => { });
         }
       } catch (err) {
         console.warn("Backend khata save failed, saving locally:", err);
@@ -288,7 +288,7 @@ export default function DigitalFarmKhata({
       const updated = [finalTx, ...filtered];
       try {
         localStorage.setItem(storageKey, JSON.stringify(updated));
-      } catch (_) {}
+      } catch (_) { }
       return updated;
     });
 
@@ -305,7 +305,7 @@ export default function DigitalFarmKhata({
         await API.delete(`/api/farms/${farmId}/khata/${id}`);
         API.get(`/api/farms/${farmId}/khata/analytics`)
           .then(anRes => { if (anRes.data) setAnalytics(anRes.data); })
-          .catch(() => {});
+          .catch(() => { });
       } catch (err) {
         console.warn("Backend khata delete failed, removing locally:", err);
       }
@@ -314,33 +314,33 @@ export default function DigitalFarmKhata({
       const updated = prev.filter(tx => tx.id !== id && tx._id !== id);
       try {
         localStorage.setItem(storageKey, JSON.stringify(updated));
-      } catch (_) {}
+      } catch (_) { }
       return updated;
     });
   };
 
   const handleShareWhatsApp = () => {
-    const title = isTe 
+    const title = isTe
       ? `🌾 *AgriShield డిజిటల్ పొలం ఖాతా & లాభం నివేదిక (B17)*`
       : `🌾 *AgriShield Digital Farm Khata & Profit Report (B17)*`;
-    
+
     const details = isTe
       ? `📍 *పొలం:* ${farmName} (${village})\n🌱 *పంట:* ${cropName} (${acreage} ఎకరాలు)\n📅 *తేదీ:* ${new Date().toLocaleDateString()}\n\n` +
-        `🔴 *నిజమైన ఖర్చుల పెట్టుబడి:* ${formatINR(displayStats.totalActualExpense)}\n` +
-        `🟢 *నిజమైన దిగుబడి రాబడి:* ${formatINR(displayStats.totalActualIncome)}\n` +
-        `💰 *నికర లాభం (Actual):* ${formatINR(displayStats.actualProfit)} (${displayStats.actualProfit >= 0 ? 'లాభం' : 'నష్టం'})\n` +
-        `📊 *అంచనా నికర లాభం (Projected):* ${formatINR(displayStats.projectedProfit)}\n` +
-        (displayStats.unpaidAmount > 0 ? `⚠️ *చెల్లించాల్సిన బాకీలు (Unpaid):* ${formatINR(displayStats.unpaidAmount)}\n` : '') +
-        (displayStats.costPerAcre ? `📈 *ఎకరాకు ఖర్చు:* ${formatINR(displayStats.costPerAcre)}/ఎకరా\n` : '') +
-        `\n_AgriShield AI స్మార్ట్ వ్యవసాయ ప్లాట్‌ఫారమ్ ద్వారా రూపొందించబడింది._`
+      `🔴 *నిజమైన ఖర్చుల పెట్టుబడి:* ${formatINR(displayStats.totalActualExpense)}\n` +
+      `🟢 *నిజమైన దిగుబడి రాబడి:* ${formatINR(displayStats.totalActualIncome)}\n` +
+      `💰 *నికర లాభం (Actual):* ${formatINR(displayStats.actualProfit)} (${displayStats.actualProfit >= 0 ? 'లాభం' : 'నష్టం'})\n` +
+      `📊 *అంచనా నికర లాభం (Projected):* ${formatINR(displayStats.projectedProfit)}\n` +
+      (displayStats.unpaidAmount > 0 ? `⚠️ *చెల్లించాల్సిన బాకీలు (Unpaid):* ${formatINR(displayStats.unpaidAmount)}\n` : '') +
+      (displayStats.costPerAcre ? `📈 *ఎకరాకు ఖర్చు:* ${formatINR(displayStats.costPerAcre)}/ఎకరా\n` : '') +
+      `\n_AgriShield AI స్మార్ట్ వ్యవసాయ ప్లాట్‌ఫారమ్ ద్వారా రూపొందించబడింది._`
       : `📍 *Farm:* ${farmName} (${village})\n🌱 *Crop:* ${cropName} (${acreage} Acres)\n📅 *Date:* ${new Date().toLocaleDateString()}\n\n` +
-        `🔴 *Actual Total Expenses:* ${formatINR(displayStats.totalActualExpense)}\n` +
-        `🟢 *Actual Gross Income:* ${formatINR(displayStats.totalActualIncome)}\n` +
-        `💰 *Actual Net Profit:* ${formatINR(displayStats.actualProfit)} (${displayStats.actualProfit >= 0 ? 'Net Profit' : 'Deficit'})\n` +
-        `📊 *Projected Estimated Profit:* ${formatINR(displayStats.projectedProfit)}\n` +
-        (displayStats.unpaidAmount > 0 ? `⚠️ *Outstanding Liabilities:* ${formatINR(displayStats.unpaidAmount)}\n` : '') +
-        (displayStats.costPerAcre ? `📈 *Cost of Cultivation:* ${formatINR(displayStats.costPerAcre)}/acre\n` : '') +
-        `\n_Generated via AgriShield AI Smart Farming Platform._`;
+      `🔴 *Actual Total Expenses:* ${formatINR(displayStats.totalActualExpense)}\n` +
+      `🟢 *Actual Gross Income:* ${formatINR(displayStats.totalActualIncome)}\n` +
+      `💰 *Actual Net Profit:* ${formatINR(displayStats.actualProfit)} (${displayStats.actualProfit >= 0 ? 'Net Profit' : 'Deficit'})\n` +
+      `📊 *Projected Estimated Profit:* ${formatINR(displayStats.projectedProfit)}\n` +
+      (displayStats.unpaidAmount > 0 ? `⚠️ *Outstanding Liabilities:* ${formatINR(displayStats.unpaidAmount)}\n` : '') +
+      (displayStats.costPerAcre ? `📈 *Cost of Cultivation:* ${formatINR(displayStats.costPerAcre)}/acre\n` : '') +
+      `\n_Generated via AgriShield AI Smart Farming Platform._`;
 
     window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(`${title}\n\n${details}`)}`, '_blank');
   };
@@ -524,12 +524,12 @@ export default function DigitalFarmKhata({
             </span>
             <div className="flex items-center gap-2 mt-0.5">
               <span className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white">
-                {displayStats.totalActualExpense > 0 
+                {displayStats.totalActualExpense > 0
                   ? `${Math.round((displayStats.actualProfit / displayStats.totalActualExpense) * 100)}% ROI`
                   : 'N/A'}
               </span>
               <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 font-bold">
-                {displayStats.costPerAcre && displayStats.costPerAcre < 45000 
+                {displayStats.costPerAcre && displayStats.costPerAcre < 45000
                   ? (isTe ? 'సరైన పెట్టుబడి నియంత్రణ' : 'Optimal Budget Control')
                   : (isTe ? 'మధ్యస్థ పెట్టుబడి' : 'Standard Investment')}
               </span>
@@ -589,11 +589,10 @@ export default function DigitalFarmKhata({
               <div
                 key={cat.id}
                 onClick={() => setFilterCategory(filterCategory === cat.id ? 'all' : cat.id)}
-                className={`px-3 py-1.5 rounded-xl border flex items-center gap-2 text-xs cursor-pointer transition-all ${
-                  filterCategory === cat.id
+                className={`px-3 py-1.5 rounded-xl border flex items-center gap-2 text-xs cursor-pointer transition-all ${filterCategory === cat.id
                     ? 'bg-emerald-600 border-emerald-600 text-white font-bold shadow-xs'
                     : 'bg-white dark:bg-white/[0.04] border-slate-200 dark:border-white/10 hover:border-emerald-400 text-slate-700 dark:text-white/80'
-                }`}
+                  }`}
               >
                 <span>{cat.icon}</span>
                 <span className="font-medium">{getLocalizedField(cat, 'label', currentLang)}</span>
@@ -625,33 +624,30 @@ export default function DigitalFarmKhata({
               <button
                 type="button"
                 onClick={() => setFilterType('all')}
-                className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${
-                  filterType === 'all'
+                className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${filterType === 'all'
                     ? 'bg-white dark:bg-white/20 text-slate-900 dark:text-white shadow-xs'
                     : 'text-slate-600 dark:text-white/50 hover:text-slate-900 dark:hover:text-white'
-                }`}
+                  }`}
               >
                 {t('common.all', 'All')}
               </button>
               <button
                 type="button"
                 onClick={() => setFilterType('expense')}
-                className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${
-                  filterType === 'expense'
+                className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${filterType === 'expense'
                     ? 'bg-rose-100 dark:bg-red-500/20 text-rose-700 dark:text-red-300 border border-rose-300 dark:border-red-500/40 shadow-xs'
                     : 'text-slate-600 dark:text-white/50 hover:text-slate-900 dark:hover:text-white'
-                }`}
+                  }`}
               >
                 {isTe ? 'ఖర్చులు' : 'Expenses'}
               </button>
               <button
                 type="button"
                 onClick={() => setFilterType('income')}
-                className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${
-                  filterType === 'income'
+                className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${filterType === 'income'
                     ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-500/40 shadow-xs'
                     : 'text-slate-600 dark:text-white/50 hover:text-slate-900 dark:hover:text-white'
-                }`}
+                  }`}
               >
                 {isTe ? 'రాబడి' : 'Income'}
               </button>
@@ -662,33 +658,30 @@ export default function DigitalFarmKhata({
               <button
                 type="button"
                 onClick={() => setFilterEstimate('all')}
-                className={`px-2 py-1 rounded-lg font-bold transition-all cursor-pointer ${
-                  filterEstimate === 'all'
+                className={`px-2 py-1 rounded-lg font-bold transition-all cursor-pointer ${filterEstimate === 'all'
                     ? 'bg-white dark:bg-white/20 text-slate-900 dark:text-white shadow-xs'
                     : 'text-slate-600 dark:text-white/50 hover:text-slate-900 dark:hover:text-white'
-                }`}
+                  }`}
               >
                 {isTe ? 'అన్నీ' : 'All Types'}
               </button>
               <button
                 type="button"
                 onClick={() => setFilterEstimate('actual')}
-                className={`px-2 py-1 rounded-lg font-bold transition-all cursor-pointer ${
-                  filterEstimate === 'actual'
+                className={`px-2 py-1 rounded-lg font-bold transition-all cursor-pointer ${filterEstimate === 'actual'
                     ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-500/40 shadow-xs'
                     : 'text-slate-600 dark:text-white/50 hover:text-slate-900 dark:hover:text-white'
-                }`}
+                  }`}
               >
                 {isTe ? 'వాస్తవ' : 'Actual'}
               </button>
               <button
                 type="button"
                 onClick={() => setFilterEstimate('estimated')}
-                className={`px-2 py-1 rounded-lg font-bold transition-all cursor-pointer ${
-                  filterEstimate === 'estimated'
+                className={`px-2 py-1 rounded-lg font-bold transition-all cursor-pointer ${filterEstimate === 'estimated'
                     ? 'bg-sky-100 dark:bg-cyan-500/20 text-sky-800 dark:text-cyan-300 border border-sky-300 dark:border-cyan-500/40 shadow-xs'
                     : 'text-slate-600 dark:text-white/50 hover:text-slate-900 dark:hover:text-white'
-                }`}
+                  }`}
               >
                 {isTe ? 'అంచనా' : 'Estimated'}
               </button>
@@ -699,33 +692,30 @@ export default function DigitalFarmKhata({
               <button
                 type="button"
                 onClick={() => setFilterPayment('all')}
-                className={`px-2 py-1 rounded-lg font-bold transition-all cursor-pointer ${
-                  filterPayment === 'all'
+                className={`px-2 py-1 rounded-lg font-bold transition-all cursor-pointer ${filterPayment === 'all'
                     ? 'bg-white dark:bg-white/20 text-slate-900 dark:text-white shadow-xs'
                     : 'text-slate-600 dark:text-white/50 hover:text-slate-900 dark:hover:text-white'
-                }`}
+                  }`}
               >
                 {isTe ? 'అన్ని పేమెంట్లు' : 'All Status'}
               </button>
               <button
                 type="button"
                 onClick={() => setFilterPayment('paid')}
-                className={`px-2 py-1 rounded-lg font-bold transition-all cursor-pointer ${
-                  filterPayment === 'paid'
+                className={`px-2 py-1 rounded-lg font-bold transition-all cursor-pointer ${filterPayment === 'paid'
                     ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-500/40 shadow-xs'
                     : 'text-slate-600 dark:text-white/50 hover:text-slate-900 dark:hover:text-white'
-                }`}
+                  }`}
               >
                 {isTe ? 'చెల్లించినవి' : 'Paid'}
               </button>
               <button
                 type="button"
                 onClick={() => setFilterPayment('unpaid')}
-                className={`px-2 py-1 rounded-lg font-bold transition-all cursor-pointer ${
-                  filterPayment === 'unpaid'
+                className={`px-2 py-1 rounded-lg font-bold transition-all cursor-pointer ${filterPayment === 'unpaid'
                     ? 'bg-amber-100 dark:bg-amber-500/20 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-500/40 shadow-xs'
                     : 'text-slate-600 dark:text-white/50 hover:text-slate-900 dark:hover:text-white'
-                }`}
+                  }`}
               >
                 {isTe ? 'బాకీలు' : 'Unpaid'}
               </button>
@@ -882,22 +872,20 @@ export default function DigitalFarmKhata({
                   <button
                     type="button"
                     onClick={() => setTxType('expense')}
-                    className={`py-2 rounded-lg transition-all cursor-pointer ${
-                      txType === 'expense'
+                    className={`py-2 rounded-lg transition-all cursor-pointer ${txType === 'expense'
                         ? 'bg-rose-600 text-white shadow-md'
                         : 'text-slate-600 dark:text-white/60 hover:text-slate-900 dark:hover:text-white'
-                    }`}
+                      }`}
                   >
                     🔴 {isTe ? 'ఖర్చు (Expense)' : 'Expense'}
                   </button>
                   <button
                     type="button"
                     onClick={() => setTxType('income')}
-                    className={`py-2 rounded-lg transition-all cursor-pointer ${
-                      txType === 'income'
+                    className={`py-2 rounded-lg transition-all cursor-pointer ${txType === 'income'
                         ? 'bg-emerald-600 text-white shadow-md'
                         : 'text-slate-600 dark:text-white/60 hover:text-slate-900 dark:hover:text-white'
-                    }`}
+                      }`}
                   >
                     🟢 {isTe ? 'రాబడి (Income)' : 'Income'}
                   </button>
@@ -908,22 +896,20 @@ export default function DigitalFarmKhata({
                   <button
                     type="button"
                     onClick={() => setIsEstimated(false)}
-                    className={`py-2 rounded-lg transition-all cursor-pointer ${
-                      !isEstimated
+                    className={`py-2 rounded-lg transition-all cursor-pointer ${!isEstimated
                         ? 'bg-emerald-600 text-white shadow-xs'
                         : 'text-slate-600 dark:text-white/50 hover:text-slate-900 dark:hover:text-white'
-                    }`}
+                      }`}
                   >
                     ✓ {isTe ? 'వాస్తవ లావాదేవీ (Actual)' : 'Actual Transaction'}
                   </button>
                   <button
                     type="button"
                     onClick={() => setIsEstimated(true)}
-                    className={`py-2 rounded-lg transition-all cursor-pointer ${
-                      isEstimated
+                    className={`py-2 rounded-lg transition-all cursor-pointer ${isEstimated
                         ? 'bg-sky-600 text-white shadow-xs'
                         : 'text-slate-600 dark:text-white/50 hover:text-slate-900 dark:hover:text-white'
-                    }`}
+                      }`}
                   >
                     ✨ {isTe ? 'అంచనా / భవిష్యత్తు (Estimated)' : 'Estimated / Projection'}
                   </button>
@@ -1018,10 +1004,10 @@ export default function DigitalFarmKhata({
                       onChange={(e) => setSeason(e.target.value)}
                       className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-white/[0.06] border border-slate-200 dark:border-white/15 text-slate-900 dark:text-white text-xs focus:border-emerald-500 focus:outline-none"
                     >
-                      <option value="Kharif 2026" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">Kharif 2026</option>
-                      <option value="Rabi 2026-27" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">Rabi 2026-27</option>
-                      <option value="Zaid 2026" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">Zaid 2026</option>
-                      <option value="Annual" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">Annual / General</option>
+                      <option value="Kharif 2026" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">{t('farm_khata.season_kharif', 'Kharif 2026')}</option>
+                      <option value="Rabi 2026-27" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">{t('farm_khata.season_rabi', 'Rabi 2026-27')}</option>
+                      <option value="Zaid 2026" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">{t('farm_khata.season_zaid', 'Zaid 2026')}</option>
+                      <option value="Annual" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">{t('farm_khata.season_annual', 'Annual / General')}</option>
                     </select>
                   </div>
                 </div>
@@ -1071,11 +1057,10 @@ export default function DigitalFarmKhata({
                           key={opt.id}
                           type="button"
                           onClick={() => setPaymentStatus(opt.id)}
-                          className={`py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
-                            paymentStatus === opt.id
+                          className={`py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer ${paymentStatus === opt.id
                               ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
                               : 'bg-slate-50 dark:bg-white/[0.04] border-slate-200 dark:border-white/10 text-slate-600 dark:text-white/50 hover:text-slate-900 dark:hover:text-white'
-                          }`}
+                            }`}
                         >
                           {opt.label}
                         </button>

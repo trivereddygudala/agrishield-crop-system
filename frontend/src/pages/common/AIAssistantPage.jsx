@@ -802,8 +802,8 @@ ${formattedBody}
                     {activeTheme.headerIcon}
                   </div>
                   <div>
-                    <h3 className="text-sm font-bold text-slate-900 dark:text-white leading-tight">Chat History</h3>
-                    <span className="text-[10px] text-slate-400">AgriShield Sessions</span>
+                    <h3 className="text-sm font-bold text-slate-900 dark:text-white leading-tight">{t('assistant.chat_history', 'Chat History')}</h3>
+                    <span className="text-[10px] text-slate-400">{t('assistant.sessions', 'AgriShield Sessions')}</span>
                   </div>
                 </div>
                 <button 
@@ -822,7 +822,7 @@ ${formattedBody}
                     type="text"
                     value={searchQuery}
                     onChange={e => setSearchQuery(e.target.value)}
-                    placeholder="Search consultations..."
+                    placeholder={t('assistant.search_placeholder', 'Search consultations...')}
                     className="w-full bg-slate-100 dark:bg-[#1f2024] text-xs rounded-xl pl-8 pr-3 py-2 border border-slate-200 dark:border-slate-700/60 focus:outline-none focus:border-emerald-500"
                   />
                 </div>
@@ -841,7 +841,7 @@ ${formattedBody}
                   className={`w-full flex items-center justify-center gap-2 p-2.5 rounded-xl ${activeTheme.pillBg} hover:opacity-90 text-white text-xs font-bold shadow-xs transition-transform active:scale-98`}
                 >
                   <Plus className="w-4 h-4" />
-                  <span>Start New Consultation</span>
+                  <span>{t('assistant.new_consultation', 'Start New Consultation')}</span>
                 </button>
               </div>
 

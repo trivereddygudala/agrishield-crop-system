@@ -552,7 +552,7 @@ const DevicesPage = () => {
           </summary>
           <div className="mt-3 pt-3 border-t border-slate-200 dark:border-white/10 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 font-mono text-[11px]">
             <div>
-              <span className="font-bold text-slate-500 dark:text-white/40 block">MCU Hardware:</span>
+              <span className="font-bold text-slate-500 dark:text-white/40 block">{t('iot.mcu_hardware', 'MCU Hardware: ESP32 DevKit V1')}</span>
               <span>ESP32 DevKit V1 (320KB RAM)</span>
             </div>
             <div>

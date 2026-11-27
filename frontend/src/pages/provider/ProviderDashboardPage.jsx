@@ -1380,7 +1380,7 @@ export default function ProviderDashboardPage() {
               </div>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 flex items-center gap-1.5">
                 <MapPin className="w-3.5 h-3.5 text-slate-400" />
-                <span>Base Hub: <strong>{hubVillage}</strong>, {hubDistrict} (AP)</span>
+                <span>{t('provider_hub.base_hub', 'Base Hub:')} <strong>{hubVillage}</strong>, {hubDistrict} (AP)</span>
               </p>
             </div>
           </div>
@@ -2334,14 +2334,14 @@ export default function ProviderDashboardPage() {
                             {b.equipmentTitle || b.title || 'Machinery'}
                           </p>
                           <p className="text-[11px] text-slate-400">
-                            Farmer: <strong>{b.farmerName || 'Farmer'}</strong> • {b.acres || 2} Acres • {b.bookingDate || 'Recent'}
+                            {t('provider_hub.farmer_label', 'Farmer:')} <strong>{b.farmerName || 'Farmer'}</strong> • {b.acres || 2} {t('common.acres', 'Acres')} • {b.bookingDate || 'Recent'}
                           </p>
                         </div>
                       </div>
 
                       <div className="flex items-center justify-between sm:justify-end gap-3 border-t sm:border-t-0 pt-2 sm:pt-0 border-slate-200 dark:border-slate-800">
                         <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
-                          Settled Direct
+                          {t('provider_hub.settled_direct', 'Settled Direct')}
                         </span>
                         <span className="text-sm font-black text-emerald-600 dark:text-emerald-400">
                           ₹{getBookingCost(b).toLocaleString('en-IN')}

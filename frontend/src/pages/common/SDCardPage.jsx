@@ -104,14 +104,14 @@ const SDCardPage = () => {
         <div>
           <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white flex items-center gap-3">
             <HardDrive className="h-8 w-8 text-amber-500" />
-            MicroSD Storage Module
+            {t('iot.sd_storage_title', 'MicroSD Storage Module')}
           </h1>
           <div className="mt-2">
             <Breadcrumbs />
           </div>
         </div>
         <Button onClick={fetchSDData} variant="outline" className="flex items-center gap-2">
-          <RefreshCw className="h-4 w-4" /> Refresh
+          <RefreshCw className="h-4 w-4" /> {t('iot.refresh', 'Refresh')}
         </Button>
       </div>
 

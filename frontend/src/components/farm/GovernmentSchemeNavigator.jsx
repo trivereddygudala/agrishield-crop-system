@@ -295,7 +295,7 @@ export default function GovernmentSchemeNavigator({
             <span className={`w-4 h-4 rounded flex items-center justify-center text-xs ${checkedDocs.aadhaar ? 'bg-emerald-600 text-white' : 'border border-slate-300'}`}>
               {checkedDocs.aadhaar ? '✓' : ''}
             </span>
-            <span className="font-bold text-[11px]">Aadhaar e-KYC Linked</span>
+            <span className="font-bold text-[11px]">{t('farm_schemes.doc_aadhaar', 'Aadhaar e-KYC Linked')}</span>
           </button>
 
           <button
@@ -308,7 +308,7 @@ export default function GovernmentSchemeNavigator({
             <span className={`w-4 h-4 rounded flex items-center justify-center text-xs ${checkedDocs.passbook ? 'bg-emerald-600 text-white' : 'border border-slate-300'}`}>
               {checkedDocs.passbook ? '✓' : ''}
             </span>
-            <span className="font-bold text-[11px]">Pattadar Passbook / 1B</span>
+            <span className="font-bold text-[11px]">{t('farm_schemes.doc_passbook', 'Pattadar Passbook / 1B')}</span>
           </button>
 
           <button
@@ -321,7 +321,7 @@ export default function GovernmentSchemeNavigator({
             <span className={`w-4 h-4 rounded flex items-center justify-center text-xs ${checkedDocs.bank ? 'bg-emerald-600 text-white' : 'border border-slate-300'}`}>
               {checkedDocs.bank ? '✓' : ''}
             </span>
-            <span className="font-bold text-[11px]">NPCI Active Bank Account</span>
+            <span className="font-bold text-[11px]">{t('farm_schemes.doc_npci', 'NPCI Active Bank Account')}</span>
           </button>
 
           <button
@@ -334,7 +334,7 @@ export default function GovernmentSchemeNavigator({
             <span className={`w-4 h-4 rounded flex items-center justify-center text-xs ${checkedDocs.ecrop ? 'bg-emerald-600 text-white' : 'border border-slate-300'}`}>
               {checkedDocs.ecrop ? '✓' : ''}
             </span>
-            <span className="font-bold text-[11px]">e-Crop (e-Panta) Sowing Entry</span>
+            <span className="font-bold text-[11px]">{t('farm_schemes.doc_ecrop', 'e-Crop (e-Panta) Sowing Entry')}</span>
           </button>
         </div>
       </div>

@@ -1545,7 +1545,7 @@ export default function AdminPage() {
   const adminTabs = [
     { 
       id: 'users', 
-      label: 'Registered Users', 
+      label: t('admin.users_tab', 'Registered Users'), 
       description: 'User directory, role management, and farmer account inspection.',
       icon: Users, 
       badge: `${totalUsers} Users`, 
@@ -1561,7 +1561,7 @@ export default function AdminPage() {
     },
     {
       id: 'scans',
-      label: t('admin.module_scans_title', 'Crop Scan Audits'),
+      label: t('admin.scans_audit', 'Crop Scan Audits'),
       description: t('admin.module_scans_desc', 'Audit tenant crop diagnoses, verify AI confidence, inspect leaf scans, and manage prescription history.'),
       icon: History,
       badge: t('admin.scans_badge', 'Tenant Audits'),
@@ -1569,7 +1569,7 @@ export default function AdminPage() {
     },
     {
       id: 'broadcast', 
-      label: 'Global Broadcasts', 
+      label: t('admin.broadcast', 'Global Broadcasts'), 
       description: 'Dispatch real-time emergency agricultural alerts with priority tags and expiry timestamps.',
       icon: Radio, 
       badge: 'Live Stream', 
@@ -1577,7 +1577,7 @@ export default function AdminPage() {
     },
     { 
       id: 'geography', 
-      label: 'Farmer Geography', 
+      label: t('admin.geography', 'Farmer Geography'), 
       description: 'Interactive state/district choropleth and farmer distribution map.',
       icon: Globe, 
       badge: 'Choropleth Map', 
@@ -1585,7 +1585,7 @@ export default function AdminPage() {
     },
     { 
       id: 'iot', 
-      label: 'IoT Hardware Fleet', 
+      label: t('admin.iot_fleet', 'IoT Hardware Fleet'), 
       description: 'Real-time ESP32 node registry, battery levels, and telemetry heartbeats.',
       icon: Cpu, 
       badge: onlineIotCount > 0 ? `${onlineIotCount} Online` : 'Standby', 
@@ -1593,7 +1593,7 @@ export default function AdminPage() {
     },
     { 
       id: 'firmware', 
-      label: 'Firmware OTA', 
+      label: t('admin.firmware_ota', 'Firmware OTA'), 
       description: 'Over-the-air firmware binary uploads and remote hardware flashing controls.',
       icon: UploadCloud, 
       badge: firmwareList.length > 0 ? firmwareList[0].version : 'OTA Ready', 
@@ -1601,7 +1601,7 @@ export default function AdminPage() {
     },
     { 
       id: 'logs', 
-      label: 'Security Audit Logs', 
+      label: t('admin.audit_logs', 'Security Audit Logs'), 
       description: 'Access logs, authentication events, and system security timestamps.',
       icon: FileText, 
       badge: 'Live Audit', 
@@ -1609,7 +1609,7 @@ export default function AdminPage() {
     },
     { 
       id: 'support', 
-      label: 'Farmer Support & Helpdesk', 
+      label: t('admin.helpdesk', 'Farmer Support & Helpdesk'), 
       description: 'Incoming farmer support tickets, 15-minute phone callback requests, and issue resolution.',
       icon: Headphones, 
       badge: supportStats?.open > 0 ? `${supportStats.open} Open` : 'Helpdesk', 
@@ -1617,7 +1617,7 @@ export default function AdminPage() {
     },
     { 
       id: 'firewall', 
-      label: 'Security Defense Walls', 
+      label: t('admin.firewall', 'Security Defense Walls'), 
       description: '5-Layer Active Defense: Honeypot Decoys, Dynamic IP Jail, Deep WAF, Bot Traps & Anti-Replay.',
       icon: ShieldAlert, 
       badge: (firewallStatus?.active_bans_count > 0 || (firewallStatus?.jailed_ips && firewallStatus.jailed_ips.length > 0)) ? `${firewallStatus.jailed_ips?.length || firewallStatus.active_bans_count} Jailed` : '5 Walls Active', 
@@ -1633,7 +1633,7 @@ export default function AdminPage() {
     },
     { 
       id: 'settings', 
-      label: 'System Health & Specs', 
+      label: t('admin.system_health', 'System Health & Specs'), 
       description: 'Server CPU, memory, database latency, and API specs.',
       icon: Sliders, 
       badge: 'Health 100%', 
