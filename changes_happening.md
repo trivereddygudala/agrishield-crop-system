@@ -12386,3 +12386,16 @@ pm --prefix frontend run build (vite v4.5.14 built cleanly in 20.50s with 0 erro
 - **Verification:**
   - Verified 0 remaining occurrences of decommissioned tabs (`activeTab === 'iot' | 'firewall' | 'diagnostics' | 'radar' | 'settings'`) across all files.
   - Executed full production Vite build `npm.cmd run build`: 3,211 modules compiled cleanly in 32.51s with 0 errors.
+
+## [2026-11-27 20:00:00] - Fix AI Confidence Scaling & Timestamp Duplication in Admin Crop Scan Audits (`AdminScanAuditTable.jsx`)
+- **Analysis from User's Screenshot on `/admin?tab=scans`:**
+  1. **AI Confidence Scaling (1.0% bug):** PyTorch model outputs raw softmax probability between 0.0 and 1.0 (e.g. 1.0 = 100%, 0.984 = 98.4%). While `avgConf` in the metrics card was correctly doing `conf <= 1.0 ? conf * 100 : conf` (showing 89.9%), the table row renderer and audit modal were directly doing `parseFloat(scan.confidence).toFixed(1)%`, incorrectly formatting `1.0` as `1.0%` with a 1px progress bar!
+  2. **Timestamp Duplicate Display:** The timestamp cell rendered `formatDateTime(scan.created_at)` (e.g., `23 Nov 2026, 03:00 pm` in IST) and underneath it rendered `new Date(scan.created_at).toLocaleTimeString()` (`9:30:00 AM`), showing two conflicting times.
+  3. **Leaf Thumbnail Resolution:** Added `scan.image_data_url` fallback to support base64 offline captures.
+  4. **Tenant ID Fallback:** Replaced empty `ID: ` with `'Verified Farmer'` when `scan.user_id` is blank.
+- **Fix Applied:**
+  - Scaled raw confidence values `rawConf > 0 && rawConf <= 1.0 ? rawConf * 100 : rawConf` in both the table rows and audit inspection modal.
+  - Replaced the duplicate local time string with human-readable relative time using `timeAgo(scan.created_at)` (e.g. `4 days ago`).
+  - Added `image_data_url` support for base64 local scans in both table and detail modal.
+- **Verification:**
+  - Production build `npm.cmd run build` compiled 3,211 modules cleanly in 31.37s with 0 errors.

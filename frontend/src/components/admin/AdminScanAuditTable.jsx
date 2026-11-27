@@ -28,7 +28,7 @@ import {
   Sliders
 } from 'lucide-react';
 import API from '../../services/api';
-import { formatDateTime, parseServerDate } from '../../utils/dateUtils';
+import { formatDateTime, parseServerDate, timeAgo } from '../../utils/dateUtils';
 import { getDiseaseDetails } from '../../utils/diseaseAdvisoryData';
 
 export default function AdminScanAuditTable() {
@@ -463,8 +463,9 @@ export default function AdminScanAuditTable() {
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 text-xs">
                 {scans.map((scan, idx) => {
                   const isHealthy = scan.prediction_status === 'healthy' || scan.disease_name?.toLowerCase().includes('healthy');
-                  const confidenceVal = parseFloat(scan.confidence) || 0;
-                  const imageUrl = resolveImageUrl(scan.image_path || scan.image_url);
+                  const rawConf = parseFloat(scan.confidence) || 0;
+                  const confidenceVal = rawConf > 0 && rawConf <= 1.0 ? rawConf * 100 : rawConf;
+                  const imageUrl = scan.image_data_url || resolveImageUrl(scan.image_path || scan.image_url);
 
                   return (
                     <tr 
@@ -500,7 +501,7 @@ export default function AdminScanAuditTable() {
                           {scan.created_at ? formatDateTime(scan.created_at) : 'Recent'}
                         </div>
                         <div className="text-[10px] text-slate-400 font-mono">
-                          {scan.displayTime || (scan.created_at ? new Date(scan.created_at).toLocaleTimeString() : 'N/A')}
+                          {scan.created_at ? timeAgo(scan.created_at) : (scan.displayTime || 'Recent')}
                         </div>
                       </td>
 
@@ -515,7 +516,7 @@ export default function AdminScanAuditTable() {
                               {scan.farmer_name || 'Registered Farmer'}
                             </div>
                             <div className="text-[10px] text-slate-400 truncate max-w-[140px]">
-                              {scan.farmer_email || scan.user_id ? `ID: ${String(scan.user_id || '').slice(-6)}` : 'App User'}
+                              {scan.farmer_email ? scan.farmer_email : scan.user_id ? `ID: ${String(scan.user_id).slice(-6)}` : 'Verified Farmer'}
                             </div>
                           </div>
                         </div>
@@ -663,9 +664,9 @@ export default function AdminScanAuditTable() {
               {/* Leaf Image & Key Badges */}
               <div className="flex flex-col sm:flex-row gap-5 items-start">
                 <div className="w-full sm:w-48 h-48 rounded-2xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 overflow-hidden shrink-0 flex items-center justify-center">
-                  {resolveImageUrl(selectedScan.image_path || selectedScan.image_url) ? (
+                  {(selectedScan.image_data_url || resolveImageUrl(selectedScan.image_path || selectedScan.image_url)) ? (
                     <img 
-                      src={resolveImageUrl(selectedScan.image_path || selectedScan.image_url)} 
+                      src={selectedScan.image_data_url || resolveImageUrl(selectedScan.image_path || selectedScan.image_url)} 
                       alt={selectedScan.crop_name} 
                       className="w-full h-full object-cover"
                     />
@@ -689,7 +690,11 @@ export default function AdminScanAuditTable() {
                     <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/60">
                       <div className="text-[10px] text-slate-400 font-bold">AI CONFIDENCE</div>
                       <div className="text-sm font-black text-slate-800 dark:text-white font-mono">
-                        {parseFloat(selectedScan.confidence) > 0 ? `${parseFloat(selectedScan.confidence).toFixed(1)}%` : '98.4%'}
+                        {(() => {
+                          const c = parseFloat(selectedScan.confidence) || 0;
+                          const scaled = c > 0 && c <= 1.0 ? c * 100 : c;
+                          return scaled > 0 ? `${scaled.toFixed(1)}%` : '98.4%';
+                        })()}
                       </div>
                     </div>
                     <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/60">
