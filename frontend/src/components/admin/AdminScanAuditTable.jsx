@@ -127,13 +127,43 @@ export default function AdminScanAuditTable() {
 
   const backendBaseUrl = import.meta.env.VITE_API_URL || '';
 
-  const resolveImageUrl = (path) => {
-    if (!path) return '';
+  const resolveImageUrl = (scanOrPath) => {
+    if (!scanOrPath) return '';
+    
+    // If full scan record passed, resolve across all potential image sources
+    if (typeof scanOrPath === 'object') {
+      const scan = scanOrPath;
+      if (scan.image_data_url && scan.image_data_url.startsWith('data:')) {
+        return scan.image_data_url;
+      }
+      if (scan.supabase_url && scan.supabase_url.startsWith('http')) {
+        return scan.supabase_url;
+      }
+      if (scan.image_url && (scan.image_url.startsWith('http') || scan.image_url.startsWith('data:'))) {
+        return scan.image_url;
+      }
+      if (scan.image_path) {
+        return resolveImageUrl(scan.image_path);
+      }
+      if (scan.sample_reference_image) {
+        return resolveImageUrl(scan.sample_reference_image);
+      }
+      return '';
+    }
+
+    const path = String(scanOrPath).trim();
     if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('data:')) {
       return path;
     }
     const clean = path.replace(/\\/g, '/').replace(/^\/+/, '');
-    return backendBaseUrl ? `${backendBaseUrl.replace(/\/+$/, '')}/${clean}` : `/${clean}`;
+    if (backendBaseUrl) {
+      return `${backendBaseUrl.replace(/\/+$/, '')}/${clean}`;
+    }
+    // Fall back to hostless cloud endpoint for uploads, or root relative path
+    if (clean.startsWith('uploads/')) {
+      return `https://agrishield-backend.hostless.app/${clean}`;
+    }
+    return `/${clean}`;
   };
 
   const fetchScans = useCallback(async (isManual = false) => {
@@ -465,7 +495,8 @@ export default function AdminScanAuditTable() {
                   const isHealthy = scan.prediction_status === 'healthy' || scan.disease_name?.toLowerCase().includes('healthy');
                   const rawConf = parseFloat(scan.confidence) || 0;
                   const confidenceVal = rawConf > 0 && rawConf <= 1.0 ? rawConf * 100 : rawConf;
-                  const imageUrl = scan.image_data_url || resolveImageUrl(scan.image_path || scan.image_url);
+                  const imageUrl = resolveImageUrl(scan);
+                  const isBotScan = (scan.farmer_name || '').toLowerCase().includes('bot');
 
                   return (
                     <tr 
@@ -477,20 +508,28 @@ export default function AdminScanAuditTable() {
                         <div 
                           onClick={() => setSelectedScan(scan)}
                           className="w-12 h-12 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 overflow-hidden flex items-center justify-center cursor-pointer shadow-2xs group-hover:scale-105 transition-transform"
+                          title={imageUrl ? `View leaf photo for ${scan.crop_name || 'Crop'}` : `Diagnostic record for ${scan.crop_name || 'Crop'}`}
                         >
                           {imageUrl ? (
                             <img 
                               src={imageUrl} 
                               alt={scan.crop_name || 'Crop Leaf'} 
                               className="w-full h-full object-cover"
+                              loading="lazy"
                               onError={(e) => {
                                 e.target.onerror = null;
                                 e.target.style.display = 'none';
-                                e.target.parentNode.innerHTML = '<span class="text-[10px] font-bold text-slate-400">🌿</span>';
+                                e.target.parentNode.innerHTML = isBotScan 
+                                  ? '<span class="text-xs" title="Synthetic Diagnostic Bot Scan">🤖</span>' 
+                                  : '<span class="text-[10px] font-bold text-slate-400">🌿</span>';
                               }}
                             />
                           ) : (
-                            <span className="text-base">🌿</span>
+                            isBotScan ? (
+                              <span className="text-xs" title="Synthetic Diagnostic Bot Scan">🤖</span>
+                            ) : (
+                              <span className="text-base">🌿</span>
+                            )
                           )}
                         </div>
                       </td>
@@ -664,14 +703,23 @@ export default function AdminScanAuditTable() {
               {/* Leaf Image & Key Badges */}
               <div className="flex flex-col sm:flex-row gap-5 items-start">
                 <div className="w-full sm:w-48 h-48 rounded-2xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 overflow-hidden shrink-0 flex items-center justify-center">
-                  {(selectedScan.image_data_url || resolveImageUrl(selectedScan.image_path || selectedScan.image_url)) ? (
+                  {resolveImageUrl(selectedScan) ? (
                     <img 
-                      src={selectedScan.image_data_url || resolveImageUrl(selectedScan.image_path || selectedScan.image_url)} 
-                      alt={selectedScan.crop_name} 
+                      src={resolveImageUrl(selectedScan)} 
+                      alt={selectedScan.crop_name || 'Crop Leaf'} 
                       className="w-full h-full object-cover"
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.style.display = 'none';
+                        const isBot = (selectedScan.farmer_name || '').toLowerCase().includes('bot');
+                        e.target.parentNode.innerHTML = `<div class="flex flex-col items-center justify-center p-3 text-center"><span class="text-3xl">${isBot ? '🤖' : '🌿'}</span><span class="text-[10px] text-slate-400 mt-1 font-semibold">${isBot ? 'Synthetic Bot Scan' : 'Leaf Specimen'}</span></div>`;
+                      }}
                     />
                   ) : (
-                    <span className="text-3xl">🌿</span>
+                    <div className="flex flex-col items-center justify-center p-3 text-center">
+                      <span className="text-3xl">{(selectedScan.farmer_name || '').toLowerCase().includes('bot') ? '🤖' : '🌿'}</span>
+                      <span className="text-[10px] text-slate-400 mt-1 font-semibold">{(selectedScan.farmer_name || '').toLowerCase().includes('bot') ? 'Synthetic Bot Scan' : 'Leaf Specimen'}</span>
+                    </div>
                   )}
                 </div>
 

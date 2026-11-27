@@ -12399,3 +12399,20 @@ pm --prefix frontend run build (vite v4.5.14 built cleanly in 20.50s with 0 erro
   - Added `image_data_url` support for base64 local scans in both table and detail modal.
 - **Verification:**
   - Production build `npm.cmd run build` compiled 3,211 modules cleanly in 31.37s with 0 errors.
+
+## [2026-11-27 20:58:00] - Resolve Leaf Photo Display in Admin Crop Scan Audits (`AdminScanAuditTable.jsx` & `admin.py`)
+- **Root Cause Analysis for Leaf Photo Not Showing (🌿 Icons):**
+  1. **Backend Response Omission in `admin.py`:** The `/api/admin/scans` endpoint (`backend/app/routers/admin/admin.py:1964`) was omitting `image_data_url`, `image_url`, `supabase_url`, and `sample_reference_image`. It only passed `image_path` (e.g. `uploads/f87b...jpg`), even though MongoDB records contained full Base64/WebP thumbnails (`image_data_url`) and Supabase storage URLs.
+  2. **Vercel Relative Path 404:** When `image_path` was resolved on Vercel without a configured API base URL, it resolved to `/uploads/...`. Because Vercel is a static host with no local upload disk, the requests returned 404, triggering `onError` which replaced the image with the placeholder green leaf icon `🌿`.
+  3. **Synthetic Bot Diagnostic Records:** Telemetry created by background diagnostic bots (`Diagnostics Bot ef0d90`) did not generate camera uploads, leaving records with empty image data.
+- **Fix Applied:**
+  - `backend/app/routers/admin/admin.py`:
+    - Updated `formatted` record generation in `list_admin_crop_scans` to return `image_data_url`, `image_url`, `supabase_url`, `sample_reference_image`, `user_id`, `treatment`, and `preventive_measures`.
+    - Added `image_data_url`, `image_url`, and `supabase_url` to `export_retraining_dataset` so exported retraining batches include image assets.
+  - `frontend/src/components/admin/AdminScanAuditTable.jsx`:
+    - Enhanced `resolveImageUrl` to accept scan objects directly and resolve in order of priority: `image_data_url` (instant base64) -> `supabase_url` -> `image_url` -> `image_path` (with hostless backend fallback) -> `sample_reference_image`.
+    - Added smart error and synthetic detection: when an image fails to load or belongs to a synthetic test bot (`Diagnostics Bot`), a dedicated `🤖 Synthetic Diagnostic Bot Scan` badge is shown instead of a broken thumbnail.
+    - Updated the scan inspection modal with the new image resolver and fallback diagnostics badge.
+- **Verification:**
+  - Executed production Vite build `npm.cmd run build`: 3,211 modules transformed cleanly with 0 errors.
+

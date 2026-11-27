@@ -1970,15 +1970,22 @@ async def list_admin_crop_scans(
             "prediction_status": norm_status,
             "status": norm_status,
             "image_path": d.get("image_path", ""),
+            "image_url": d.get("image_url") or d.get("supabase_url") or (d.get("image_path") if str(d.get("image_path", "")).startswith("http") else ""),
+            "supabase_url": d.get("supabase_url", ""),
+            "image_data_url": d.get("image_data_url", ""),
+            "sample_reference_image": d.get("sample_reference_image", ""),
+            "user_id": str(d.get("user_id") or ""),
             "prediction_date": date_str,
             "created_at": date_str,
-            "farmer_name": u_info.get("name") or d.get("farmer_name") or "Registered Farmer",
+            "farmer_name": u_info.get("name") or d.get("farmer_name") or ("Diagnostics Bot" if "bot" in str(d.get("farmer_name", "")).lower() else "Registered Farmer"),
             "farmer_email": u_info.get("email") or d.get("farmer_email") or "",
             "farmer_phone": u_info.get("phone") or d.get("farmer_phone") or "",
             "location": u_info.get("farm_location") or d.get("location") or "Field Sector",
             "is_overridden": bool(d.get("is_overridden", False)),
             "human_corrected_disease": d.get("human_corrected_disease", ""),
-            "agronomist_notes": d.get("agronomist_notes", "")
+            "agronomist_notes": d.get("agronomist_notes", ""),
+            "treatment": d.get("treatment") or d.get("cure") or "",
+            "preventive_measures": d.get("preventive_measures", "")
         })
 
     total_retraining = await db.predictions.count_documents({"$or": [{"is_overridden": True}, {"flagged_for_retraining": True}]})
@@ -2213,6 +2220,9 @@ async def export_retraining_dataset(db = Depends(get_database)):
             "flagged_for_retraining": bool(d.get("flagged_for_retraining", False)),
             "agronomist_notes": d.get("agronomist_notes", ""),
             "image_path": d.get("image_path", ""),
+            "image_url": d.get("image_url") or d.get("supabase_url") or "",
+            "supabase_url": d.get("supabase_url", ""),
+            "image_data_url": d.get("image_data_url", ""),
             "prediction_date": d.get("prediction_date", ""),
             "created_at": d.get("created_at").isoformat() if isinstance(d.get("created_at"), datetime) else str(d.get("created_at", ""))
         })
