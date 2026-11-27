@@ -207,6 +207,25 @@ export const Toast = ({ message, type = 'success', onClose, duration = 4000 }) =
 };
 
 // 7. Navbar Component
+// Isolated Zero-Overhead Header Clock (Prevents Navbar from re-rendering every second)
+const LiveClock = React.memo(() => {
+  const [time, setTime] = useState('');
+  useEffect(() => {
+    const updateTime = () => {
+      setTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+    };
+    updateTime();
+    const interval = setInterval(updateTime, 1000);
+    return () => clearInterval(interval);
+  }, []);
+  return (
+    <div className="hidden xl:flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/40 text-xs font-bold text-slate-700 dark:text-slate-200 font-mono shadow-sm transition-all hover:border-emerald-500/30">
+      <Clock className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 animate-pulse shrink-0" />
+      <span className="tabular-nums tracking-wide">{time || '--:--:--'}</span>
+    </div>
+  );
+});
+
 export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
   const { user, logout, updateProfile } = useAuth();
   const { theme } = useNavbarTheme();
@@ -222,15 +241,6 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
   // Local states
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const [currentTime, setCurrentTime] = useState('');
-  useEffect(() => {
-    const updateTime = () => {
-      setCurrentTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
-    };
-    updateTime();
-    const interval = setInterval(updateTime, 1000);
-    return () => clearInterval(interval);
-  }, []);
 
   // Sync HTML lang attribute to activate regional fallback fonts in index.css
   useEffect(() => {
@@ -505,7 +515,8 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
     window.addEventListener('focus', handleRevalidateNotifs);
     document.addEventListener('visibilitychange', handleRevalidateNotifs);
 
-    // Responsive real-time alert synchronizer (bypassed on /notifications to prevent badge flickering)
+    // Adaptive alert synchronizer (relaxed when WebSocket push is active to prevent network queue congestion)
+    const pollDelay = connectionStatus === 'connected' ? 60000 : 25000;
     const notifPollTimer = setInterval(() => {
       if (document.visibilityState === 'visible') {
         if (typeof window !== 'undefined' && window.location.pathname.startsWith('/notifications')) {
@@ -514,7 +525,7 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
         fetchUnreadCount();
         fetchRecentAlerts();
       }
-    }, 15000);
+    }, pollDelay);
 
     return () => {
       clearInterval(notifPollTimer);
@@ -931,11 +942,8 @@ export const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
                   </Link>
                 )}
 
-                {/* Live Time Display - Hidden on smaller screens */}
-                <div className="hidden xl:flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/40 text-xs font-bold text-slate-700 dark:text-slate-200 font-mono shadow-sm transition-all hover:border-emerald-500/30">
-                  <Clock className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 animate-pulse shrink-0" />
-                  <span className="tabular-nums tracking-wide">{currentTime || '--:--:--'}</span>
-                </div>
+                {/* Live Time Display - Isolated zero-overhead component */}
+                <LiveClock />
 
 
 

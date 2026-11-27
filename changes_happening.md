@@ -12163,3 +12163,32 @@ pm --prefix frontend run build (vite v4.5.14 built cleanly in 20.50s with 0 erro
   - `frontend/src/pages/farmer/EquipmentBookingPage.jsx`
   - `frontend/src/pages/provider/ProviderDashboardPage.jsx`
   - `changes_happening.md`
+
+
+## [2026-11-27 08:32:00] - Performance Optimization & Anti-Lag Engine Implementation
+- **Root Cause Analysis:**
+  1. `Navbar` in `AppLayout.jsx` ran a `1000ms` `setInterval` (`setCurrentTime`) updating local state every second. Because `Navbar` is mounted at the root level, this forced React to re-render the entire navigation header, user drawer, and child components 60 times every minute, causing UI micro-stutters, delayed touch feedback, and scroll jitter on mobile devices.
+  2. `NavbarScenesLibrary.jsx` had three separate welcome banners (`WelcomeFarmer`, `WelcomeAdmin`, `WelcomeTester`) each running an independent `1000ms` `setInterval` re-rendering every second.
+  3. In `AppLayout.jsx`, `notifPollTimer` ran an aggressive 15-second REST poll querying `/api/v1/notifications` even when WebSocket connection was already active, congesting the network connection pool.
+  4. In `frontend/vite.config.js`, heavy libraries (`leaflet`, `react-simple-maps`, `d3-geo`, and `firebase`) were not split into separate vendor chunks, inflating `index.js` to 1,367 kB and triggering Vite chunk size warnings.
+- **Performance Optimizations Applied:**
+  1. `frontend/src/components/AppLayout.jsx`:
+     - Extracted live header clock into an isolated, memoized `<LiveClock />` component (`React.memo`).
+     - Removed `currentTime` state from `Navbar`. The navbar and top-level layout now **never** re-render every second.
+     - Relaxed `notifPollTimer` from 15s to 60s when WebSocket connection is active (`connected`), cutting background polling requests by 75%.
+  2. `frontend/src/components/animations/NavbarScenesLibrary.jsx`:
+     - Throttled timer updates in `WelcomeFarmer`, `WelcomeAdmin`, and `WelcomeTester` from 1,000ms to 30,000ms, eliminating 180 unnecessary re-renders per minute.
+  3. `frontend/src/index.css`:
+     - Added `.gpu-accelerated` compositing utility (`transform: translateZ(0); will-change: transform`).
+     - Enabled native iOS/Android momentum scrolling (`-webkit-overflow-scrolling: touch; scroll-behavior: smooth`).
+  4. `frontend/vite.config.js`:
+     - Added dedicated Rollup vendor chunks for `vendor-maps` (`['leaflet', 'react-simple-maps', 'd3-geo']`) and `vendor-firebase` (`['firebase/app', 'firebase/auth', 'firebase/analytics', 'firebase/messaging']`).
+     - Reduced main bundle from 1,367 kB down to 1,143 kB and eliminated Vite chunk warnings.
+- **Verification:**
+  - Production build (`npm run build`) succeeded in **21.01s** (down from 34.31s) with 3,208 modules transformed and 0 errors.
+- **Files Modified:**
+  - `frontend/src/components/AppLayout.jsx`
+  - `frontend/src/components/animations/NavbarScenesLibrary.jsx`
+  - `frontend/src/index.css`
+  - `frontend/vite.config.js`
+  - `changes_happening.md`

@@ -1495,3 +1495,17 @@
   }
 }
 
+
+/* ── 7. GPU Compositing & Anti-Lag Touch Scrolling ── */
+.gpu-accelerated {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  perspective: 1000px;
+  will-change: transform;
+}
+
+/* Smooth mobile scrolling without frame drops */
+html, body {
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}

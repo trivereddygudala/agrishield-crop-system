@@ -276,7 +276,7 @@ export const SonicWave = () => (
 
 export const WelcomeFarmer = ({ isCompact = false }) => {
   const [time, setTime] = React.useState(new Date());
-  React.useEffect(() => { const t = setInterval(() => setTime(new Date()), 1000); return () => clearInterval(t); }, []);
+  React.useEffect(() => { const t = setInterval(() => setTime(new Date()), 30000); return () => clearInterval(t); }, []);
   const h = time.getHours();
   const greeting = h < 12 ? 'Good Morning' : h < 17 ? 'Good Afternoon' : 'Good Evening';
   return (
@@ -308,7 +308,7 @@ export const WelcomeFarmer = ({ isCompact = false }) => {
 
 export const WelcomeAdmin = ({ isCompact = false }) => {
   const [time, setTime] = React.useState(new Date());
-  React.useEffect(() => { const t = setInterval(() => setTime(new Date()), 1000); return () => clearInterval(t); }, []);
+  React.useEffect(() => { const t = setInterval(() => setTime(new Date()), 30000); return () => clearInterval(t); }, []);
   const h = time.getHours();
   const greeting = h < 12 ? 'Good Morning' : h < 17 ? 'Good Afternoon' : 'Good Evening';
   return (
@@ -340,7 +340,7 @@ export const WelcomeAdmin = ({ isCompact = false }) => {
 
 export const WelcomeTester = ({ isCompact = false }) => {
   const [time, setTime] = React.useState(new Date());
-  React.useEffect(() => { const t = setInterval(() => setTime(new Date()), 1000); return () => clearInterval(t); }, []);
+  React.useEffect(() => { const t = setInterval(() => setTime(new Date()), 30000); return () => clearInterval(t); }, []);
   const h = time.getHours();
   const greeting = h < 12 ? 'Good Morning' : h < 17 ? 'Good Afternoon' : 'Good Evening';
   return (

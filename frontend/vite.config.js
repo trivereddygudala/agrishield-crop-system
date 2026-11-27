@@ -79,7 +79,9 @@ export default defineConfig(() => {
             'vendor-react': ['react', 'react-dom', 'react-router-dom'],
             'vendor-ui': ['framer-motion', 'lucide-react'],
             'vendor-charts': ['recharts'],
-            'vendor-pdf': ['jspdf', 'jspdf-autotable']
+            'vendor-pdf': ['jspdf', 'jspdf-autotable'],
+            'vendor-maps': ['leaflet', 'react-simple-maps', 'd3-geo'],
+            'vendor-firebase': ['firebase/app', 'firebase/auth', 'firebase/analytics', 'firebase/messaging']
           }
         }
       }
