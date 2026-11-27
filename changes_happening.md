@@ -12266,3 +12266,27 @@ pm --prefix frontend run build (vite v4.5.14 built cleanly in 20.50s with 0 erro
   - `frontend/src/pages/admin/AdminPage.jsx`: Localized all 10 administrative tab titles and descriptions.
 - **Verification:**
   - Production build `npm.cmd run build` transformed 3,213 modules with 0 compilation errors in 30.46s.
+
+## [2026-11-27 17:35:00] - Hardcoded Groq API Key Decommissioning & Comprehensive Codebase API Key Audit
+- **Groq API Key Decommissioning:**
+  - Completely removed hardcoded plaintext Groq API key (`gsk_...[REDACTED]`) from root `.env` (`GROQ_API_KEY=`) and `backend/.env` (`GROQ_API_KEY=`).
+  - Redacted plaintext key from historical log documentation in `TODAY_CHAT_HISTORY_2026-09-09.md`.
+  - Verified `backend/app/core/config.py` default `GROQ_API_KEY: str = ""` remains empty.
+  - Verified `nvidia_service.py` and `translation_service.py` gracefully bypass Groq and execute sub-400ms completions using primary NVIDIA NIM (`nemotron-3.5-lightning-30b-a3b`), Gemini Flash, and ICAR local agronomic knowledge base without delay or 401 exceptions.
+  - Verified client frontend has zero direct Groq references; all AI interactions safely proxy through authenticated backend endpoints.
+- **Comprehensive Codebase API Key Audit:**
+  - Conducted deep scan of all 7,477 project files across frontend, backend, configs, and environment templates.
+  - Cataloged all 11 external & internal API services used across AgriShield:
+    1. **Groq Cloud AI (`gsk_...`):** 1 key (Decommissioned/Removed).
+    2. **NVIDIA NIM Cloud AI (`nvapi-...`):** 2 keys (Primary `nvapi-ZUHd...` and Secondary `nvapi-6Atv...` in `.env`, `backend/.env`, and base64-embedded in `config.py`).
+    3. **Google Firebase / FCM (`AIzaSyA-...`):** 1 key (Used across `frontend/.env`, `firebase.js`, `firebase-messaging-sw.js`, `.env`, and Android wrapper).
+    4. **OpenWeatherMap (`aabca041...`):** 1 key (Used in `.env`, `backend/.env`, and `config.py` for weather telemetry).
+    5. **Data.gov.in Mandi (`579b464d...`):** 1 key (Used in `.env`, `backend/.env`, and `config.py` for live APMC crop market prices).
+    6. **Supabase Cloud (`sb_secret_...`):** 1 key (Used in `.env` and `backend/.env` for cloud DB & object storage sync).
+    7. **Pl@ntNet (`2b10CDOJ...`):** 1 key (Base64-encoded in `config.py` for botanical taxonomy fallback).
+    8. **Google Gemini Flash (`AQ.Ab8RN...`):** 1 key (Base64-encoded in `config.py` for Gemini AI fallback).
+    9. **Tavily AI Search (`tvly-dev-...`):** 1 key (Base64-encoded in `config.py` for agricultural news/search enrichment).
+    10. **AgroMonitoring Satellite (`c9323f20...`):** 1 key (Base64-encoded in `config.py` for NDVI satellite polygon monitoring).
+    11. **Internal Security Secrets:** JWT secret, Refresh token secret, and ESP32 IoT handshake key (`crop_iot_secure_key_2026`).
+- **Verification:**
+  - Production build `npm.cmd run build` inside `frontend` compiled 3,213 modules cleanly in 22.46s with 0 errors.
