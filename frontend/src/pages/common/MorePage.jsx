@@ -446,15 +446,6 @@ const MorePage = () => {
       iconBg: 'bg-indigo-100 dark:bg-indigo-950/70 border border-indigo-300 dark:border-indigo-800',
       accent: 'border-l-indigo-500'
     },
-    {
-      icon: Cpu,
-      label: 'IoT Hardware Fleet',
-      description: 'Inspect paired field nodes and telemetry health',
-      path: '/admin?tab=iot',
-      iconColor: 'text-cyan-600 dark:text-cyan-400',
-      iconBg: 'bg-cyan-100 dark:bg-cyan-950/70 border border-cyan-300 dark:border-cyan-800',
-      accent: 'border-l-cyan-500'
-    },
   ];
 
   const ADMIN_SYSTEM_TOOLS = [

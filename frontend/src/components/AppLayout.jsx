@@ -1272,15 +1272,13 @@ export const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
       items: [
         { key: "nav.admin_users", path: "/admin?tab=users", icon: Users, label: "Registered Users" },
         { key: "admin.nav_crop_scans", path: "/admin?tab=scans", icon: History, label: "Crop Scan Audits" },
-        { key: "nav.admin_radar", path: "/admin?tab=radar", icon: Activity, label: "Live API Radar & Mesh" },
+        { key: "nav.admin_activity", path: "/admin?tab=activity", icon: Activity, label: "Daily Activity & Sessions" },
         { key: "nav.admin_broadcast", path: "/admin?tab=broadcast", icon: Radio, label: "Global Broadcasts" },
         { key: "nav.admin_geography", path: "/admin?tab=geography", icon: Globe, label: "Farmer Geography" },
-        { key: "nav.admin_iot", path: "/admin?tab=iot", icon: Cpu, label: "IoT Hardware Fleet" },
         { key: "nav.admin_firmware", path: "/admin?tab=firmware", icon: UploadCloud, label: "Firmware OTA" },
         { key: "nav.admin_logs", path: "/admin?tab=logs", icon: FileText, label: "Security Audit Logs" },
         { key: "nav.admin_support", path: "/admin?tab=support", icon: Headphones, label: "Farmer Helpdesk" },
-        { key: "nav.admin_firewall", path: "/admin?tab=firewall", icon: ShieldAlert, label: "Defense Walls" },
-        { key: "nav.admin_settings", path: "/admin?tab=settings", icon: Sliders, label: "System Health & Specs" },
+        { key: "nav.admin_storage", path: "/admin?tab=storage", icon: HardDrive, label: "Cloud Storage & Retention" },
       ]
     },
     {
@@ -1512,9 +1510,9 @@ export const BottomNav = () => {
     {
       key: 'settings',
       label: t('nav.settings', 'Settings'),
-      path: '/admin?tab=settings',
+      path: '/settings',
       Icon: SettingsIcon,
-      matchPaths: ['/admin?tab=settings', '/settings', '/profile'],
+      matchPaths: ['/settings', '/profile'],
     },
   ];
 

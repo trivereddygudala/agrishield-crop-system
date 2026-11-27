@@ -12342,3 +12342,47 @@ pm --prefix frontend run build (vite v4.5.14 built cleanly in 20.50s with 0 erro
 - **Verification:**
   - Verified no `.apk` binaries exist in the repository.
   - Successfully staged and committed workflow removal to `origin/main`.
+
+## [2026-11-27 19:38:00] - Complete Decommissioning of 5 Unuseful Admin Modules & Preservation of 9 Core Modules
+- **Overview & User Decision:**
+  - Per the user's explicit instruction: *"keep firware ota push and the farmer geography map, security audit logs and and all 6 those are really helpful. Remove the unuseful ones with out any code remains in the code base completely remove them ok."*
+  - Retained exactly 9 core, production-grade administrator modules:
+    1. `scans` (Crop Scan Audits - AI confidence, leaf pictures & prescriptions)
+    2. `users` (Registered Users - role management, accounts & farm locations)
+    3. `broadcast` (Global Emergency Broadcasts - high-priority agricultural alerts)
+    4. `support` (Farmer Support & Helpdesk - 15-minute phone consultations & ticket resolution)
+    5. `activity` (Daily Activity & Sessions - login patterns, peak times & device ratios)
+    6. `storage` (Cloud Storage & Retention - Supabase image buckets, MongoDB Atlas telemetry & 90-day retention purges)
+    7. `firmware` (Firmware OTA Push - Over-The-Air binary upload & hardware flashing)
+    8. `geography` (Farmer Geography Map - state & district choropleth distribution)
+    9. `logs` (Security Audit Logs - authentication, security events & administrative audit trails)
+  - Permanently decommissioned and deleted the 5 unuseful modules with zero leftover dead code:
+    1. `radar` (Live API Traffic Radar & Service Mesh Topology)
+    2. `firewall` (Security Defense Walls, IP Jail & Honeypot Decoys)
+    3. `diagnostics` (AI Sentinel RCA - Autonomous Root Cause Analysis)
+    4. `iot` (IoT Hardware Fleet Registry & Telemetry Master Gate in AdminPage)
+    5. `settings` (System Health & Specs duplicate tab in AdminPage)
+- **Files Deleted:**
+  - `frontend/src/components/admin/ApiTrafficRadar.jsx` (122 KB visualizer deleted)
+  - `frontend/src/components/admin/SystemDiagnosticsTab.jsx` (27 KB diagnostics tab deleted)
+- **Files Cleaned / Modified:**
+  - `frontend/src/pages/admin/AdminPage.jsx`:
+    - Removed orphaned imports: `SystemDiagnosticsTab` and `ApiTrafficRadar`.
+    - Removed unused icon import: `Sliders`.
+    - Removed dead state hooks: `iotNodes`, `selectedIotNode`, `firewallStatus`, `firewallLoading`, `manualBanIp`, `manualBanReason`, `manualBanHours`, `banningLoading`, `iotIngestionEnabled`, `togglingIngestion`, `downlinkNodeId`, `downlinkLoading`, `irrigationStates`.
+    - Removed dead handlers: `fetchFirewallStatus`, `handleUnbanIp`, `handleManualBan`, `fetchIotNodes`, `fetchIoTIngestionStatus`, `handleToggleIoTIngestion`, `handleIotDownlink`.
+    - Cleaned `adminTabs` array to feature exactly the 9 core modules.
+    - Updated overview triage deck from IoT to Firmware Fleet OTA (`UploadCloud`).
+    - Updated overview KPI metric card from IoT Fleet to Cloud Storage (`Cloud`).
+    - Cleaned header icon and title conditional ternaries to remove decommissioned tabs.
+    - Cleaned initial mount and gated polling `useEffect` hooks.
+    - Deleted inline JSX tab renderers for `iot`, `settings`, `firewall`, `diagnostics`, `radar`.
+    - Deleted `selectedIotNode` ESP32 hardware telemetry modal.
+  - `frontend/src/components/AppLayout.jsx`:
+    - Cleaned admin sidebar navigation (`navGroups`): removed `radar`, `iot`, `firewall`, `settings`; added direct links for `activity` and `storage` alongside the other 7 retained modules.
+    - Updated bottom admin dock settings tab route from dead `/admin?tab=settings` to `/settings` (Farmer/Admin Application Settings).
+  - `frontend/src/pages/common/MorePage.jsx`:
+    - Removed obsolete `/admin?tab=iot` navigation card from admin tools list.
+- **Verification:**
+  - Verified 0 remaining occurrences of decommissioned tabs (`activeTab === 'iot' | 'firewall' | 'diagnostics' | 'radar' | 'settings'`) across all files.
+  - Executed full production Vite build `npm.cmd run build`: 3,211 modules compiled cleanly in 32.51s with 0 errors.

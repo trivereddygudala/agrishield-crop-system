@@ -20,7 +20,6 @@ import {
   FileText,
   History,
   Activity,
-  Sliders,
   Server,
   Zap,
   Radio,
@@ -74,9 +73,7 @@ import API from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { useTranslation } from 'react-i18next';
 import UserGeographyMap from '../../components/admin/UserGeographyMap';
-import SystemDiagnosticsTab from '../../components/admin/SystemDiagnosticsTab';
 import AdminAIChatbot from '../../components/admin/AdminAIChatbot';
-import ApiTrafficRadar from '../../components/admin/ApiTrafficRadar';
 import AdminScanAuditTable from '../../components/admin/AdminScanAuditTable';
 import DailyActivityDashboard from '../../components/admin/DailyActivityDashboard';
 import { parseServerDate, formatDateTime, timeAgo } from '../../utils/dateUtils';
@@ -115,9 +112,7 @@ export default function AdminPage() {
   const [hasMoreUsers, setHasMoreUsers] = useState(false);
   const [userStats, setUserStats] = useState({ total: 0, admin: 0, farmer: 0, equipment_provider: 0, completedProfiles: 0 });
 
-  // IoT & Security state
-  const [iotNodes, setIotNodes] = useState([]);
-  const [selectedIotNode, setSelectedIotNode] = useState(null);
+  // Security state
   const [auditLogs, setAuditLogs] = useState([]);
   const [logDateFilter, setLogDateFilter] = useState('all'); // 'all', 'today', 'yesterday', 'week', 'custom'
   const [customLogDate, setCustomLogDate] = useState('');
@@ -156,10 +151,6 @@ export default function AdminPage() {
   // Create User State
   const [isCreateUserOpen, setIsCreateUserOpen] = useState(false);
   const [createForm, setCreateForm] = useState({ name: '', email: '', password: '', role: 'farmer', preferred_language: 'en', farm_location: '' });
-
-  // IoT Ingestion Master Switch State
-  const [iotIngestionEnabled, setIotIngestionEnabled] = useState(false);
-  const [togglingIngestion, setTogglingIngestion] = useState(false);
 
   // Farmer Support & Helpdesk State
   const [supportTickets, setSupportTickets] = useState([]);
@@ -215,66 +206,15 @@ export default function AdminPage() {
     }
   };
 
-  // Security Walls & Firewall Console State
-  const [firewallStatus, setFirewallStatus] = useState({ walls: [], active_bans_count: 0, jailed_ips: [] });
-  const [firewallLoading, setFirewallLoading] = useState(false);
-  const [manualBanIp, setManualBanIp] = useState('');
-  const [manualBanReason, setManualBanReason] = useState('Administrative Security Ban');
-  const [manualBanHours, setManualBanHours] = useState(24);
-  const [banningLoading, setBanningLoading] = useState(false);
-
-  const fetchFirewallStatus = async () => {
-    setFirewallLoading(true);
-    try {
-      const res = await API.get('/api/admin/firewall/status');
-      setFirewallStatus(res.data || { walls: [], active_bans_count: 0, jailed_ips: [] });
-    } catch (e) {
-      console.warn("Could not fetch firewall status:", e);
-    } finally {
-      setFirewallLoading(false);
-    }
-  };
-
-  const handleUnbanIp = async (ip) => {
-    if (!window.confirm(`Release IP ${ip} from security jail?`)) return;
-    try {
-      await API.post('/api/admin/firewall/unban', { ip });
-      setSuccessMsg(`IP ${ip} unbanned successfully.`);
-      fetchFirewallStatus();
-    } catch (e) {
-      setError(e.response?.data?.detail || 'Failed to unban IP.');
-    }
-  };
-
-  const handleManualBan = async (e) => {
-    e.preventDefault();
-    if (!manualBanIp.trim()) return;
-    setBanningLoading(true);
-    try {
-      await API.post('/api/admin/firewall/ban', {
-        ip: manualBanIp.trim(),
-        reason: manualBanReason.trim(),
-        duration_hours: Number(manualBanHours) || 24
-      });
-      setSuccessMsg(`IP ${manualBanIp} jailed for ${manualBanHours} hours.`);
-      setManualBanIp('');
-      fetchFirewallStatus();
-    } catch (e) {
-      setError(e.response?.data?.detail || 'Failed to jail IP.');
-    } finally {
-      setBanningLoading(false);
-    }
-  };
-
   // ══════════════════════════════════════════════════════════════════════════
-  // PHASE 1, 2, 3 ENTERPRISE ADMIN STATE & HANDLERS
+  // ENTERPRISE ADMIN STATE & HANDLERS
   // ══════════════════════════════════════════════════════════════════════════
 
   // 1. Overview Hub Ticker & Emergency Action State
   const [tickerEvents, setTickerEvents] = useState([
     { id: "evt-1", time: "14:12", type: "scan", text: "Chilli Leaf Curl Virus detected in Guntur district (PyTorch 98.4%)" },
-    { id: "evt-2", time: "14:09", type: "iot", text: "ESP32 Node Alpha reports 42% moisture, 94% battery (Pasupugallu sector)" },
-    { id: "evt-3", time: "14:05", type: "waf", text: "Auto-quarantined IP 198.51.100.42 after 25 rapid burst queries" },
+    { id: "evt-2", time: "14:09", type: "firmware", text: "Firmware v2.4.1 binary staged for OTA broadcast distribution" },
+    { id: "evt-3", time: "14:05", type: "security", text: "Security audit event logged: Admin user session verified" },
     { id: "evt-4", time: "14:00", type: "support", text: "15-minute callback requested by farmer Ramesh (Prakasam district)" },
     { id: "evt-5", time: "13:52", type: "ai", text: "PyTorch inference batch queue normalized at 112ms average latency" }
   ]);
@@ -723,33 +663,6 @@ export default function AdminPage() {
   };
 
   // 4. IoT Remote Downlink & Solenoid Control
-  const [downlinkNodeId, setDownlinkNodeId] = useState(null);
-  const [downlinkLoading, setDownlinkLoading] = useState(false);
-  const [irrigationStates, setIrrigationStates] = useState({});
-
-  const handleIotDownlink = async (deviceId, command, params = {}) => {
-    setDownlinkNodeId(deviceId);
-    setDownlinkLoading(true);
-    try {
-      const res = await API.post('/api/admin/iot/node/command', {
-        device_id: deviceId,
-        command,
-        params
-      });
-      setSuccessMsg(res.data?.message || `Command ${command} sent to ${deviceId}`);
-      if (command === 'toggle_valve') {
-        const nextState = params.valve_state || 'TOGGLE';
-        setIrrigationStates(prev => ({ ...prev, [deviceId]: nextState }));
-      }
-    } catch (err) {
-      setError(`Failed to send command to ${deviceId}`);
-    } finally {
-      setDownlinkLoading(false);
-      setDownlinkNodeId(null);
-      setTimeout(() => setSuccessMsg(''), 3500);
-    }
-  };
-
   // 5. Firmware Canary Staged Rollout
   const [canaryPercentage, setCanaryPercentage] = useState(10);
   const [canaryDeploying, setCanaryDeploying] = useState(false);
@@ -1022,32 +935,6 @@ export default function AdminPage() {
     }
   };
 
-  const fetchIoTIngestionStatus = async () => {
-    try {
-      const res = await API.get('/api/admin/iot-ingestion/status');
-      setIotIngestionEnabled(Boolean(res.data?.enabled));
-    } catch (e) {
-      console.warn('Could not fetch IoT ingestion status:', e);
-    }
-  };
-
-  const handleToggleIoTIngestion = async () => {
-    setTogglingIngestion(true);
-    setError('');
-    setSuccessMsg('');
-    try {
-      const nextState = !iotIngestionEnabled;
-      const res = await API.post('/api/admin/iot-ingestion/toggle', { enabled: nextState });
-      setIotIngestionEnabled(Boolean(res.data?.enabled));
-      setSuccessMsg(res.data?.message || `IoT ingestion is now ${nextState ? 'ENABLED' : 'PAUSED'}.`);
-      fetchAuditLogs();
-    } catch (err) {
-      setError(err.response?.data?.detail || 'Failed to toggle IoT ingestion setting.');
-    } finally {
-      setTogglingIngestion(false);
-    }
-  };
-
   const handleBroadcastSubmit = async (e) => {
     return handleDispatchGeoBroadcast(e);
   };
@@ -1274,15 +1161,6 @@ export default function AdminPage() {
     }
   };
 
-  const fetchIotNodes = async () => {
-    try {
-      const res = await API.get('/api/v1/devices/status');
-      setIotNodes(res.data?.nodes || res.data || []);
-    } catch (e) {
-      console.warn("Could not fetch IoT nodes:", e);
-    }
-  };
-
   const fetchFirmwareData = async () => {
     try {
       const resList = await API.get('/api/v1/firmware/history');
@@ -1379,13 +1257,10 @@ export default function AdminPage() {
 
   useEffect(() => {
     fetchUsers();
-    fetchIotNodes();
     fetchAuditLogs();
     fetchFirmwareData();
-    fetchIoTIngestionStatus();
     fetchSupportTickets();
     fetchSupportConfig();
-    fetchFirewallStatus();
     fetchBroadcastHistory();
     fetchStorageStats();
     fetchMaintenanceStatus();
@@ -1395,13 +1270,7 @@ export default function AdminPage() {
   useEffect(() => {
     let interval = null;
 
-    if (activeTab === 'iot') {
-      fetchIotNodes();
-      interval = setInterval(() => {
-        if (document.visibilityState !== 'visible') return;
-        fetchIotNodes();
-      }, 10000);
-    } else if (activeTab === 'logs') {
+    if (activeTab === 'logs') {
       fetchAuditLogs();
       interval = setInterval(() => {
         if (document.visibilityState !== 'visible') return;
@@ -1412,11 +1281,6 @@ export default function AdminPage() {
         if (document.visibilityState !== 'visible') return;
         fetchSupportTickets();
       }, 20000);
-    } else if (activeTab === 'firewall') {
-      interval = setInterval(() => {
-        if (document.visibilityState !== 'visible') return;
-        fetchFirewallStatus();
-      }, 15000);
     }
 
     return () => {
@@ -1438,9 +1302,7 @@ export default function AdminPage() {
       fetchUsers(userPage, userPageSize, searchTerm, roleFilter);
     } else if (activeTab === 'support') {
       fetchSupportTickets();
-    } else if (activeTab === 'firewall') {
-      fetchFirewallStatus();
-    } else if (activeTab === 'settings' || activeTab === 'overview' || activeTab === 'storage') {
+    } else if (activeTab === 'overview' || activeTab === 'storage') {
       fetchStorageStats();
     }
   }, [activeTab, supportStatusFilter, supportCategoryFilter, supportPriorityFilter]);
@@ -1539,9 +1401,7 @@ export default function AdminPage() {
   const totalFarmers = usersList.filter(u => u.role === 'farmer').length;
   const totalProviders = usersList.filter(u => u.role === 'equipment_provider').length;
   const completedProfiles = usersList.filter(u => u.farm_profile_completed).length;
-  const onlineIotCount = iotNodes.filter(n => n.status === 'online').length;
-
-  // 7 Core Administrator Modules Configuration
+  // 9 Core Administrator Modules Configuration
   const adminTabs = [
     { 
       id: 'users', 
@@ -1584,14 +1444,6 @@ export default function AdminPage() {
       badgeColor: 'bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-300' 
     },
     { 
-      id: 'iot', 
-      label: t('admin.iot_fleet', 'IoT Hardware Fleet'), 
-      description: 'Real-time ESP32 node registry, battery levels, and telemetry heartbeats.',
-      icon: Cpu, 
-      badge: onlineIotCount > 0 ? `${onlineIotCount} Online` : 'Standby', 
-      badgeColor: onlineIotCount > 0 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400' 
-    },
-    { 
       id: 'firmware', 
       label: t('admin.firmware_ota', 'Firmware OTA'), 
       description: 'Over-the-air firmware binary uploads and remote hardware flashing controls.',
@@ -1616,30 +1468,6 @@ export default function AdminPage() {
       badgeColor: supportStats?.urgent_callbacks > 0 ? 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300 animate-pulse' : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300' 
     },
     { 
-      id: 'firewall', 
-      label: t('admin.firewall', 'Security Defense Walls'), 
-      description: '5-Layer Active Defense: Honeypot Decoys, Dynamic IP Jail, Deep WAF, Bot Traps & Anti-Replay.',
-      icon: ShieldAlert, 
-      badge: (firewallStatus?.active_bans_count > 0 || (firewallStatus?.jailed_ips && firewallStatus.jailed_ips.length > 0)) ? `${firewallStatus.jailed_ips?.length || firewallStatus.active_bans_count} Jailed` : '5 Walls Active', 
-      badgeColor: (firewallStatus?.active_bans_count > 0 || (firewallStatus?.jailed_ips && firewallStatus.jailed_ips.length > 0)) ? 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300' : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300' 
-    },
-    { 
-      id: 'diagnostics', 
-      label: 'AI Sentinel (RCA)', 
-      description: 'Autonomous Root-Cause Analysis, canary probes, repetitive bias detectors, and zero-cost quota shield.',
-      icon: Activity, 
-      badge: 'RCA Sentinel', 
-      badgeColor: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300' 
-    },
-    { 
-      id: 'settings', 
-      label: t('admin.system_health', 'System Health & Specs'), 
-      description: 'Server CPU, memory, database latency, and API specs.',
-      icon: Sliders, 
-      badge: 'Health 100%', 
-      badgeColor: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300' 
-    },
-    { 
       id: 'storage', 
       label: 'Cloud Storage & Retention', 
       description: 'Online Supabase Cloud Storage bucket & MongoDB Atlas database cluster telemetry, asset explorer, and safe cloud retention controls.',
@@ -1648,14 +1476,6 @@ export default function AdminPage() {
       badgeColor: storageStats?.is_almost_full 
         ? 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300 animate-pulse' 
         : (storageStats?.warning_elevated ? 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300' : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300')
-    },
-    { 
-      id: 'radar', 
-      label: 'Live API Radar', 
-      description: 'Real-time service mesh topology, request particle flow, latency gauges, and API traffic radar.',
-      icon: Radio, 
-      badge: 'Live Mesh', 
-      badgeColor: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300' 
     },
   ];
 
@@ -1726,7 +1546,7 @@ export default function AdminPage() {
             </div>
 
             <button
-              onClick={() => { fetchUsers(); fetchIotNodes(); fetchAuditLogs(); fetchFirmwareData(); fetchTickerEvents(); }}
+              onClick={() => { fetchUsers(); fetchAuditLogs(); fetchFirmwareData(); fetchTickerEvents(); }}
               disabled={loading}
               className="relative z-10 self-start md:self-center flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-lg hover:shadow-emerald-500/25 transition-all disabled:opacity-50 cursor-pointer btn-spring"
             >
@@ -2047,11 +1867,11 @@ export default function AdminPage() {
 
             <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs flex items-center gap-3">
               <div className="p-2.5 rounded-xl bg-sky-50 text-sky-600 dark:bg-sky-950/60 dark:text-sky-400">
-                <Cpu className="w-5 h-5" />
+                <Cloud className="w-5 h-5" />
               </div>
               <div>
-                <p className="text-[10px] font-bold text-slate-400 uppercase">{t('admin.metric_iot_fleet', 'IoT Fleet')}</p>
-                <p className="text-lg font-black text-slate-900 dark:text-slate-100">{onlineIotCount} Online</p>
+                <p className="text-[10px] font-bold text-slate-400 uppercase">Cloud Storage</p>
+                <p className="text-lg font-black text-slate-900 dark:text-slate-100">{storageStats?.total_cloud_used_mb ? `${storageStats.total_cloud_used_mb} MB` : 'Cloud Live'}</p>
               </div>
             </div>
 
@@ -2098,19 +1918,19 @@ export default function AdminPage() {
               </div>
 
               <div 
-                onClick={() => setTab('iot')}
-                className="p-3 rounded-2xl bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 hover:border-cyan-400 cursor-pointer transition-all space-y-1"
+                onClick={() => setTab('firmware')}
+                className="p-3 rounded-2xl bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 hover:border-indigo-400 cursor-pointer transition-all space-y-1"
               >
                 <div className="flex items-center justify-between">
                   <span className="font-bold text-slate-800 dark:text-white flex items-center gap-1.5">
-                    <Cpu className="w-3.5 h-3.5 text-cyan-500" />
-                    <span>Field Hardware Telemetry</span>
+                    <UploadCloud className="w-3.5 h-3.5 text-indigo-500" />
+                    <span>Firmware Fleet OTA</span>
                   </span>
-                  <span className="px-1.5 py-0.2 rounded-full bg-cyan-100 text-cyan-800 dark:bg-cyan-950 dark:text-cyan-300 text-[10px] font-bold">
-                    {onlineIotCount}/6 Nodes
+                  <span className="px-1.5 py-0.2 rounded-full bg-indigo-100 text-indigo-800 dark:bg-indigo-950 dark:text-indigo-300 text-[10px] font-bold">
+                    {firmwareList.length > 0 ? firmwareList[0].version : 'OTA Ready'}
                   </span>
                 </div>
-                <p className="text-[11px] text-slate-500">ESP32 moisture, solar battery & ADC heartbeats.</p>
+                <p className="text-[11px] text-slate-500">Over-The-Air hardware updates and binary deployment.</p>
               </div>
 
               <div 
@@ -2131,13 +1951,13 @@ export default function AdminPage() {
             </div>
           </div>
 
-          {/* 8 Core Admin Control Modules (Interactive Box Grid) */}
+          {/* 9 Core Admin Control Modules (Interactive Box Grid) */}
           <div className="space-y-3">
             <div className="flex items-center justify-between px-1">
               <div className="flex items-center gap-2">
                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
                 <h3 className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                  {t('admin.core_modules_title', '11 Core Administrative Modules')}
+                  {t('admin.core_modules_title', '9 Core Administrative Modules')}
                 </h3>
               </div>
               <span className="text-[11px] font-bold text-slate-400 hidden sm:inline">
@@ -2206,11 +2026,11 @@ export default function AdminPage() {
             </button>
 
             <button
-              onClick={() => { fetchUsers(); fetchIotNodes(); fetchAuditLogs(); fetchFirmwareData(); fetchSupportTickets(); fetchFirewallStatus(); }}
-              disabled={loading || supportLoading || firewallLoading}
+              onClick={() => { fetchUsers(); fetchAuditLogs(); fetchFirmwareData(); fetchSupportTickets(); }}
+              disabled={loading || supportLoading}
               className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-sm transition-all disabled:opacity-50 cursor-pointer btn-spring"
             >
-              <RefreshCw className={`w-3.5 h-3.5 ${(loading || supportLoading || firewallLoading) ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`w-3.5 h-3.5 ${(loading || supportLoading) ? 'animate-spin' : ''}`} />
               <span className="hidden xs:inline sm:inline">Refresh Data</span>
               <span className="xs:hidden sm:hidden">Refresh</span>
             </button>
@@ -2225,28 +2045,20 @@ export default function AdminPage() {
                 {activeTab === 'scans' && <History className="w-3.5 h-3.5 text-teal-400" />}
                 {activeTab === 'broadcast' && <Radio className="w-3.5 h-3.5" />}
                 {activeTab === 'geography' && <Globe className="w-3.5 h-3.5" />}
-                {activeTab === 'iot' && <Cpu className="w-3.5 h-3.5" />}
                 {activeTab === 'firmware' && <UploadCloud className="w-3.5 h-3.5" />}
                 {activeTab === 'logs' && <FileText className="w-3.5 h-3.5" />}
-                {activeTab === 'settings' && <Sliders className="w-3.5 h-3.5" />}
                 {activeTab === 'storage' && <Cloud className="w-3.5 h-3.5 text-emerald-400" />}
                 {activeTab === 'support' && <Headphones className="w-3.5 h-3.5" />}
-                {activeTab === 'firewall' && <ShieldAlert className="w-3.5 h-3.5" />}
-                {activeTab === 'radar' && <Activity className="w-3.5 h-3.5 text-emerald-400" />}
                 <span>
                   {activeTab === 'users' && 'Farmer Directory & Roles'}
                   {activeTab === 'activity' && 'Daily Tenant Activity & Sessions'}
                   {activeTab === 'scans' && 'Tenant Crop Scan Audits & Pathology Diagnoses'}
                   {activeTab === 'broadcast' && 'Emergency Broadcasting Service'}
                   {activeTab === 'geography' && 'State & District Choropleth'}
-                  {activeTab === 'iot' && 'ESP32 Device Telemetry'}
                   {activeTab === 'firmware' && 'Over-The-Air Fleet Flashing'}
                   {activeTab === 'logs' && 'Security & Access Logs'}
-                  {activeTab === 'settings' && 'Platform Health & Specs'}
                   {activeTab === 'storage' && 'Online Cloud Storage & Retention (Supabase & MongoDB Atlas)'}
                   {activeTab === 'support' && 'Farmer Support & Emergency Helpdesk'}
-                  {activeTab === 'firewall' && '5-Layer Defensive Cybersecurity Walls & IP Jail'}
-                  {activeTab === 'radar' && 'Live API Radar & Service Mesh Topology'}
                 </span>
               </div>
               
@@ -2260,14 +2072,10 @@ export default function AdminPage() {
                 {activeTab === 'scans' && 'Inspect leaf scans submitted by farmers across all fields, verify PyTorch AI confidence, and audit prescription safety.'}
                 {activeTab === 'broadcast' && 'Dispatch real-time emergency disease outbreak alerts and system announcements to all farmers.'}
                 {activeTab === 'geography' && 'Visualize where your registered farmers and farm fields are located across Indian states.'}
-                {activeTab === 'iot' && 'Monitor all connected ESP32 field nodes, battery levels, signal strength, and live telemetry.'}
                 {activeTab === 'firmware' && 'Upload and deploy Over-The-Air (OTA) binary firmware updates to deployed field devices.'}
                 {activeTab === 'logs' && 'Real-time security log stream of user logins, role modifications, and administrative operations.'}
-                {activeTab === 'settings' && 'Inspect core platform health, API status, database connectivity, and runtime configurations.'}
                 {activeTab === 'storage' && 'Live cloud telemetry for Supabase Object Storage bucket (agrishield-crop-images), MongoDB Atlas cloud cluster (agrishield_db), asset explorer, and cloud data retention purges.'}
                 {activeTab === 'support' && 'Directly assist registered farmers, dispatch 15-minute phone callbacks, WhatsApp consultations, and resolve technical issues.'}
-                {activeTab === 'firewall' && 'Real-time monitoring of all 5 cybersecurity walls, 23 honeypot decoy traps, layer 7 WAF payload filter, and automated IP jail.'}
-                {activeTab === 'radar' && 'Real-time 2D network topology, animated request particle flow, live latency benchmarks, and active service mesh telemetry.'}
               </p>
             </div>
 
@@ -3344,209 +3152,7 @@ export default function AdminPage() {
       )}
 
       {/* ======================================================== */}
-      {/* TAB 4: IOT HARDWARE FLEET REGISTRY                       */}
-      {/* ======================================================== */}
-      {activeTab === 'iot' && (() => {
-        const displayNodes = iotNodes.length > 0 ? iotNodes.map((dev, idx) => {
-          const isOnline = dev.status === "online" || dev.status === "active";
-          const telem = dev.latest_telemetry || {};
-          const batteryStr = telem.battery_voltage 
-            ? `${telem.battery_voltage.toFixed(2)}V (${Math.round(telem.battery_percentage ?? dev.battery ?? 0)}%)` 
-            : (dev.battery ? `${dev.battery}%` : (isOnline ? 'Standby' : 'Stored: Standby'));
-          const ipStr = dev.ip || telem.ip || dev.ip_address || (isOnline ? 'DHCP Dynamic' : 'Registered Device');
-          return {
-            device_id: dev.device_id || `ESP32-AGRI-NODE-${idx+1}`,
-            name: dev.device_name || dev.device_id || `Field Telemetry Node #${idx+1}`,
-            status: isOnline ? "ONLINE" : "OFFLINE",
-            firmware_version: dev.firmware_version || "v2.5.0-production",
-            ip_address: ipStr,
-            mac_address: dev.mac_address || "A4:CF:12:8B:99:C1",
-            rssi: telem.wifi_rssi ?? telem.rssi ?? dev.rssi ?? null,
-            battery: batteryStr,
-            telemetry: telem,
-            last_seen: dev.last_seen || dev.updated_at
-          };
-        }) : [];
-
-        const activeCount = displayNodes.filter(n => n.status === "ONLINE").length;
-
-        return (
-          <div className="space-y-6">
-            {/* Master IoT Ingestion Control Banner */}
-            <div className={`p-5 sm:p-6 rounded-3xl border transition-all duration-300 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 ${
-              iotIngestionEnabled
-                ? 'bg-gradient-to-r from-emerald-950/40 via-slate-900 to-emerald-950/30 border-emerald-500/40 text-white'
-                : 'bg-gradient-to-r from-amber-950/40 via-slate-900 to-amber-950/30 border-amber-500/40 text-white'
-            }`}>
-              <div className="space-y-1.5">
-                <div className="flex items-center gap-2">
-                  <span className={`w-2.5 h-2.5 rounded-full ${iotIngestionEnabled ? 'bg-emerald-400 animate-ping' : 'bg-amber-400'}`} />
-                  <span className={`text-[11px] font-extrabold uppercase tracking-wider px-2.5 py-0.5 rounded-full border ${
-                    iotIngestionEnabled
-                      ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
-                      : 'bg-amber-500/20 text-amber-300 border-amber-500/30'
-                  }`}>
-                    {iotIngestionEnabled ? '● Telemetry Ingestion LIVE' : '⏸ Telemetry Ingestion PAUSED'}
-                  </span>
-                </div>
-                <h3 className="text-base sm:text-lg font-black tracking-tight text-slate-100 flex items-center gap-2">
-                  <span>IoT Field Sensor Telemetry Master Gate</span>
-                </h3>
-                <p className="text-xs text-slate-300 max-w-2xl leading-relaxed">
-                  {iotIngestionEnabled 
-                    ? 'The backend is actively receiving, validating, and saving real-time sensor packets from ESP32 nodes into MongoDB Atlas.' 
-                    : 'IoT data transmission is currently stopped. Incoming ESP32 packets are blocked to protect database storage until you turn this on.'}
-                </p>
-              </div>
-
-              <button
-                onClick={handleToggleIoTIngestion}
-                disabled={togglingIngestion}
-                className={`self-start md:self-center px-5 py-3 rounded-2xl font-black text-xs shadow-lg transition-all cursor-pointer shrink-0 flex items-center gap-2 btn-spring ${
-                  iotIngestionEnabled
-                    ? 'bg-amber-500 hover:bg-amber-600 text-slate-950 hover:shadow-amber-500/25'
-                    : 'bg-emerald-500 hover:bg-emerald-600 text-white hover:shadow-emerald-500/25'
-                }`}
-              >
-                {togglingIngestion ? (
-                  <>
-                    <RefreshCw className="w-4 h-4 animate-spin" />
-                    <span>Updating Gateway...</span>
-                  </>
-                ) : iotIngestionEnabled ? (
-                  <>
-                    <X className="w-4 h-4" />
-                    <span>Turn OFF / Pause Ingestion</span>
-                  </>
-                ) : (
-                  <>
-                    <Cpu className="w-4 h-4" />
-                    <span>Turn ON / Enable Ingestion</span>
-                  </>
-                )}
-              </button>
-            </div>
-
-            <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                    <Cpu className="w-5 h-5 text-emerald-500" />
-                    <span>ESP32 Hardware Nodes Fleet Registry</span>
-                  </h2>
-                  <p className="text-xs text-slate-400">Real-time status, battery levels, and telemetry from deployed ESP32 field devices.</p>
-                </div>
-                <span className={`px-3 py-1 rounded-full text-xs font-bold border ${activeCount > 0 ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border-emerald-300" : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border-slate-300"}`}>
-                  {activeCount} Active / {displayNodes.length} Total Nodes
-                </span>
-              </div>
-
-              {displayNodes.length === 0 ? (
-                <div className="py-12 px-4 text-center rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 space-y-3">
-                  <div className="w-12 h-12 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-400 mx-auto flex items-center justify-center">
-                    <Cpu className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200">No ESP32 Hardware Registered</h4>
-                    <p className="text-xs text-slate-400 mt-1 max-w-md mx-auto">
-                      Field hardware nodes will automatically register here upon transmitting their first Wi-Fi telemetry packet.
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-2">
-                  {displayNodes.map((node, i) => (
-                    <div 
-                      key={i} 
-                      onClick={() => setSelectedIotNode(node)}
-                      className={`p-5 rounded-2xl bg-gradient-to-br ${node.status === "ONLINE" ? "from-slate-50 to-emerald-50/30 dark:from-slate-800/80 dark:to-slate-900 border-emerald-200/60 dark:border-emerald-900/40 hover:border-emerald-500" : "from-slate-50 to-slate-100/50 dark:from-slate-800/80 dark:to-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-400"} border shadow-sm hover:shadow-md transition-all cursor-pointer space-y-3 group`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <div className={`p-2 rounded-xl ${node.status === "ONLINE" ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" : "bg-slate-500/10 text-slate-400"} group-hover:scale-110 transition-transform`}>
-                            <Cpu className="w-5 h-5" />
-                          </div>
-                          <div>
-                            <h4 className="font-extrabold text-xs text-slate-900 dark:text-slate-100">{node.device_id}</h4>
-                            <p className="text-[10px] text-slate-400">{node.name}</p>
-                          </div>
-                        </div>
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${node.status === "ONLINE" ? "bg-emerald-500 text-white animate-pulse" : "bg-slate-400 text-white"}`}>
-                          {node.status}
-                        </span>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-2 text-[11px] pt-2 border-t border-slate-200/60 dark:border-slate-800">
-                        <div>
-                          <span className="text-slate-400 text-[10px] uppercase font-bold block">Firmware</span>
-                          <span className="font-mono font-bold text-slate-700 dark:text-slate-300">{node.firmware_version}</span>
-                        </div>
-                        <div>
-                          <span className="text-slate-400 text-[10px] uppercase font-bold block">Wi-Fi RSSI</span>
-                          <span className={`font-mono font-bold ${node.status === "ONLINE" ? "text-emerald-600 dark:text-emerald-400" : "text-slate-400"}`}>{node.status === "ONLINE" ? `${node.rssi} dBm` : "OFFLINE"}</span>
-                        </div>
-                        <div>
-                          <span className="text-slate-400 text-[10px] uppercase font-bold block">IP Address</span>
-                          <span className="font-mono font-bold text-slate-700 dark:text-slate-300">{node.ip_address}</span>
-                        </div>
-                        <div>
-                          <span className="text-slate-400 text-[10px] uppercase font-bold block">Battery Power</span>
-                          <span className={`font-bold ${node.status === "ONLINE" ? "text-slate-700 dark:text-slate-300" : "text-slate-400"}`}>{node.battery}</span>
-                        </div>
-                      </div>
-
-                      {/* Remote Downlink Command Controls */}
-                      <div 
-                        className="pt-2 border-t border-slate-200/60 dark:border-slate-800 flex flex-wrap items-center justify-between gap-1.5"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <span className="text-[10px] font-black uppercase text-slate-400">Remote Downlink:</span>
-                        <div className="flex items-center gap-1">
-                          <button
-                            type="button"
-                            onClick={() => handleIotDownlink(node.device_id, 'reboot')}
-                            title="Reboot Node via Remote UDP/MQTT Downlink"
-                            className="px-2 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-[10px] font-bold cursor-pointer transition-all flex items-center gap-1"
-                          >
-                            <RefreshCw className="w-2.5 h-2.5" />
-                            <span>Reboot</span>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleIotDownlink(node.device_id, 'toggle_valve', { state: 'TOGGLE' })}
-                            title="Trigger Solenoid Irrigation Valve"
-                            className="px-2 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/60 dark:hover:bg-emerald-900/80 text-emerald-700 dark:text-emerald-300 text-[10px] font-bold cursor-pointer transition-all flex items-center gap-1"
-                          >
-                            <Zap className="w-2.5 h-2.5" />
-                            <span>Valve</span>
-                          </button>
-                          <select
-                            onChange={(e) => handleIotDownlink(node.device_id, 'set_interval', { interval_seconds: Number(e.target.value) })}
-                            defaultValue="60"
-                            title="Telemetry Report Interval Governor"
-                            className="px-1.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-[10px] font-bold text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 cursor-pointer"
-                          >
-                            <option value="15">15s Rate</option>
-                            <option value="60">60s Normal</option>
-                            <option value="300">5m Eco</option>
-                          </select>
-                        </div>
-                      </div>
-
-                      <div className="pt-1 flex items-center justify-between text-[11px] font-bold text-emerald-600 dark:text-emerald-400 group-hover:underline">
-                        <span>Tap to view live telemetry &rarr;</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        );
-      })()}
-
-      {/* ======================================================== */}
-      {/* TAB 5: FIRMWARE & OVER-THE-AIR (OTA) UPDATES             */}
+      {/* TAB: FIRMWARE & OVER-THE-AIR (OTA) UPDATES               */}
       {/* ======================================================== */}
       {activeTab === 'firmware' && (() => {
         const otaSuccessCount = otaLogs.filter(l => l.action === 'OTA_SYNC' && l.details?.status === 'SUCCESS').length;
@@ -4199,148 +3805,6 @@ export default function AdminPage() {
           </div>
         );
       })()}
-
-      {/* ======================================================== */}
-      {/* TAB 7: SYSTEM HEALTH & SPECS                             */}
-      {/* ======================================================== */}
-      {activeTab === 'settings' && (
-        <div className="space-y-6">
-          <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
-            <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-              <Activity className="w-4 h-4 text-emerald-500" />
-              <span>Platform Service Health</span>
-            </h3>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {[
-                { label: 'Backend API', status: 'Healthy (FastAPI)', color: 'emerald' },
-                { label: 'MongoDB Atlas', status: 'Connected (Atlas Cluster)', color: 'emerald' },
-                { label: 'AI Engine', status: 'Ready (PyTorch Neural)', color: 'emerald' },
-                { label: 'ESP32 Nodes', status: onlineIotCount > 0 ? `${onlineIotCount} Online` : 'Standby / Offline', color: onlineIotCount > 0 ? 'emerald' : 'slate' },
-              ].map((s, i) => (
-                <div key={i} className={`p-4 rounded-2xl border text-center ${s.color === 'emerald' ? 'bg-emerald-50/60 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800' : 'bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-800'}`}>
-                  <span className={`w-2 h-2 rounded-full inline-block mb-1.5 ${s.color === 'emerald' ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`}></span>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase">{s.label}</p>
-                  <p className={`text-xs font-extrabold ${s.color === 'emerald' ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-600 dark:text-slate-300'}`}>{s.status}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-5">
-            <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-              <Sliders className="w-5 h-5 text-emerald-500" />
-              <span>Platform Runtime Configuration</span>
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-              {[
-                { label: 'Environment Mode', value: 'Local Production Ready', icon: Server, color: 'text-amber-500 bg-amber-50 dark:bg-amber-950/40' },
-                { label: 'Backend Framework', value: 'FastAPI (Python 3.11)', icon: Zap, color: 'text-blue-500 bg-blue-50 dark:bg-blue-950/40' },
-                { label: 'Database Cluster', value: 'MongoDB Atlas (crop_disease_db)', icon: Database, color: 'text-emerald-500 bg-emerald-50 dark:bg-emerald-950/40' },
-                { label: 'Max Upload Size', value: '15 MB per image', icon: FileText, color: 'text-purple-500 bg-purple-50 dark:bg-purple-950/40' },
-                { label: 'AI Model Engine', value: 'EfficientNetV2 (PyTorch)', icon: Activity, color: 'text-rose-500 bg-rose-50 dark:bg-rose-950/40' },
-                { label: 'IoT Protocol', value: 'HTTP REST / ESP32 DevKit V1', icon: Radio, color: 'text-sky-500 bg-sky-50 dark:bg-sky-950/40' },
-                { label: 'Auth Mechanism', value: 'JWT Access + Refresh Tokens', icon: Key, color: 'text-amber-500 bg-amber-50 dark:bg-amber-950/40' },
-                { label: 'Frontend Build', value: 'Vite + React 18 (SWC)', icon: Zap, color: 'text-emerald-500 bg-emerald-50 dark:bg-emerald-950/40' },
-                { label: 'Supported Languages', value: '12 Indian Regional Languages', icon: Globe, color: 'text-indigo-500 bg-indigo-50 dark:bg-indigo-950/40' },
-              ].map((item, i) => (
-                <div key={i} className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
-                  <div className={`p-2.5 rounded-xl ${item.color} shrink-0`}>
-                    <item.icon className="w-4 h-4" />
-                  </div>
-                  <div className="text-right">
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{item.label}</p>
-                    <p className="text-xs font-bold text-slate-800 dark:text-slate-200 font-mono mt-0.5">{item.value}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Disaster Recovery & On-Demand Database Snapshot */}
-          <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div>
-                <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                  <Database className="w-4 h-4 text-emerald-500" />
-                  <span>Disaster Recovery & Hot Database Snapshots</span>
-                </h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                  Generate compressed binary archives of all 18 MongoDB Atlas collections with SHA-256 cryptographic verification.
-                </p>
-              </div>
-
-              <button
-                type="button"
-                onClick={handleGenerateDbBackup}
-                disabled={backingUpDb}
-                className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 shrink-0"
-              >
-                <Download className="w-3.5 h-3.5" />
-                <span>{backingUpDb ? 'Creating Snapshot...' : 'Generate Instant Snapshot'}</span>
-              </button>
-            </div>
-
-            {backupResult && (
-              <div className="p-4 rounded-2xl bg-emerald-50/70 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-xs space-y-2 animate-in fade-in">
-                <div className="flex items-center justify-between">
-                  <span className="font-extrabold text-emerald-800 dark:text-emerald-300 flex items-center gap-1.5">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                    <span>Hot Database Archive Ready</span>
-                  </span>
-                  <span className="font-mono text-[10px] text-emerald-700 dark:text-emerald-400 font-bold">
-                    {backupResult.size_bytes ? `${(backupResult.size_bytes / 1024 / 1024).toFixed(1)} MB` : '28.4 MB'}
-                  </span>
-                </div>
-                <div className="font-mono text-[11px] text-slate-600 dark:text-slate-300 space-y-1">
-                  <p>File: <span className="font-bold text-slate-900 dark:text-white">{backupResult.file_name}</span></p>
-                  <p className="truncate">SHA256: <span className="text-slate-500">{backupResult.sha256}</span></p>
-                </div>
-                <div className="pt-2 flex justify-end">
-                  <a
-                    href={backupResult.download_url}
-                    download={backupResult.file_name}
-                    className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition-all flex items-center gap-1.5"
-                  >
-                    <Download className="w-3 h-3" />
-                    <span>Download Snapshot Archive</span>
-                  </a>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Cloud Storage Overview Card with Link to Dedicated Storage Tab */}
-          <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <div className="p-3 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400">
-                  <Cloud className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                    <span>Online Cloud Storage (Supabase & MongoDB Atlas)</span>
-                    <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950 text-emerald-600 border border-emerald-200 dark:border-emerald-800">
-                      {storageStats?.total_cloud_used_mb ?? 65.14} MB Live
-                    </span>
-                  </h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                    Supabase Bucket: <span className="font-bold text-slate-700 dark:text-slate-300">{storageStats?.supabase?.used_mb ?? 37.76} MB</span> ({storageStats?.supabase?.total_objects ?? 78} photos) • MongoDB Atlas: <span className="font-bold text-slate-700 dark:text-slate-300">{storageStats?.database?.storage_size_mb ?? 27.38} MB</span> ({storageStats?.database?.total_collections ?? 34} collections).
-                  </p>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setTab('storage')}
-                className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer shrink-0"
-              >
-                <Cloud className="w-3.5 h-3.5" />
-                <span>Open Cloud Storage Suite</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* ======================================================== */}
       {/* TAB: ONLINE CLOUD STORAGE & DATA RETENTION SUITE         */}
@@ -5765,383 +5229,7 @@ export default function AdminPage() {
         </div>
       )}
 
-      {/* ======================================================== */}
-      {/* TAB 8: SECURITY DEFENSE WALLS & ACTIVE FIREWALL          */}
-      {/* ======================================================== */}
-      {activeTab === 'firewall' && (
-        <div className="space-y-6">
-          {/* Top KPI Metrics Banner */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4">
-              <div className="p-3.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400">
-                <ShieldCheck className="w-6 h-6" />
-              </div>
-              <div>
-                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Defense Status</p>
-                <h3 className="text-2xl font-black text-emerald-600 dark:text-emerald-400">5 Walls Active</h3>
-              </div>
-            </div>
 
-            <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4">
-              <div className="p-3.5 rounded-2xl bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400">
-                <ShieldAlert className="w-6 h-6" />
-              </div>
-              <div>
-                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Currently Jailed IPs</p>
-                <h3 className="text-2xl font-black text-slate-900 dark:text-slate-100">{firewallStatus.active_bans_count || firewallStatus.jailed_ips?.length || 0} Blocked</h3>
-              </div>
-            </div>
-
-            <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4">
-              <div className="p-3.5 rounded-2xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400">
-                <Zap className="w-6 h-6" />
-              </div>
-              <div>
-                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Decoy Honeypots</p>
-                <h3 className="text-2xl font-black text-slate-900 dark:text-slate-100">23 Traps Armed</h3>
-              </div>
-            </div>
-
-            <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4">
-              <div className="p-3.5 rounded-2xl bg-sky-50 dark:bg-sky-950/60 text-sky-600 dark:text-sky-400">
-                <UserCheck className="w-6 h-6" />
-              </div>
-              <div>
-                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Farmer Safety Net</p>
-                <h3 className="text-2xl font-black text-sky-600 dark:text-sky-400">60s Soft Cooldown</h3>
-              </div>
-            </div>
-          </div>
-
-          {/* 5 Defensive Walls Architecture Grid */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between px-1">
-              <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-                <h3 className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                  Custom-Coded Multi-Layer Defensive Walls Architecture
-                </h3>
-              </div>
-              <span className="text-[11px] font-bold text-slate-400">
-                Real-Time Automated Threat Interception
-              </span>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {/* Wall 1 Card */}
-              <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2.5">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-                    <h4 className="font-extrabold text-sm text-slate-900 dark:text-slate-100">Wall 1: Honeypot Decoy Traps</h4>
-                  </div>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
-                    Active
-                  </span>
-                </div>
-                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                  23 fake scanner traps placed across sensitive root paths (<code className="text-emerald-500 font-mono text-[11px]">/.env</code>, <code className="text-emerald-500 font-mono text-[11px]">/wp-admin</code>, <code className="text-emerald-500 font-mono text-[11px]">/phpmyadmin</code>, <code className="text-emerald-500 font-mono text-[11px]">/id_rsa</code>). Any crawler touching these is auto-jailed for 24 hours.
-                </p>
-                <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-400 font-bold">
-                  <span>Probes Monitored: 23</span>
-                  <span className="text-emerald-600 dark:text-emerald-400">Instant 24h Ban</span>
-                </div>
-              </div>
-
-              {/* Wall 2 Card */}
-              <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2.5">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-                    <h4 className="font-extrabold text-sm text-slate-900 dark:text-slate-100">Wall 2: Adaptive IP Jail & Tarpit</h4>
-                  </div>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
-                    Active
-                  </span>
-                </div>
-                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                  Fast in-memory choke point backed by MongoDB (<code className="text-emerald-500 font-mono text-[11px]">security_banned_ips</code>). Includes a Farmer-Friendly Safety Net: mistyped passwords trigger a gentle 60s soft cooldown instead of a permanent IP lockout.
-                </p>
-                <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-400 font-bold">
-                  <span>Storage: Atlas MongoDB</span>
-                  <span className="text-sky-600 dark:text-sky-400">Farmer-Protected</span>
-                </div>
-              </div>
-
-              {/* Wall 3 Card */}
-              <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2.5">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-                    <h4 className="font-extrabold text-sm text-slate-900 dark:text-slate-100">Wall 3: Deep Request WAF</h4>
-                  </div>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
-                    Active
-                  </span>
-                </div>
-                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                  Layer 7 packet payload scanner inspecting every URL, query parameter, and body for Path Traversal (<code className="text-emerald-500 font-mono text-[11px]">../</code>), Shell Command Injection (<code className="text-emerald-500 font-mono text-[11px]">; rm / cat</code>), NoSQL injection, and XSS.
-                </p>
-                <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-400 font-bold">
-                  <span>Inspection: Layer 7 WAF</span>
-                  <span className="text-amber-600 dark:text-amber-400">3 Strikes = Auto-Jail</span>
-                </div>
-              </div>
-
-              {/* Wall 4 Card */}
-              <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2.5">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-                    <h4 className="font-extrabold text-sm text-slate-900 dark:text-slate-100">Wall 4: Ghost Bot Traps</h4>
-                  </div>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
-                    Active
-                  </span>
-                </div>
-                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                  Invisible form fields (<code className="text-emerald-500 font-mono text-[11px]">bot_trap</code>) rendered on Login, Registration, and Support forms. Invisible to human farmers; automated scraper bots fill them automatically and are instantly blocked.
-                </p>
-                <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-400 font-bold">
-                  <span>Forms Protected: 3</span>
-                  <span className="text-purple-600 dark:text-purple-400">Headless Scraper Trap</span>
-                </div>
-              </div>
-
-              {/* Wall 5 Card */}
-              <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2.5">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-                    <h4 className="font-extrabold text-sm text-slate-900 dark:text-slate-100">Wall 5: Anti-Replay Nonce Engine</h4>
-                  </div>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
-                    Active
-                  </span>
-                </div>
-                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                  Strict cryptographic timestamp window (90s tolerance) and single-use nonce tracking cache. Prevents packet sniffing, Man-in-the-Middle eavesdropping, and re-transmission attacks on sensitive mutations.
-                </p>
-                <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-400 font-bold">
-                  <span>Tolerance: 90 Seconds</span>
-                  <span className="text-indigo-600 dark:text-indigo-400">Nonce Pruning Cache</span>
-                </div>
-              </div>
-
-              {/* Manual IP Enforcement Card */}
-              <div className="p-5 rounded-2xl bg-slate-900 text-white border border-slate-800 shadow-sm space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2.5">
-                    <Lock className="w-4 h-4 text-amber-400" />
-                    <h4 className="font-extrabold text-sm text-slate-100">Manual Threat Jail Override</h4>
-                  </div>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                    Admin
-                  </span>
-                </div>
-                <form onSubmit={handleManualBan} className="space-y-2.5 text-xs">
-                  <input
-                    type="text"
-                    placeholder="Threat IP Address (e.g. 198.51.100.24)"
-                    value={manualBanIp}
-                    onChange={(e) => setManualBanIp(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-white font-mono text-xs outline-none focus:border-amber-500"
-                    required
-                  />
-                  <div className="grid grid-cols-2 gap-2">
-                    <input
-                      type="text"
-                      placeholder="Reason for Ban"
-                      value={manualBanReason}
-                      onChange={(e) => setManualBanReason(e.target.value)}
-                      className="px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-white text-xs outline-none focus:border-amber-500"
-                    />
-                    <select
-                      value={manualBanHours}
-                      onChange={(e) => setManualBanHours(e.target.value)}
-                      className="px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-white text-xs outline-none focus:border-amber-500"
-                    >
-                      <option value={1}>1 Hour</option>
-                      <option value={12}>12 Hours</option>
-                      <option value={24}>24 Hours</option>
-                      <option value={168}>7 Days</option>
-                    </select>
-                  </div>
-                  <button
-                    type="submit"
-                    disabled={banningLoading}
-                    className="w-full py-2 px-3 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
-                  >
-                    <ShieldAlert className="w-3.5 h-3.5" />
-                    <span>{banningLoading ? 'Jailing IP...' : 'Jail IP Immediately'}</span>
-                  </button>
-                </form>
-              </div>
-            </div>
-          </div>
-
-          {/* 23 Active Decoy Honeypot Sensor Grid & Zero-Trust Burst Defense */}
-          <div className="p-5 sm:p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div>
-                <h3 className="font-black text-sm text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                  <Flame className="w-4 h-4 text-amber-500" />
-                  <span>23 Decoy Honeypot Trap Sensors & Zero-Trust Burst Stress Gate</span>
-                </h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                  Decoy bait endpoints armed across perimeter routes. Scanners and bot crawlers touching these traps trigger instant Layer 7 banishment.
-                </p>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => handleTriggerEmergency('waf_safe_mode')}
-                  disabled={emergencyActionLoading === 'waf_safe_mode'}
-                  className="px-3.5 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/60 dark:hover:bg-rose-900/80 text-rose-700 dark:text-rose-300 text-xs font-bold border border-rose-200 dark:border-rose-800 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-                >
-                  <ShieldAlert className="w-3.5 h-3.5" />
-                  <span>{emergencyActionLoading === 'waf_safe_mode' ? 'Enforcing...' : 'Enforce WAF Safe Mode'}</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Honeypots Tag Matrix */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-2 text-[11px] font-mono pt-1">
-              {[
-                { path: "/.env", hits: 142, status: "TRIPPED" },
-                { path: "/wp-admin", hits: 89, status: "TRIPPED" },
-                { path: "/id_rsa", hits: 31, status: "TRIPPED" },
-                { path: "/phpmyadmin", hits: 67, status: "TRIPPED" },
-                { path: "/.git/config", hits: 45, status: "TRIPPED" },
-                { path: "/admin.php", hits: 19, status: "ARMED" },
-                { path: "/api/debug", hits: 8, status: "ARMED" },
-                { path: "/actuator/env", hits: 12, status: "ARMED" },
-                { path: "/server-status", hits: 5, status: "ARMED" },
-                { path: "/telescope", hits: 3, status: "ARMED" },
-                { path: "/eval-stdin", hits: 0, status: "ARMED" },
-                { path: "/shell.php", hits: 24, status: "TRIPPED" }
-              ].map((trap, idx) => (
-                <div
-                  key={idx}
-                  className={`p-2 rounded-xl border flex items-center justify-between ${
-                    trap.status === 'TRIPPED'
-                      ? 'bg-rose-50/50 dark:bg-rose-950/20 border-rose-200 dark:border-rose-900/40 text-rose-700 dark:text-rose-300'
-                      : 'bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300'
-                  }`}
-                >
-                  <span className="truncate font-semibold">{trap.path}</span>
-                  <span className={`text-[9px] px-1 py-0.2 rounded font-black ${
-                    trap.status === 'TRIPPED' ? 'bg-rose-600 text-white' : 'bg-emerald-600 text-white'
-                  }`}>
-                    {trap.hits > 0 ? `${trap.hits} hits` : 'ARMED'}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Currently Jailed Threat IPs Table */}
-          <div className="p-5 sm:p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-4">
-              <div>
-                <h3 className="font-black text-base text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                  <ShieldAlert className="w-5 h-5 text-rose-500" />
-                  <span>Currently Jailed Attacker IPs ({firewallStatus.jailed_ips?.length || 0})</span>
-                </h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                  IPs blocked by Honeypot traps, WAF malicious payloads, or administrator ban.
-                </p>
-              </div>
-              <button
-                onClick={fetchFirewallStatus}
-                disabled={firewallLoading}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold transition-all cursor-pointer"
-              >
-                <RefreshCw className={`w-3.5 h-3.5 ${firewallLoading ? 'animate-spin' : ''}`} />
-                <span>Refresh Firewall</span>
-              </button>
-            </div>
-
-            {(!firewallStatus.jailed_ips || firewallStatus.jailed_ips.length === 0) ? (
-              <div className="p-8 text-center space-y-3">
-                <div className="w-12 h-12 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto">
-                  <CheckCircle2 className="w-6 h-6" />
-                </div>
-                <h4 className="font-extrabold text-sm text-slate-900 dark:text-slate-100">All Defensive Perimeters Clear</h4>
-                <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto">
-                  No malicious IPs currently jailed. The 5 defensive walls are actively screening incoming requests and decoy probes.
-                </p>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs border-collapse">
-                  <thead>
-                    <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-400 font-extrabold uppercase text-[10px]">
-                      <th className="py-3 px-4">Attacker IP</th>
-                      <th className="py-3 px-4">Interception Reason</th>
-                      <th className="py-3 px-4">Jailed At</th>
-                      <th className="py-3 px-4">Expires In</th>
-                      <th className="py-3 px-4 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
-                    {firewallStatus.jailed_ips.map((item, idx) => {
-                      const nowSec = Date.now() / 1000;
-                      const remainingSec = Math.max(0, Math.round(item.expires_at - nowSec));
-                      const hours = Math.floor(remainingSec / 3600);
-                      const mins = Math.floor((remainingSec % 3600) / 60);
-                      return (
-                        <tr key={idx} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
-                          <td className="py-3 px-4">
-                            <span className="font-mono font-bold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/60 px-2 py-0.5 rounded">
-                              {item.ip}
-                            </span>
-                          </td>
-                          <td className="py-3 px-4 text-slate-800 dark:text-slate-200 font-semibold">
-                            {item.reason}
-                          </td>
-                          <td className="py-3 px-4 text-slate-500 text-[11px]">
-                            {item.banned_at_iso ? formatDateTime(item.banned_at_iso) : 'Recent'}
-                          </td>
-                          <td className="py-3 px-4">
-                            <span className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-600 dark:text-amber-400">
-                              <Clock className="w-3 h-3" />
-                              <span>{hours}h {mins}m</span>
-                            </span>
-                          </td>
-                          <td className="py-3 px-4 text-right">
-                            <button
-                              onClick={() => handleUnbanIp(item.ip)}
-                              className="px-3 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-xs transition-all cursor-pointer"
-                            >
-                              Release / Unban
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* ======================================================== */}
-      {/* TAB: SYSTEM DIAGNOSTICS & ROOT-CAUSE ANALYSIS (RCA)      */}
-      {/* ======================================================== */}
-      {activeTab === 'diagnostics' && (
-        <SystemDiagnosticsTab />
-      )}
-
-      {/* ======================================================== */}
-      {/* TAB: LIVE API RADAR & SERVICE MESH TOPOLOGY VISUALIZER    */}
-      {/* ======================================================== */}
-      {activeTab === 'radar' && (
-        <ApiTrafficRadar />
-      )}
 
       {/* ======================================================== */}
       {/* TAB: TENANT CROP SCAN AUDITS & PATHOLOGY DIAGNOSES       */}
@@ -6489,102 +5577,6 @@ export default function AdminPage() {
         </div>
       )}
 
-      {/* MODAL 5: ESP32 HARDWARE TELEMETRY MODAL */}
-      {selectedIotNode && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
-          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl max-w-2xl w-full p-6 space-y-6 my-8">
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
-              <div className="flex items-center gap-3">
-                <div className="p-3 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-                  <Cpu className="w-6 h-6" />
-                </div>
-                <div>
-                  <h3 className="font-extrabold text-base text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                    <span>{selectedIotNode.device_id}</span>
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${selectedIotNode.status === 'ONLINE' ? 'bg-emerald-500 text-white' : 'bg-slate-400 text-white'}`}>
-                      {selectedIotNode.status}
-                    </span>
-                  </h3>
-                  <p className="text-xs text-slate-400">{selectedIotNode.name}</p>
-                </div>
-              </div>
-              <button 
-                onClick={() => setSelectedIotNode(null)} 
-                className="p-2 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 font-bold"
-              >
-                ✕
-              </button>
-            </div>
-
-            {/* Device Hardware Info */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-800">
-              <div>
-                <span className="text-[10px] font-bold text-slate-400 uppercase block">Firmware</span>
-                <span className="text-xs font-mono font-bold text-slate-800 dark:text-slate-200">{selectedIotNode.firmware_version}</span>
-              </div>
-              <div>
-                <span className="text-[10px] font-bold text-slate-400 uppercase block">IP Address</span>
-                <span className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400">{selectedIotNode.ip_address}</span>
-              </div>
-              <div>
-                <span className="text-[10px] font-bold text-slate-400 uppercase block">MAC Address</span>
-                <span className="text-xs font-mono font-bold text-slate-700 dark:text-slate-300">{selectedIotNode.mac_address}</span>
-              </div>
-              <div>
-                <span className="text-[10px] font-bold text-slate-400 uppercase block">Battery</span>
-                <span className="text-xs font-bold text-slate-800 dark:text-slate-200">{selectedIotNode.battery}</span>
-              </div>
-            </div>
-
-            {/* Live Telemetry Data */}
-            <div className="space-y-3">
-              <h4 className="text-xs font-extrabold text-slate-900 dark:text-slate-100 uppercase tracking-wider flex items-center justify-between">
-                <span>Latest Telemetry Ingestion</span>
-                <span className={`text-[10px] font-bold ${selectedIotNode.status === 'ONLINE' ? 'text-emerald-500' : 'text-slate-400'}`}>
-                  {selectedIotNode.status === 'ONLINE' ? 'Live Streaming' : 'Last Known Telemetry'}
-                </span>
-              </h4>
-
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-800">
-                  <span className="text-[10px] text-slate-400 uppercase font-bold block">Soil Moisture</span>
-                  <span className="text-sm font-extrabold text-slate-800 dark:text-slate-100">{selectedIotNode.telemetry?.soil_moisture != null ? `${selectedIotNode.telemetry.soil_moisture}%` : 'N/A'}</span>
-                </div>
-                <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-800">
-                  <span className="text-[10px] text-slate-400 uppercase font-bold block">Temperature</span>
-                  <span className="text-sm font-extrabold text-slate-800 dark:text-slate-100">{selectedIotNode.telemetry?.temperature != null ? `${selectedIotNode.telemetry.temperature}°C` : 'N/A'}</span>
-                </div>
-                <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-800">
-                  <span className="text-[10px] text-slate-400 uppercase font-bold block">Humidity</span>
-                  <span className="text-sm font-extrabold text-slate-800 dark:text-slate-100">{selectedIotNode.telemetry?.humidity != null ? `${selectedIotNode.telemetry.humidity}% RH` : 'N/A'}</span>
-                </div>
-                <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-800">
-                  <span className="text-[10px] text-slate-400 uppercase font-bold block">Ambient Light</span>
-                  <span className="text-sm font-extrabold text-slate-800 dark:text-slate-100">{selectedIotNode.telemetry?.light_lux != null ? `${selectedIotNode.telemetry.light_lux} Lux` : 'N/A'}</span>
-                </div>
-                <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-800">
-                  <span className="text-[10px] text-slate-400 uppercase font-bold block">Barometer</span>
-                  <span className="text-sm font-extrabold text-slate-800 dark:text-slate-100">{selectedIotNode.telemetry?.pressure != null ? `${selectedIotNode.telemetry.pressure} hPa` : 'N/A'}</span>
-                </div>
-                <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-800">
-                  <span className="text-[10px] text-slate-400 uppercase font-bold block">Rain Status</span>
-                  <span className="text-sm font-extrabold text-slate-800 dark:text-slate-100">{selectedIotNode.telemetry?.rain_detected ? 'Rain Detected' : 'Dry'}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Action Bar */}
-            <div className="flex items-center justify-end gap-2 pt-4 border-t border-slate-100 dark:border-slate-800">
-              <button
-                onClick={() => setSelectedIotNode(null)}
-                className="px-5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold hover:bg-slate-200"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
       {/* MODAL 6: STORAGE DATA PURGE CONFIRMATION MODAL */}
       {purgeConfirmOpen && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
