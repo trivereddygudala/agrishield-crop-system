@@ -12207,3 +12207,18 @@ pm --prefix frontend run build (vite v4.5.14 built cleanly in 20.50s with 0 erro
   - Cleaned up the offline notice message to avoid directing users to the removed "More" tab for an 87MB download.
 - **Verification:**
   - Production build `npm.cmd run build` compiled 3,207 modules cleanly in 20.95s with 0 errors. Verified 0 broken imports or missing component references across the frontend.
+
+
+## [2026-11-27 16:10:00] - Comprehensive Audit & Modernization of More Hub (`MorePage.jsx`)
+- **Visual & Design Bug Fixes:**
+  - Resolved missing `iconBg` and `accent` border properties for the System Settings card in `ACCOUNT_TOOLS`, restoring emerald icon background and left-accent styling.
+  - Enhanced `MenuCard` with safe defaults (`${accent || 'border-l-emerald-500'}`, `${iconBg || 'bg-emerald-100...'}`) preventing any future unstyled rendering.
+  - Upgraded card description styling from harsh single-line truncation to `line-clamp-2 sm:line-clamp-1` to prevent cutting off longer vernacular sentences on small mobile screens (360px).
+  - Added subtle tactile hover and active scaling states (`hover:shadow-sm`, `hover:border-slate-300`, `active:scale-[0.98]`, `cursor-pointer`).
+- **Interactive Language Selection:**
+  - Connected the `Languages` card directly to `setLanguageModalOpen(true)` for an instantaneous 1-tap in-place language selector popup modal without leaving the page.
+- **100% Vernacular Telugu Localization Coverage:**
+  - Added comprehensive Telugu translations across all 9 Farming Tools, 3 Hardware Tools, 4 Account Tools, 5 Provider Hub Tools, 5 Provider Account Tools, Operating Mode selectors, Section Headers, About modal, and Sign Out button.
+  - Guaranteed zero fallback to untranslated English strings when Telugu (`te`) is active.
+- **Verification:**
+  - Ran `npm.cmd run build`: 3,207 modules compiled with 0 errors in 20.90s.
