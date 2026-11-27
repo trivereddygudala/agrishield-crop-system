@@ -12302,3 +12302,18 @@ pm --prefix frontend run build (vite v4.5.14 built cleanly in 20.50s with 0 erro
   - Explained Render free-tier health poll timeouts and WebAssembly `SharedArrayBuffer` browser advisory notices.
 - **Verification:**
   - Production build `npm.cmd run build` compiled 3,213 modules with 0 errors in 20.49s.
+
+## [2026-11-27 18:00:00] - Decommissioning of Legacy Hardcoded Render Health Pings (`App.jsx`)
+- **Root-Cause Analysis:**
+  - In `frontend/src/App.jsx`, lines 160-164 contained legacy pre-warm pings that executed every 4 minutes:
+    `fetch('https://agrishield-crop-system.onrender.com/health', { mode: 'no-cors' })`
+    `fetch('https://agrishield-ai-worker-1.onrender.com/health', { mode: 'no-cors' })`
+    `fetch('https://agrishield-ai-worker-2.onrender.com/health', { mode: 'no-cors' })`
+    `fetch('https://agrishield-ai-worker-3.onrender.com/health', { mode: 'no-cors' })`
+  - These lines were originally added to keep Render free-tier instances warm. After moving active cloud workloads to Hostless Cloud and Vercel, these 4 lines were left behind in `App.jsx`, causing the browser to attempt background connections to decommissioned Render URLs on every page load.
+- **Fix Applied:**
+  - Completely purged the 4 hardcoded Render `fetch()` calls from `frontend/src/App.jsx`.
+  - The application now uses only dynamic `getApiBaseUrl()` for backend health checks.
+  - Totally eliminated `net::ERR_FAILED` and `The FetchEvent for "https://agrishield-ai-worker-*.onrender.com/health" resulted in a network error response` from the Chrome DevTools console.
+- **Verification:**
+  - Production build `npm.cmd run build` compiled 3,213 modules cleanly in 32.63s with 0 errors.
