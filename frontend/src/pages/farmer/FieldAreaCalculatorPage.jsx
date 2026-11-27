@@ -405,11 +405,7 @@ export default function FieldAreaCalculatorPage() {
   if (surveyTool === 'satellite') {
     return (
       <div 
-        className="relative w-full flex-1 h-[calc(100dvh-4.5rem)] lg:h-[calc(100dvh-4rem)] min-h-[480px] bg-slate-950 overflow-hidden select-none flex flex-col"
-        style={{
-          height: 'calc(100dvh - 4.5rem)',
-          minHeight: '480px'
-        }}
+        className="relative w-full h-full flex-1 min-h-0 bg-slate-950 overflow-hidden select-none flex flex-col"
       >
         
         {/* Unified Full-Viewport Map Canvas with Integrated Controls */}

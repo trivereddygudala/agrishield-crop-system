@@ -12081,3 +12081,24 @@ pm --prefix frontend run build (vite v4.5.14 built cleanly in 20.50s with 0 erro
   - `frontend/src/components/farm/FieldBoundaryMap.jsx`
   - `frontend/src/pages/farmer/FieldAreaCalculatorPage.jsx`
   - `changes_happening.md`
+
+
+## [2026-11-27 06:45:00] - Fix Field Area Calculator Mobile Viewport Height, Dock Clipping & Google Maps Quad-Tile Engine
+- **Root Cause & Layout Resolution (`FieldAreaCalculatorPage.jsx`):**
+  - Removed conflicting inline `height: calc(100dvh - 4.5rem)` which exceeded parent `DashboardLayout` container by 56px and caused the bottom action dock to be pushed off-screen behind the bottom navigation bar.
+  - Set container to `h-full w-full flex-1 min-h-0 bg-slate-950 relative`, guaranteeing the map and action dock fit seamlessly on all mobile screens.
+- **Google Maps Quad-Tile Engine & Zero-Gray Resilience (`FieldBoundaryMap.jsx`):**
+  - Upgraded tile engine to authentic Google Maps layers:
+    - Google Hybrid Satellite (`lyrs=y` with high-resolution satellite photography, village borders, and street labels).
+    - Google Standard Vector Roadmap (`lyrs=m` with iconic yellow/white highway styling and crisp Google typography).
+  - Implemented multi-CDN tileerror fallback: automatically loads Esri World Imagery (`server.arcgisonline.com`) or OpenStreetMap if Google tiles are throttled on rural mobile 4G/2G networks, completely eliminating gray blank screens.
+- **Multi-Stage InvalidateSize Engine (`FieldBoundaryMap.jsx`):**
+  - Added staged `map.invalidateSize()` calls (at 50ms, 150ms, 300ms, 600ms, and 1000ms) with `ResizeObserver` to accommodate Framer Motion page entry transitions and dynamic mobile browser address bars.
+- **Floating Action Dock Elevation (`FieldBoundaryMap.jsx`):**
+  - Raised the bottom action dock from `bottom-3` to `bottom-4 sm:bottom-6 pb-safe` with backdrop blur, ensuring the `[+ Add Pin]`, `[Walk]`, and `[Pin Center]` controls float cleanly 16px above the mobile bottom navigation bar.
+- **Build Verification:**
+  - Production bundle compiled cleanly with `npm run build`: 3,208 modules transformed in 23.26s with 0 errors.
+- **Files Modified:**
+  - `frontend/src/pages/farmer/FieldAreaCalculatorPage.jsx`
+  - `frontend/src/components/farm/FieldBoundaryMap.jsx`
+  - `changes_happening.md`

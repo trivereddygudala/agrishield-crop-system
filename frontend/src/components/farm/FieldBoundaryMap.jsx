@@ -384,6 +384,37 @@ export default function FieldBoundaryMap({
     }
   }, [onBoundaryChange]);
 
+  // Reliable Google Maps Quad-Tile Engine with Zero-Gray Multi-CDN Fallback
+  const createGoogleTileLayer = useCallback((type = 'hybrid') => {
+    let url = 'https://mt{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}';
+    if (type === 'street') {
+      // Google Official Standard Vector Roadmap (yellow/orange highways, white streets, labels)
+      url = 'https://mt{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}';
+    } else if (type === 'terrain') {
+      url = 'https://mt{s}.google.com/vt/lyrs=p&x={x}&y={y}&z={z}';
+    }
+
+    const layer = L.tileLayer(url, {
+      subdomains: ['0', '1', '2', '3'],
+      maxZoom: 22,
+      maxNativeZoom: 20,
+      crossOrigin: true
+    });
+
+    // Zero-gray resilience: if mobile network fails or blocks a tile, immediately substitute Esri / OSM
+    layer.on('tileerror', (e) => {
+      if (!e?.tile || !e?.coords) return;
+      const { z, x, y } = e.coords;
+      if (type === 'hybrid' || type === 'satellite') {
+        e.tile.src = `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${y}/${x}`;
+      } else {
+        e.tile.src = `https://tile.openstreetmap.org/${z}/${x}/${y}.png`;
+      }
+    });
+
+    return layer;
+  }, []);
+
   // ═══════ INITIALIZE LEAFLET MAP ═══════
   useEffect(() => {
     if (!mapContainerRef.current || mapInstanceRef.current) return;
@@ -397,13 +428,10 @@ export default function FieldBoundaryMap({
 
     L.control.zoom({ position: 'topright' }).addTo(map);
 
-    // Google Ultra-Zoom Hybrid Satellite Layer
-    const hybridLayer = L.tileLayer('https://mt{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
-      subdomains: ['0', '1', '2', '3'],
-      maxZoom: 22,
-      maxNativeZoom: 20
-    }).addTo(map);
-    tileLayerRef.current = hybridLayer;
+    // Google Ultra-Zoom Hybrid Satellite Layer with Zero-Gray Multi-CDN Fallback
+    const initialTileLayer = createGoogleTileLayer(mapType || 'hybrid');
+    initialTileLayer.addTo(map);
+    tileLayerRef.current = initialTileLayer;
 
     // Feature Layers
     boundaryLayerGroupRef.current = L.layerGroup().addTo(map);
@@ -422,14 +450,16 @@ export default function FieldBoundaryMap({
       map.remove();
       mapInstanceRef.current = null;
     };
-  }, []);
+  }, [createGoogleTileLayer]);
 
-  // Automatic container auto-resizing via ResizeObserver and window listeners
+  // Automatic container auto-resizing via ResizeObserver, multi-stage timers, and window listeners
   useEffect(() => {
     if (!mapContainerRef.current) return;
     const invalidate = () => {
       if (mapInstanceRef.current) {
-        mapInstanceRef.current.invalidateSize({ debounceMoveEnd: true });
+        try {
+          mapInstanceRef.current.invalidateSize({ debounceMoveEnd: true });
+        } catch (_) {}
       }
     };
 
@@ -438,15 +468,21 @@ export default function FieldBoundaryMap({
     });
     observer.observe(mapContainerRef.current);
 
-    const t1 = setTimeout(invalidate, 100);
-    const t2 = setTimeout(invalidate, 400);
+    // Multi-stage invalidation to eliminate gray screens during Framer-motion transitions
+    const timers = [
+      setTimeout(invalidate, 50),
+      setTimeout(invalidate, 150),
+      setTimeout(invalidate, 300),
+      setTimeout(invalidate, 600),
+      setTimeout(invalidate, 1000)
+    ];
+
     window.addEventListener('resize', invalidate);
     window.addEventListener('orientationchange', invalidate);
 
     return () => {
       observer.disconnect();
-      clearTimeout(t1);
-      clearTimeout(t2);
+      timers.forEach((t) => clearTimeout(t));
       window.removeEventListener('resize', invalidate);
       window.removeEventListener('orientationchange', invalidate);
     };
@@ -479,7 +515,7 @@ export default function FieldBoundaryMap({
     centerMap();
   }, [centerLat, centerLng, centerMap]);
 
-  // Switch Tile Provider: Satellite vs Street Map
+  // Switch Tile Provider: Google Hybrid Satellite vs Google Standard Roadmap
   const switchMapType = (type) => {
     const map = mapInstanceRef.current;
     if (!map) return;
@@ -489,17 +525,9 @@ export default function FieldBoundaryMap({
       map.removeLayer(tileLayerRef.current);
     }
 
-    if (type === 'hybrid') {
-      tileLayerRef.current = L.tileLayer('https://mt{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
-        subdomains: ['0', '1', '2', '3'],
-        maxZoom: 22,
-        maxNativeZoom: 20
-      }).addTo(map);
-    } else {
-      tileLayerRef.current = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 22,
-        maxNativeZoom: 19
-      }).addTo(map);
+    tileLayerRef.current = createGoogleTileLayer(type).addTo(map);
+    if (mapInstanceRef.current) {
+      mapInstanceRef.current.invalidateSize({ debounceMoveEnd: true });
     }
   };
 
@@ -1454,17 +1482,17 @@ export default function FieldBoundaryMap({
             </span>
           </button>
 
-          {/* Satellite vs Street Toggle: 1-tap mobile toggle */}
+          {/* Satellite vs Google Map Toggle: 1-tap mobile toggle */}
           <button
             type="button"
             onClick={() => switchMapType(mapType === 'hybrid' ? 'street' : 'hybrid')}
             className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl border text-xs font-bold hover:text-white cursor-pointer active:scale-95 transition-all shrink-0 ${
               isSunlightMode ? 'bg-white text-black border-2 border-black font-black' : 'bg-slate-100 dark:bg-slate-800 border-slate-200/80 dark:border-slate-700 text-slate-700 dark:text-slate-300'
             }`}
-            title={mapType === 'hybrid' ? (isTelugu ? 'శాటిలైట్ మోడ్ (వీధి మ్యాప్‌కి మార్చు)' : 'Satellite Mode (Switch to Street Map)') : (isTelugu ? 'వీధి మ్యాప్ (శాటిలైట్‌కి మార్చు)' : 'Street Mode (Switch to Satellite)')}
+            title={mapType === 'hybrid' ? (isTelugu ? 'గూగుల్ మ్యాప్‌కి మార్చు' : 'Google Satellite (Switch to Google Map)') : (isTelugu ? 'గూగుల్ శాటిలైట్‌కి మార్చు' : 'Google Map (Switch to Google Satellite)')}
           >
             <span>{mapType === 'hybrid' ? '🛰️' : '🗺️'}</span>
-            <span className="hidden xs:inline font-bold">{mapType === 'hybrid' ? 'Sat' : 'Map'}</span>
+            <span className="hidden xs:inline font-bold">{mapType === 'hybrid' ? 'Google Sat' : 'Google Map'}</span>
           </button>
 
           {/* Mode-Gated Action Button: No confusing "Save" in Calculator Mode */}
@@ -1734,7 +1762,8 @@ export default function FieldBoundaryMap({
         {/* Leaflet Map Canvas - strictly fills 100% of the flex-1 area without 1px overflow */}
         <div
           ref={mapContainerRef}
-          className="w-full h-full relative z-0 outline-none overflow-hidden touch-none"
+          className="w-full h-full relative z-0 outline-none overflow-hidden touch-none bg-slate-950"
+          style={{ height: '100%', minHeight: '100%' }}
         />
 
         {/* Precision Center Crosshair Reticle (Farmer aligns boundary corners on satellite view) */}
@@ -1793,7 +1822,7 @@ export default function FieldBoundaryMap({
 
         {/* Simple Farmer Action Dock (Bottom Center of Map) */}
         {interactive && !isWalkMode && (
-          <div className="absolute bottom-3 sm:bottom-5 inset-x-2 sm:inset-x-3 z-30 flex justify-center pointer-events-none">
+          <div className="absolute bottom-4 sm:bottom-6 inset-x-2 sm:inset-x-3 z-30 flex justify-center pointer-events-none pb-safe">
             <div className={`flex items-center gap-1 sm:gap-2 ${
               isSunlightMode 
                 ? 'bg-amber-300 text-black border-2 border-black shadow-2xl font-black' 
