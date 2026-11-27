@@ -191,24 +191,24 @@ export default function EquipmentBookingPage() {
       if (rawSaved !== null) {
         const farmerSaved = JSON.parse(rawSaved);
         if (Array.isArray(farmerSaved)) {
-          if (farmerSaved.length > 0 || isSynced) {
-            return deduplicateEquipment(farmerSaved, deletedEquipIds);
+          const cleaned = deduplicateEquipment(farmerSaved, deletedEquipIds);
+          if (cleaned.length > 0 || isSynced) {
+            return cleaned;
           }
         }
       }
 
       if (customRaw !== null) {
         const customSaved = JSON.parse(customRaw);
-        if (Array.isArray(customSaved) && (customSaved.length > 0 || isSynced)) {
-          return deduplicateEquipment(customSaved, deletedEquipIds);
+        if (Array.isArray(customSaved)) {
+          const cleaned = deduplicateEquipment(customSaved, deletedEquipIds);
+          if (cleaned.length > 0 || isSynced) {
+            return cleaned;
+          }
         }
       }
 
-      // If never synced before, load canonical starter fleet filtered by blacklisted deletions
-      if (!isSynced) {
-        return deduplicateEquipment(CANONICAL_STARTER_FLEET, deletedEquipIds);
-      }
-
+      // 100% Real User Equipment Only: Never fallback to fake/hardcoded demo fleets
       return [];
     } catch (e) {
       console.warn('Failed to parse equipment:', e);

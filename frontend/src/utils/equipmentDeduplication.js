@@ -28,178 +28,31 @@ export const getEquipmentFallbackImage = (category, title = '') => {
   return CURATED_FARM_PHOTOS.tractorJohnDeere || CURATED_FARM_PHOTOS.tractorField || 'https://images.unsplash.com/photo-1594771804886-a933bb2d609b?auto=format&fit=crop&w=800&q=80';
 };
 
-export const CANONICAL_STARTER_FLEET = [
-  {
-    id: 'FL-001',
-    title: 'John Deere 5050D Tractor',
-    teluguTitle: 'జాన్ డీర్ 5050D 4WD ట్రాక్టర్',
-    category: 'tractor',
-    modelYear: '2023',
-    horsepower: '50 HP',
-    ratePerAcre: 900,
-    hourlyRate: 900,
-    ratePerHour: 900,
-    dailyRate: 3600,
-    available: true,
-    availableToday: true,
-    availableTime: '6:00 AM - 6:00 PM',
-    implements: ['Rotavator', 'MB Plough', 'Cultivator'],
-    implementsIncluded: ['Rotavator', 'MB Plough'],
-    village: 'Pasupugallu',
-    locationVillage: 'Pasupugallu',
-    district: 'Prakasam',
-    locationDistrict: 'Prakasam',
-    mandal: 'Mundlamuru',
-    state: 'Andhra Pradesh',
-    phone: '9440182736',
-    contactPhone: '9440182736',
-    providerName: 'Agro Fleet Service (Pasupugallu)',
-    ownerName: 'Agro Fleet Service (Pasupugallu)',
-    operatorIncluded: true,
-    fuelIncluded: true,
-    rating: 4.9,
-    bookingsCount: 42,
-    distanceKm: 2.1,
-    imageUrl: CURATED_FARM_PHOTOS.tractor || 'https://images.unsplash.com/photo-1592982537447-7440770cbfc9?auto=format&fit=crop&w=800&q=80',
-    specs: '50 HP · 4WD · Power Steering · With Driver & Fuel Included'
-  },
-  {
-    id: 'FL-002',
-    title: 'DJI Agras T40 Agriculture Drone',
-    teluguTitle: 'DJI ఆగ్రాస్ T40 వ్యవసాయ స్ప్రేయింగ్ డ్రోన్',
-    category: 'drone',
-    modelYear: '2024',
-    horsepower: 'Dual Atomized Mist',
-    ratePerAcre: 450,
-    hourlyRate: 1800,
-    ratePerHour: 1800,
-    dailyRate: 7200,
-    available: true,
-    availableToday: true,
-    availableTime: '5:30 AM - 6:30 PM',
-    implements: ['Centrifugal Nozzles', 'Obstacle Radar'],
-    implementsIncluded: ['40L Tank', 'Certified Pilot'],
-    village: 'Mundlamuru',
-    locationVillage: 'Mundlamuru',
-    district: 'Prakasam',
-    locationDistrict: 'Prakasam',
-    mandal: 'Mundlamuru',
-    state: 'Andhra Pradesh',
-    phone: '9848012345',
-    contactPhone: '9848012345',
-    providerName: 'Kisan Drone Kendra',
-    ownerName: 'Kisan Drone Kendra',
-    operatorIncluded: true,
-    fuelIncluded: true,
-    rating: 4.8,
-    bookingsCount: 89,
-    distanceKm: 3.4,
-    imageUrl: CURATED_FARM_PHOTOS.drone || 'https://images.unsplash.com/photo-1508614589041-895b88991e3e?auto=format&fit=crop&w=800&q=80',
-    specs: '40L Tank · DGCA Certified Pilot Included · 5 Acres/hr Spraying'
-  },
-  {
-    id: 'FL-003',
-    title: 'Kirloskar 5HP Solar Water Pump',
-    teluguTitle: 'కిర్లోస్కర్ 5HP సోలార్ వాటర్ పంప్',
-    category: 'irrigation',
-    modelYear: '2023',
-    horsepower: '5 HP Solar DC',
-    ratePerAcre: 350,
-    hourlyRate: 350,
-    ratePerHour: 350,
-    dailyRate: 1800,
-    available: true,
-    availableToday: true,
-    availableTime: '7:00 AM - 5:00 PM',
-    implements: ['Solar Panels Trolley', 'High-Pressure Pipes'],
-    implementsIncluded: ['Solar Panels Trolley', 'Delivery Pipe 200m'],
-    village: 'Pasupugallu',
-    locationVillage: 'Pasupugallu',
-    district: 'Prakasam',
-    locationDistrict: 'Prakasam',
-    mandal: 'Mundlamuru',
-    state: 'Andhra Pradesh',
-    phone: '9440182736',
-    contactPhone: '9440182736',
-    providerName: 'Solar Agri Tech Hub',
-    ownerName: 'Solar Agri Tech Hub',
-    operatorIncluded: true,
-    fuelIncluded: true,
-    rating: 4.9,
-    bookingsCount: 31,
-    distanceKm: 1.5,
-    imageUrl: CURATED_FARM_PHOTOS.solarPump || 'https://images.unsplash.com/photo-1563514227147-6d2ff665a6a0?auto=format&fit=crop&w=800&q=80',
-    specs: '5 HP · Solar Powered (Zero Fuel Cost) · 50,000 L/hr Discharge'
-  },
-  {
-    id: 'FL-004',
-    title: 'Mahindra 575 DI 45HP Tractor',
-    teluguTitle: 'మహీంద్రా 575 DI 45HP ట్రాక్టర్',
-    category: 'tractor',
-    modelYear: '2023',
-    horsepower: '45 HP',
-    ratePerAcre: 800,
-    hourlyRate: 800,
-    ratePerHour: 800,
-    dailyRate: 3200,
-    available: true,
-    availableToday: true,
-    availableTime: '6:00 AM - 6:00 PM',
-    implements: ['Rotavator', 'Plough', 'Cultivator'],
-    implementsIncluded: ['Rotavator', 'Plough'],
-    village: 'Pasupugallu',
-    locationVillage: 'Pasupugallu',
-    district: 'Prakasam',
-    locationDistrict: 'Prakasam',
-    mandal: 'Mundlamuru',
-    state: 'Andhra Pradesh',
-    phone: '9440182736',
-    contactPhone: '9440182736',
-    providerName: 'Agro Fleet Service (Pasupugallu)',
-    ownerName: 'Agro Fleet Service (Pasupugallu)',
-    operatorIncluded: true,
-    fuelIncluded: true,
-    rating: 5.0,
-    bookingsCount: 64,
-    distanceKm: 2.5,
-    imageUrl: CURATED_FARM_PHOTOS.tractorJohnDeere || 'https://images.unsplash.com/photo-1594771804886-a933bb2d609b?auto=format&fit=crop&w=800&q=80',
-    specs: '45 HP · Heavy Rotavator & MB Plough Included · Black Soil Ready'
-  },
-  {
-    id: 'FL-005',
-    title: 'Preet 987 Combined Harvester',
-    teluguTitle: 'ప్రీత్ 987 కంబైన్డ్ హార్వెస్టర్',
-    category: 'harvester',
-    modelYear: '2023',
-    horsepower: '101 HP',
-    ratePerAcre: 2200,
-    hourlyRate: 1800,
-    ratePerHour: 1800,
-    dailyRate: 9500,
-    available: true,
-    availableToday: false,
-    availableTime: '7:00 AM - 6:00 PM',
-    implements: ['Paddy Cutter Bar', 'Straw Reaper'],
-    implementsIncluded: ['14-foot Cutter Bar'],
-    village: 'Mundlamuru',
-    locationVillage: 'Mundlamuru',
-    district: 'Prakasam',
-    locationDistrict: 'Prakasam',
-    mandal: 'Mundlamuru',
-    state: 'Andhra Pradesh',
-    phone: '9848012345',
-    contactPhone: '9848012345',
-    providerName: 'Kisan Harvester Union',
-    ownerName: 'Kisan Harvester Union',
-    operatorIncluded: true,
-    fuelIncluded: true,
-    rating: 4.7,
-    bookingsCount: 28,
-    distanceKm: 4.8,
-    imageUrl: CURATED_FARM_PHOTOS.harvester || 'https://images.unsplash.com/photo-1500937386664-56d1dfef3854?auto=format&fit=crop&w=800&q=80',
-    specs: '101 HP · Multi-Crop Paddy & Maize Harvester · Minimal Grain Loss'
-  }
-];
+// 100% Real User Equipment Fleet (Zero Hardcoded Demo Machinery)
+export const CANONICAL_STARTER_FLEET = [];
+
+export const LEGACY_MOCK_EQUIPMENT_IDS = new Set([
+  'FL-001', 'FL-002', 'FL-003', 'FL-004', 'FL-005',
+  'FL-8357', 'FL-2795', 'FL-2912',
+  'EQ-LIVE-24021', 'EQ-V314-76559', 'EQ-TEST-1790444356', 'EQ-49891'
+]);
+
+export const LEGACY_MOCK_TITLES = new Set([
+  'johndeere5050dtractor',
+  'johndeere5050d4wdtractor',
+  'djiagrast40agriculturedrone',
+  'djiagrast40agriculturesprayingdrone',
+  'kirloskar5hpsolarwaterpump',
+  'mahindra575di45hptractor',
+  'preet987combinedharvester',
+  'hiitractor',
+  'sampletractor',
+  'livetesttractor20260926224409edited',
+  'kubotamu55024wdtractor24021',
+  'vstshakti932ditractor148',
+  'kubotaharvesterpro774',
+  'mahindrs575di'
+]);
 
 export const normalizeEquipmentTitle = (title) => {
   return String(title || '')
@@ -299,12 +152,35 @@ export const deduplicateEquipment = (items = [], customDeletedIds = null) => {
   for (const item of items) {
     if (!item) continue;
     const rawId = String(item.id || '').trim();
-    // Filter legacy mock prefix noise
-    if (rawId.startsWith('eq-tr-') || rawId.startsWith('eq-dr-') || rawId.startsWith('eq-ir-') || rawId.startsWith('eq-hv-')) {
+    const titleNorm = normalizeEquipmentTitle(item.title);
+
+    // 1. Strict elimination of hardcoded legacy mock/demo equipment
+    if (
+      LEGACY_MOCK_EQUIPMENT_IDS.has(rawId) ||
+      rawId.startsWith('eq-tr-') ||
+      rawId.startsWith('eq-dr-') ||
+      rawId.startsWith('eq-ir-') ||
+      rawId.startsWith('eq-hv-') ||
+      rawId.startsWith('EQ-TEST-') ||
+      rawId.startsWith('FL-00') ||
+      LEGACY_MOCK_TITLES.has(titleNorm)
+    ) {
       continue;
     }
 
-    const titleNorm = normalizeEquipmentTitle(item.title);
+    // 2. Strict elimination of hardcoded demo provider entities
+    const pName = String(item.providerName || item.ownerName || '').toLowerCase();
+    if (
+      pName.includes('agro fleet service') ||
+      pName.includes('kisan drone kendra') ||
+      pName.includes('solar agri tech hub') ||
+      pName.includes('kisan harvester union') ||
+      pName.includes('ramesh machinery hub') ||
+      pName.includes('ramesh equipment hub')
+    ) {
+      continue;
+    }
+
     const idKey = rawId || `eq-${titleNorm}`;
 
     // Blacklist check: if ID, clean number, or title was deleted by user, purge permanently
@@ -347,16 +223,16 @@ export const deduplicateEquipment = (items = [], customDeletedIds = null) => {
       id: idKey,
       title: item.title || 'Farm Machinery',
       category: item.category || 'tractor',
-      phone: item.phone || item.contactPhone || '9440182736',
-      contactPhone: item.contactPhone || item.phone || '9440182736',
-      providerName: item.providerName || item.ownerName || 'Local Machinery Provider',
-      village: item.village || item.locationVillage || 'Pasupugallu',
-      mandal: item.mandal || 'Mundlamuru',
-      district: item.district || item.locationDistrict || 'Prakasam',
+      phone: item.phone || item.contactPhone || '',
+      contactPhone: item.contactPhone || item.phone || '',
+      providerName: item.providerName || item.ownerName || 'Equipment Provider',
+      village: item.village || item.locationVillage || '',
+      mandal: item.mandal || '',
+      district: item.district || item.locationDistrict || '',
       ratePerAcre: Number(item.ratePerAcre) || Number(item.hourlyRate) || 800,
       ratePerHour: Number(item.hourlyRate) || Number(item.ratePerHour) || 800,
-      implements: Array.isArray(item.implements) ? item.implements : Array.isArray(item.implementsIncluded) ? item.implementsIncluded : ['Rotavator', 'Plough'],
-      implementsIncluded: Array.isArray(item.implementsIncluded) ? item.implementsIncluded : Array.isArray(item.implements) ? item.implements : ['Rotavator', 'Plough'],
+      implements: Array.isArray(item.implements) ? item.implements : Array.isArray(item.implementsIncluded) ? item.implementsIncluded : [],
+      implementsIncluded: Array.isArray(item.implementsIncluded) ? item.implementsIncluded : Array.isArray(item.implements) ? item.implements : [],
       available: item.available !== false,
       availableToday: item.available !== false && item.availableToday !== false,
       operatorIncluded: item.operatorIncluded !== false,

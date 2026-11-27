@@ -12128,3 +12128,38 @@ pm --prefix frontend run build (vite v4.5.14 built cleanly in 20.50s with 0 erro
   - Added dual-endpoint resilience (`/api/v1/notifications` -> `/api/notifications`) and normalized response shapes (`Array.isArray(res.data)` vs `res.data.notifications`).
   - Protected `setUnreadCount` against clearing the badge to 0 on transient network delays or empty payloads.
   - Added `pb-28 lg:pb-6` bottom padding so the thread list can be scrolled cleanly above the fixed mobile bottom navigation bar.
+
+
+## [2026-11-27 08:05:00] - Purge Hardcoded Equipment & Fix Empty State Deletion Synchronization
+- **Root Cause Analysis:**
+  1. `CANONICAL_STARTER_FLEET` in `frontend/src/utils/equipmentDeduplication.js` contained 5 hardcoded mock machines (`FL-001` through `FL-005`: John Deere, DJI Agras, Kirloskar Solar Pump, Mahindra, and Preet Harvester).
+  2. `EquipmentBookingPage.jsx` loaded `CANONICAL_STARTER_FLEET` whenever the catalog was not yet synced, causing demo machinery to populate farmer views.
+  3. `backend/app/routers/data/equipment_catalog.json` stored 7 legacy synthetic fixtures (`FL-8357`, `FL-2795`, `EQ-LIVE-24021`, etc.), and `backend/app/routers/data/equipment_bookings.json` held 31,048 lines of test bookings.
+  4. In `backend/app/routers/provider/equipment.py`, `get_equipment_catalog` and `get_provider_fleet` evaluated `if catalog:` / `if not fleet:`. When a provider legitimately deleted all their machinery, MongoDB returned an empty list `[]` (`bool([]) == False`), triggering a false fallback that loaded the synthetic disk files back into memory and sent them to the farmer portal.
+  5. In `ProviderDashboardPage.jsx`, deleting machinery updated the provider fleet caches and custom listings but did not synchronize `agrishield_farmer_catalog_cache`.
+- **Architectural Fixes Applied:**
+  1. `backend/app/routers/data/equipment_catalog.json` & `equipment_bookings.json`: Completely purged synthetic data; reset to clean empty JSON arrays (`[]`).
+  2. `backend/app/routers/provider/equipment.py`:
+     - In `get_equipment_catalog`: Added `mongo_success` flag. If MongoDB ran successfully, it respects the empty catalog `[]`, saves `[]` to disk, and never falls back to disk fixtures.
+     - In `get_provider_fleet`: Supplement from disk catalog only if MongoDB failed/offline, not when the provider has 0 fleet items.
+     - In `get_all_bookings`: Fallback to disk only if MongoDB connection failed, not on valid empty queries.
+  3. `frontend/src/utils/equipmentDeduplication.js`:
+     - Cleared `CANONICAL_STARTER_FLEET` to `[]` (100% real user equipment only).
+     - In `deduplicateEquipment`: Added blacklist filters for legacy mock IDs (`FL-001`..`FL-005`, `FL-8357`, `FL-2795`, `FL-2912`, `EQ-LIVE-24021`, `EQ-V314-76559`, etc.), legacy mock titles, and demo provider names ("Agro Fleet Service", "Kisan Drone Kendra", "Solar Agri Tech Hub", etc.).
+     - Replaced hardcoded default phone (`9440182736`) and village (`Pasupugallu`) fallbacks with authentic dynamic fields.
+  4. `frontend/src/pages/farmer/EquipmentBookingPage.jsx`:
+     - In `loadMergedEquipment`: Removed fallback to `CANONICAL_STARTER_FLEET`.
+     - Automatically filters existing localStorage caches through upgraded `deduplicateEquipment`, immediately purging any lingering legacy mock cards.
+  5. `frontend/src/pages/provider/ProviderDashboardPage.jsx`:
+     - Synchronized `agrishield_farmer_catalog_cache` and `agrishield_equipment_catalog_synced` on fleet updates and machinery deletion (`confirmDeleteMachine`), ensuring the farmer view reflects deletions instantly.
+- **Verification:**
+  - Automated Provider Test Suites (`provider_earnings_consistency.test.js`, `provider_loading_error.test.js`, `provider_localization.test.js`, `provider_tenant_isolation.test.js`) executed with 35/35 tests passing (100%).
+  - Production build (`npm run build`) succeeded: 3,208 modules transformed in 34.31s with 0 errors.
+- **Files Modified:**
+  - `backend/app/routers/data/equipment_catalog.json`
+  - `backend/app/routers/data/equipment_bookings.json`
+  - `backend/app/routers/provider/equipment.py`
+  - `frontend/src/utils/equipmentDeduplication.js`
+  - `frontend/src/pages/farmer/EquipmentBookingPage.jsx`
+  - `frontend/src/pages/provider/ProviderDashboardPage.jsx`
+  - `changes_happening.md`

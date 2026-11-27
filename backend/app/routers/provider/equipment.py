@@ -309,6 +309,7 @@ async def get_all_bookings(
         provider_eq_ids = await _get_provider_equipment_ids(current_user)
 
     # 1. Try MongoDB if active
+    mongo_success = False
     if db_instance.db is not None:
         try:
             query: Dict[str, Any] = {}
@@ -344,14 +345,12 @@ async def get_all_bookings(
             for doc in docs:
                 doc.pop("_id", None)
                 bookings.append(doc)
+            mongo_success = True
         except Exception as e:
             print(f"⚠️ [EquipmentBookings] Mongo fetch notice: {e}")
 
-    # 2. If Mongo had items, update memory cache
-    if bookings:
-        pass
-    else:
-        # Fallback to in-memory / disk cache
+    # 2. Fallback to in-memory / disk cache ONLY if MongoDB failed or is offline
+    if not mongo_success:
         bookings = _load_disk_bookings()
 
     # 3. Strictly filter out any deleted tombstones across the entire cluster
@@ -1466,6 +1465,7 @@ async def get_provider_fleet(
     provider_eq_ids = await _get_provider_equipment_ids(current_user)
 
     fleet = []
+    mongo_success = False
     if db_instance.db is not None:
         try:
             query: Dict[str, Any] = {}
@@ -1492,11 +1492,12 @@ async def get_provider_fleet(
             for doc in docs:
                 doc.pop("_id", None)
                 fleet.append(doc)
+            mongo_success = True
         except Exception as e:
             print(f"⚠️ [EquipmentFleet] Mongo fleet fetch notice: {e}")
 
-    # Supplement from disk catalog if mongo empty or offline
-    if not fleet:
+    # Supplement from disk catalog ONLY if MongoDB failed or is offline
+    if not mongo_success:
         disk_items = _load_disk_catalog()
         if _is_admin(current_user):
             fleet = disk_items
@@ -1911,15 +1912,17 @@ async def get_equipment_catalog(
             for doc in docs:
                 doc.pop("_id", None)
                 catalog.append(doc)
+            mongo_success = True
         except Exception as e:
             print(f"⚠️ [EquipmentCatalog] Mongo catalog fetch notice: {e}")
 
-    if catalog:
+    if mongo_success:
         if not (cat_str or dist_str or prov_id_str or prov_str):
             global _in_memory_catalog
             _in_memory_catalog = catalog
             _save_disk_catalog()
     else:
+        # Fallback to in-memory / disk catalog ONLY if MongoDB failed or is offline
         catalog = _load_disk_catalog()
 
     # Strictly filter out any deleted machinery tombstones across the system

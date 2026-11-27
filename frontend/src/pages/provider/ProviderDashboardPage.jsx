@@ -426,6 +426,8 @@ export default function ProviderDashboardPage() {
     }
     try {
       localStorage.setItem('agrishield_custom_equipment_listings', JSON.stringify(cleanFleet));
+      localStorage.setItem('agrishield_farmer_catalog_cache', JSON.stringify(cleanFleet));
+      localStorage.setItem('agrishield_equipment_catalog_synced', 'true');
       window.dispatchEvent(new Event('agrishield_equipment_updated'));
     } catch (e) {}
   }, [fleetList, user?.id, user?._id, getDeletedEquipmentIds]);
@@ -919,6 +921,8 @@ export default function ProviderDashboardPage() {
         localStorage.setItem(getProviderFleetStorageKey(uid), JSON.stringify(updated));
         localStorage.setItem('agrishield_provider_fleet_inventory', JSON.stringify(updated));
         localStorage.setItem('agrishield_custom_equipment_listings', JSON.stringify(updated));
+        localStorage.setItem('agrishield_farmer_catalog_cache', JSON.stringify(updated));
+        localStorage.setItem('agrishield_equipment_catalog_synced', 'true');
         window.dispatchEvent(new Event('agrishield_equipment_updated'));
       } catch (e) {}
 
