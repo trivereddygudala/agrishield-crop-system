@@ -3,17 +3,17 @@ import { useLocation, Link, useNavigate, useSearchParams } from 'react-router-do
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
-import { 
-  Leaf, 
-  ShieldAlert, 
-  ArrowLeft, 
-  Calendar, 
-  Clock, 
-  Share2, 
-  Check, 
-  Activity, 
-  Sprout, 
-  Download, 
+import {
+  Leaf,
+  ShieldAlert,
+  ArrowLeft,
+  Calendar,
+  Clock,
+  Share2,
+  Check,
+  Activity,
+  Sprout,
+  Download,
   Sparkles,
   Printer,
   MessageCircle,
@@ -100,7 +100,7 @@ const PredictionResultPage = () => {
         if (cached && preferred.includes(cached)) return cached;
         return preferred[0];
       }
-    } catch (_) {}
+    } catch (_) { }
     return sessionStorage.getItem('agrishield_tab_lang_prediction') || currentLang || 'en';
   });
 
@@ -125,7 +125,7 @@ const PredictionResultPage = () => {
     sessionStorage.setItem('agrishield_tab_lang_prediction', clean);
     // Explicitly isolated: does NOT mutate global website i18n
   };
-  
+
   const imagePath = location.state?.imagePath;
   const passedPreviewUrl = location.state?.previewUrl;
   const backendBaseUrl = import.meta.env.VITE_API_URL || '';
@@ -185,7 +185,7 @@ const PredictionResultPage = () => {
 
     const runAIPrediction = async () => {
       try {
-        const res = await API.post('/api/predict', { 
+        const res = await API.post('/api/predict', {
           image_path: imagePath,
           language: i18n.language || 'en'
         });
@@ -223,7 +223,7 @@ const PredictionResultPage = () => {
     if (!imagePath || !navigator.onLine) return;
     setIsVerifyingCloud(true);
     try {
-      const res = await API.post('/api/predict', { 
+      const res = await API.post('/api/predict', {
         image_path: imagePath,
         language: i18n.language || 'en'
       });
@@ -403,7 +403,7 @@ const PredictionResultPage = () => {
   };
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
@@ -419,9 +419,9 @@ const PredictionResultPage = () => {
 
         <div className="flex flex-wrap items-center gap-2">
           {/* Ask Voice Doctor Button */}
-          <Button 
-            variant="solid" 
-            size="sm" 
+          <Button
+            variant="solid"
+            size="sm"
             onClick={() => setShowVoiceDoctor(true)}
             className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black shadow-md border-0 active:scale-95"
             leftIcon={<Stethoscope className="w-4 h-4 text-emerald-200" />}
@@ -441,9 +441,8 @@ const PredictionResultPage = () => {
                 const speechSummary = `${crop}. ${disease}. ${result.organic_treatment || ''}. ${result.chemical_treatment || ''}`;
                 speak(speechSummary, 'pred_summary', currentLang);
               }}
-              className={`font-extrabold border-slate-300 dark:border-slate-700 active:scale-95 ${
-                speakingId === 'pred_summary' ? 'bg-emerald-600 text-white border-emerald-500 animate-pulse' : 'text-slate-800 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800'
-              }`}
+              className={`font-extrabold border-slate-300 dark:border-slate-700 active:scale-95 ${speakingId === 'pred_summary' ? 'bg-emerald-600 text-white border-emerald-500 animate-pulse' : 'text-slate-800 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800'
+                }`}
               leftIcon={speakingId === 'pred_summary' ? <VolumeX className="w-4 h-4 text-white" /> : <Volume2 className="w-4 h-4 text-emerald-500" />}
             >
               {speakingId === 'pred_summary' ? (i18n.language === 'te' ? 'వాయిస్ ఆపండి' : i18n.language === 'hi' ? 'आवाज रोकें' : 'Stop Voice') : (i18n.language === 'te' ? 'సారాంశం వినండి' : i18n.language === 'hi' ? 'सारांश सुनें' : 'Listen Voice')}
@@ -451,9 +450,9 @@ const PredictionResultPage = () => {
           )}
 
           {/* WhatsApp Share Button */}
-          <Button 
-            variant="solid" 
-            size="sm" 
+          <Button
+            variant="solid"
+            size="sm"
             onClick={handleWhatsAppShare}
             className="bg-[#25D366] hover:bg-[#20bd5a] text-white font-black shadow-md shadow-[#25D366]/20 border-0 active:scale-95"
             leftIcon={<MessageCircle className="w-4 h-4 fill-white" />}
@@ -462,9 +461,9 @@ const PredictionResultPage = () => {
           </Button>
 
           {/* Download Clinical Prescription PDF */}
-          <Button 
-            variant="outline" 
-            size="sm" 
+          <Button
+            variant="outline"
+            size="sm"
             onClick={handleDownloadPDF}
             className="font-extrabold border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-100 active:scale-95"
             leftIcon={<Download className="w-4 h-4 text-emerald-500" />}
@@ -472,9 +471,9 @@ const PredictionResultPage = () => {
             {t('scan_hub.download_prescription', 'Download Rx (PDF)')}
           </Button>
 
-          <Button 
-            variant="outline" 
-            size="sm" 
+          <Button
+            variant="outline"
+            size="sm"
             onClick={handleShare}
             leftIcon={copied ? <Check className="w-4 h-4 text-emerald-500" /> : <Share2 className="w-4 h-4" />}
           >
@@ -552,18 +551,17 @@ const PredictionResultPage = () => {
       )}
 
       {/* Main Prediction Summary Card */}
-      <Card className={`p-6 sm:p-8 border-0 shadow-2xl text-white relative overflow-hidden ${
-        isHealthy 
-          ? 'bg-gradient-to-r from-emerald-950 via-slate-900 to-slate-950' 
+      <Card className={`p-6 sm:p-8 border-0 shadow-2xl text-white relative overflow-hidden ${isHealthy
+          ? 'bg-gradient-to-r from-emerald-950 via-slate-900 to-slate-950'
           : 'bg-gradient-to-r from-rose-950 via-slate-900 to-slate-950'
-      }`}>
+        }`}>
         <div className="flex flex-col md:flex-row items-center gap-6 relative z-10">
           {/* Diagnostic Image Container */}
           <div className="w-full md:w-56 flex flex-col shrink-0 gap-3">
             <div className="w-full h-56 rounded-2xl overflow-hidden bg-slate-950 border border-white/20 relative group">
               {!imgError && displayImgUrl ? (
-                <img 
-                  src={showGradCam && result?.gradcam_base64 ? result.gradcam_base64 : displayImgUrl} 
+                <img
+                  src={showGradCam && result?.gradcam_base64 ? result.gradcam_base64 : displayImgUrl}
                   alt={showGradCam ? "Grad-CAM AI X-Ray" : "Diagnosed Crop"}
                   className="w-full h-full object-cover transition-all duration-300"
                   onError={() => setImgError(true)}
@@ -575,18 +573,17 @@ const PredictionResultPage = () => {
                 </div>
               )}
             </div>
-            
+
             {/* Grad-CAM Toggle */}
             {result?.gradcam_base64 && !isHealthy && (
               <Button
                 variant={showGradCam ? "solid" : "outline"}
                 size="sm"
                 onClick={() => setShowGradCam(!showGradCam)}
-                className={`w-full transition-all duration-300 font-bold ${
-                  showGradCam 
-                    ? 'bg-rose-500 hover:bg-rose-600 text-white border-rose-500' 
+                className={`w-full transition-all duration-300 font-bold ${showGradCam
+                    ? 'bg-rose-500 hover:bg-rose-600 text-white border-rose-500'
                     : 'text-rose-400 border-white/20 hover:border-rose-400/50 hover:bg-rose-500/10'
-                }`}
+                  }`}
                 leftIcon={<Activity className="w-4 h-4" />}
               >
                 {showGradCam ? 'Hide AI X-Ray' : 'View AI X-Ray (Grad-CAM)'}
@@ -629,7 +626,7 @@ const PredictionResultPage = () => {
       {/* Diagnostic Tiles Grid */}
       {result && !isHealthy && !result.is_agrochemical && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
-          
+
           <Card className="p-5 border-l-4 border-l-amber-500 shadow-sm">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
@@ -642,11 +639,10 @@ const PredictionResultPage = () => {
                   const text = `Symptoms: ${result.symptoms || nvidiaAdvice?.disease_explanation || 'Not available'}.`;
                   speak(text, 'card_symptoms_page', i18n.language || 'en');
                 }}
-                className={`p-1.5 rounded-lg border transition-colors ${
-                  speakingId === 'card_symptoms_page'
+                className={`p-1.5 rounded-lg border transition-colors ${speakingId === 'card_symptoms_page'
                     ? 'bg-amber-500 text-white border-amber-600 animate-pulse'
                     : 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800'
-                }`}
+                  }`}
                 title="Listen symptoms"
               >
                 {speakingId === 'card_symptoms_page' ? <VolumeX size={14} /> : <Volume2 size={14} />}
@@ -669,11 +665,10 @@ const PredictionResultPage = () => {
                   const text = `Treatment Plan. Organic approach: ${result.organic_treatment || nvidiaAdvice?.organic_treatment || 'None'}. Chemical intervention: ${result.chemical_treatment || nvidiaAdvice?.chemical_treatment || 'None'}`;
                   speak(text, 'card_treatment_page', i18n.language || 'en');
                 }}
-                className={`p-1.5 rounded-lg border transition-colors ${
-                  speakingId === 'card_treatment_page'
+                className={`p-1.5 rounded-lg border transition-colors ${speakingId === 'card_treatment_page'
                     ? 'bg-emerald-600 text-white border-emerald-700 animate-pulse'
                     : 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
-                }`}
+                  }`}
                 title="Listen treatment"
               >
                 {speakingId === 'card_treatment_page' ? <VolumeX size={14} /> : <Volume2 size={14} />}
@@ -730,12 +725,12 @@ const PredictionResultPage = () => {
       )}
 
       {/* Voice Crop Doctor Consultation Modal */}
-      <VoiceCropDoctorModal 
-        isOpen={showVoiceDoctor} 
-        onClose={() => setShowVoiceDoctor(false)} 
-        initialCrop={localizedCrop || result?.crop_name} 
-        initialDisease={localizedDisease || result?.disease_name} 
-        initialSymptoms={result?.symptoms} 
+      <VoiceCropDoctorModal
+        isOpen={showVoiceDoctor}
+        onClose={() => setShowVoiceDoctor(false)}
+        initialCrop={localizedCrop || result?.crop_name}
+        initialDisease={localizedDisease || result?.disease_name}
+        initialSymptoms={result?.symptoms}
       />
     </motion.div>
   );

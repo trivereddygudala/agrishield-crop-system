@@ -29,7 +29,7 @@ const SDCardPage = () => {
         const best = withIp.sort((a, b) =>
           (a.seconds_since_seen ?? 999999) - (b.seconds_since_seen ?? 999999)
         )[0];
-        
+
         let ip = '';
         if (best) {
           ip = best.ip;
@@ -61,7 +61,7 @@ const SDCardPage = () => {
             console.warn("Failed to fetch live status via proxy, using telemetry cache:", proxyErr);
           }
         }
-        
+
         setSdData({
           mounted,
           usedMb: used,
@@ -130,7 +130,7 @@ const SDCardPage = () => {
             </div>
             <div className="text-center text-[10px] font-bold text-slate-500">MicroSDHC</div>
           </div>
-          
+
           <h2 className="text-xl font-bold mb-2">{t('sdcard_page.card_status', 'Storage Status')}</h2>
           {isMounted ? (
             <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-50 dark:bg-emerald-900/30 px-4 py-2 rounded-full">
@@ -143,7 +143,7 @@ const SDCardPage = () => {
               {t('sdcard_page.card_unmounted', 'CARD NOT DETECTED')}
             </div>
           )}
-          
+
           {!isMounted && (
             <div className="mt-4 text-sm text-slate-500 text-center flex flex-col items-center gap-2">
               <AlertTriangle className="h-5 w-5 text-amber-500" />
@@ -157,7 +157,7 @@ const SDCardPage = () => {
           <h2 className="text-xl font-bold mb-6 flex items-center gap-2 border-b pb-4">
             <Activity className="h-5 w-5 text-indigo-500" /> {t('sdcard_page.storage_capacity', 'Storage Capacity')}
           </h2>
-          
+
           <div className="space-y-6">
             <div>
               <div className="flex justify-between text-sm font-bold mb-2">
@@ -165,13 +165,13 @@ const SDCardPage = () => {
                 <span className="text-slate-800 dark:text-slate-100">{sdData.usedMb.toFixed(1)} MB</span>
               </div>
               <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-4 overflow-hidden border border-slate-200 dark:border-slate-700">
-                <div 
+                <div
                   className={`h-4 rounded-full transition-all duration-1000 ${usagePercent > 90 ? 'bg-rose-500' : 'bg-indigo-500'}`}
                   style={{ width: `${Math.max(usagePercent, isMounted ? 2 : 0)}%` }}
                 ></div>
               </div>
             </div>
-            
+
             <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-100 dark:border-slate-800">
               <div className="p-4 bg-slate-50 dark:bg-slate-900/50 rounded-xl">
                 <p className="text-sm font-medium text-slate-500">Free Space</p>
@@ -200,7 +200,7 @@ const SDCardPage = () => {
             {t('sdcard_page.format_card', 'Format SD Card')}
           </Button>
         </div>
-        
+
         {isMounted ? (
           <div className="border rounded-2xl overflow-hidden border-slate-200/90 dark:border-slate-800 shadow-xs">
             <table className="w-full text-left text-sm">
@@ -220,7 +220,7 @@ const SDCardPage = () => {
                   <td className="px-4 py-3 text-slate-600 dark:text-slate-400 font-medium">{(sdData.usedMb * 1024).toFixed(0)} KB</td>
                   <td className="px-4 py-3 text-slate-500 hidden md:table-cell">Just now</td>
                   <td className="px-4 py-3 text-right">
-                    <button 
+                    <button
                       onClick={() => {
                         if (nodeIp) {
                           window.open(`http://${nodeIp}/download-logs`, '_blank');
@@ -228,11 +228,10 @@ const SDCardPage = () => {
                           alert("ESP32 IP address not discovered yet. Please ensure the device is online on the local network.");
                         }
                       }}
-                      className={`font-bold text-xs inline-flex items-center justify-end gap-1.5 px-3 py-1.5 rounded-xl border transition-all ${
-                        nodeIp 
-                          ? 'bg-sky-500/10 hover:bg-sky-600 hover:text-white text-sky-600 dark:text-sky-400 border-sky-500/30 shadow-xs' 
-                          : 'text-slate-400 border-slate-200 dark:border-slate-800 cursor-not-allowed'
-                      }`}
+                      className={`font-bold text-xs inline-flex items-center justify-end gap-1.5 px-3 py-1.5 rounded-xl border transition-all ${nodeIp
+                        ? 'bg-sky-500/10 hover:bg-sky-600 hover:text-white text-sky-600 dark:text-sky-400 border-sky-500/30 shadow-xs'
+                        : 'text-slate-400 border-slate-200 dark:border-slate-800 cursor-not-allowed'
+                        }`}
                     >
                       <Download className="h-3.5 w-3.5" /> Download Log
                     </button>
@@ -245,7 +244,7 @@ const SDCardPage = () => {
                   <td className="px-4 py-3 text-slate-600 dark:text-slate-400 font-medium">{(sdData.usedMb * 1024 > 0 ? (sdData.usedMb * 1024) + 142 : 142).toFixed(0)} KB</td>
                   <td className="px-4 py-3 text-slate-500 hidden md:table-cell">10 mins ago</td>
                   <td className="px-4 py-3 text-right">
-                    <button 
+                    <button
                       onClick={() => {
                         if (nodeIp) {
                           window.open(`http://${nodeIp}/download-archive`, '_blank');
@@ -253,11 +252,10 @@ const SDCardPage = () => {
                           alert("ESP32 IP address not discovered yet. Please ensure the device is online on the local network.");
                         }
                       }}
-                      className={`font-bold text-xs inline-flex items-center justify-end gap-1.5 px-3 py-1.5 rounded-xl border transition-all ${
-                        nodeIp 
-                          ? 'bg-emerald-500/10 hover:bg-emerald-600 hover:text-white text-emerald-600 dark:text-emerald-400 border-emerald-500/30 shadow-xs' 
-                          : 'text-slate-400 border-slate-200 dark:border-slate-800 cursor-not-allowed'
-                      }`}
+                      className={`font-bold text-xs inline-flex items-center justify-end gap-1.5 px-3 py-1.5 rounded-xl border transition-all ${nodeIp
+                        ? 'bg-emerald-500/10 hover:bg-emerald-600 hover:text-white text-emerald-600 dark:text-emerald-400 border-emerald-500/30 shadow-xs'
+                        : 'text-slate-400 border-slate-200 dark:border-slate-800 cursor-not-allowed'
+                        }`}
                     >
                       <Download className="h-3.5 w-3.5" /> Download Archive
                     </button>
@@ -279,6 +277,6 @@ const SDCardPage = () => {
 };
 
 // Simple Activity component since it wasn't imported above
-const Activity = ({className}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>;
+const Activity = ({ className }) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>;
 
 export default SDCardPage;

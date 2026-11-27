@@ -116,7 +116,7 @@ const DevicesPage = () => {
         });
         const dev = sorted[0];
         let telem = (dev && dev.latest_telemetry) ? dev.latest_telemetry : {};
-        
+
         if (dev && dev.ip && dev.status === 'online') {
           try {
             const proxyRes = await API.post('/api/v1/devices/proxy', {
@@ -127,26 +127,26 @@ const DevicesPage = () => {
             const statusData = proxyRes?.data;
             if (statusData && statusData.sd) {
               telem = {
-                    ...telem,
-                    temperature: statusData.t !== undefined ? statusData.t : telem.temperature,
-                    humidity: statusData.h !== undefined ? statusData.h : telem.humidity,
-                    light_lux: statusData.l !== undefined ? statusData.l : telem.light_lux,
-                    pressure: statusData.pr !== undefined ? statusData.pr : telem.pressure,
-                    soil_moisture: statusData.sm !== undefined ? statusData.sm : telem.soil_moisture,
-                    rain_detected: statusData.rn !== undefined ? (statusData.rn === true || statusData.rn === "true") : telem.rain_detected,
-                    battery_percentage: statusData.bp !== undefined ? statusData.bp : telem.battery_percentage,
-                    battery_voltage: statusData.bv !== undefined ? statusData.bv : telem.battery_voltage,
-                    sd_card_status: statusData.sd !== undefined ? statusData.sd.toLowerCase() : telem.sd_card_status,
-                    sd_total_mb: statusData.sz !== undefined ? statusData.sz : telem.sd_total_mb,
-                    sd_used_mb: statusData.su !== undefined ? statusData.su : telem.sd_used_mb
-                  };
-                }
-            } catch (proxyErr) {
-              console.warn("Failed to fetch live status via proxy, using telemetry cache:", proxyErr);
+                ...telem,
+                temperature: statusData.t !== undefined ? statusData.t : telem.temperature,
+                humidity: statusData.h !== undefined ? statusData.h : telem.humidity,
+                light_lux: statusData.l !== undefined ? statusData.l : telem.light_lux,
+                pressure: statusData.pr !== undefined ? statusData.pr : telem.pressure,
+                soil_moisture: statusData.sm !== undefined ? statusData.sm : telem.soil_moisture,
+                rain_detected: statusData.rn !== undefined ? (statusData.rn === true || statusData.rn === "true") : telem.rain_detected,
+                battery_percentage: statusData.bp !== undefined ? statusData.bp : telem.battery_percentage,
+                battery_voltage: statusData.bv !== undefined ? statusData.bv : telem.battery_voltage,
+                sd_card_status: statusData.sd !== undefined ? statusData.sd.toLowerCase() : telem.sd_card_status,
+                sd_total_mb: statusData.sz !== undefined ? statusData.sz : telem.sd_total_mb,
+                sd_used_mb: statusData.su !== undefined ? statusData.su : telem.sd_used_mb
+              };
             }
+          } catch (proxyErr) {
+            console.warn("Failed to fetch live status via proxy, using telemetry cache:", proxyErr);
           }
-          processDeviceTelemetry(dev, telem);
         }
+        processDeviceTelemetry(dev, telem);
+      }
     } catch (err) {
       console.warn("Device status fetch error:", err);
     }
@@ -212,17 +212,17 @@ const DevicesPage = () => {
             {isTe ? "🌾 పొలం ఐవోటీ సెన్సార్లు & పరికరాలు" : t('devices_page.title', 'IoT Hardware & 7-Sensor Telemetry')}
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-white/60 mt-1">
-            {isTe 
+            {isTe
               ? "మీ పొలంలో అమర్చిన సెన్సార్ పరికరం నుండి నేల తేమ, ఉష్ణోగ్రత, బ్యాటరీ లైవ్ వివరాలు."
               : t('devices_page.subtitle', 'Real-time status monitoring for ESP32 Field Transceiver Nodes & crop sensors.')}
           </p>
         </div>
 
-        <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={fetchDeviceStatus} 
-          leftIcon={<RefreshCw className="w-4 h-4" />} 
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={fetchDeviceStatus}
+          leftIcon={<RefreshCw className="w-4 h-4" />}
           className="w-full sm:w-auto border border-slate-200 dark:border-white/10 font-bold"
         >
           {isTe ? "తాజా సమాచారం చూడండి" : t('devices_page.poll_btn', 'Poll Hardware')}
@@ -285,7 +285,7 @@ const DevicesPage = () => {
 
       {/* Main Device Status Card */}
       <Card glass className="p-6 border border-slate-200/80 dark:border-white/10 bg-white/70 dark:bg-white/[0.02] backdrop-blur-md space-y-6">
-        
+
         {/* Device Header with Farmer-Friendly Online Indicator */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 dark:border-white/5 pb-5">
           <div className="flex items-start gap-3.5 min-w-0">
@@ -295,7 +295,7 @@ const DevicesPage = () => {
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
                 <h2 className="text-base sm:text-xl font-black text-slate-900 dark:text-white truncate" style={{ fontFamily: 'var(--font-display)' }}>
-                  {isOnline 
+                  {isOnline
                     ? (isTe ? "🟢 పొలంలో సెన్సార్ పరికరం పనిచేస్తుంది" : "🟢 Field Sensor Node Active")
                     : (isTe ? "🔴 సెన్సార్ ఆఫ్‌లైన్ / ఆగిపోయింది" : "🔴 Field Sensor Offline")}
                 </h2>
@@ -304,7 +304,7 @@ const DevicesPage = () => {
                 </Badge>
               </div>
               <p className="text-xs text-slate-600 dark:text-white/60 mt-1">
-                {isOnline 
+                {isOnline
                   ? (isTe ? `పరికర ఐడీ: ${deviceData.name} • చివరి సింక్: ${deviceData.lastSync}` : `Node ID: ${deviceData.name} • Last sync: ${deviceData.lastSync}`)
                   : (isTe ? "పరికరానికి బ్యాటరీ లేదా సిగ్నల్ చెక్ చేయండి • చివరి సింక్: " + deviceData.lastSync : `Awaiting sensor ping • Last sync: ${deviceData.lastSync}`)}
               </p>
@@ -313,12 +313,12 @@ const DevicesPage = () => {
 
           <div className="flex flex-wrap items-center gap-3 text-xs font-bold text-slate-600 dark:text-white/60 bg-slate-100/60 dark:bg-white/[0.04] px-3.5 py-2 rounded-xl">
             <span className="flex items-center gap-1.5">
-              <Signal className={`w-4 h-4 ${signal.color}`} /> 
+              <Signal className={`w-4 h-4 ${signal.color}`} />
               <span>{signal.label}</span>
             </span>
             <span className="text-slate-300 dark:text-white/20">•</span>
             <span className="flex items-center gap-1.5">
-              <Clock className="w-4 h-4 text-slate-400" /> 
+              <Clock className="w-4 h-4 text-slate-400" />
               <span>{isTe ? `నడుస్తున్న సమయం: ${deviceData.uptime}` : `Uptime: ${deviceData.uptime}`}</span>
             </span>
           </div>
@@ -326,7 +326,7 @@ const DevicesPage = () => {
 
         {/* 4 Farmer-Friendly High-Level Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-          
+
           {/* 1. Battery Runtime Card */}
           <div className="bg-slate-50/70 dark:bg-white/[0.02] p-4 rounded-2xl border border-slate-200/60 dark:border-white/5 space-y-2 flex flex-col justify-between">
             <div className="flex justify-between items-center text-xs font-bold text-slate-500 dark:text-white/50">
@@ -343,8 +343,8 @@ const DevicesPage = () => {
           </div>
 
           {/* 2. SD Card / Data Storage Card */}
-          <Link 
-            to="/sdcard" 
+          <Link
+            to="/sdcard"
             className="bg-slate-50/70 dark:bg-white/[0.02] p-4 rounded-2xl border border-slate-200/60 dark:border-white/5 space-y-2 block transition-all hover:border-amber-500/40 hover:shadow-md group cursor-pointer flex flex-col justify-between"
             title="Open MicroSD Storage Manager"
           >
@@ -382,8 +382,8 @@ const DevicesPage = () => {
                 {isOnline ? (isTe ? "సిగ్నల్ బాగుంది" : "Connected") : (isTe ? "కనెక్షన్ లేదు" : "Disconnected")}
               </p>
               <div className="w-full bg-slate-200 dark:bg-white/10 rounded-full h-2 mb-2 overflow-hidden">
-                <div 
-                  className={`h-full ${signal.color.replace('text-', 'bg-')}`} 
+                <div
+                  className={`h-full ${signal.color.replace('text-', 'bg-')}`}
                   style={{ width: isOnline ? signal.bar : '0%' }}
                 />
               </div>

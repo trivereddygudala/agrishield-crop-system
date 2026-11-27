@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
+import {
   Send, Bot, User, Plus, MessageSquare, Trash2, Menu, Copy, Check, Sparkles, X,
   Search, Pin, Share2, ThumbsUp, ThumbsDown, Volume2, VolumeX, Mic, MicOff,
-  ArrowUp, ChevronDown, MoreVertical, Image as ImageIcon, BookOpen, Cpu, 
+  ArrowUp, ChevronDown, MoreVertical, Image as ImageIcon, BookOpen, Cpu,
   ExternalLink, Edit3, Globe, Layers, CheckCircle2, ShieldCheck, Leaf, RefreshCw,
   Camera, Paperclip, PhoneCall, AlertTriangle, Droplets, CloudRain, TrendingUp, Building2, Store,
   MapPin, Compass, FileText, Bug, FlaskConical, Sun, Wind, Thermometer, Calculator, Navigation,
@@ -231,8 +231,8 @@ const AIAssistantPage = () => {
   // Determine user role and active portal view
   const baseUserRole = (user?.role?.toLowerCase() || 'farmer');
   const initialPortal = (baseUserRole === 'admin') ? 'admin' :
-                        (baseUserRole === 'equipment_provider' || baseUserRole === 'provider') ? 'equipment_provider' :
-                        'farmer';
+    (baseUserRole === 'equipment_provider' || baseUserRole === 'provider') ? 'equipment_provider' :
+      'farmer';
   const [selectedPortal, setSelectedPortal] = useState(initialPortal);
   const isRoleSwitcherAllowed = baseUserRole === 'admin' || baseUserRole === 'tester';
 
@@ -286,7 +286,7 @@ const AIAssistantPage = () => {
       title: isTe ? "అగ్రిషీల్డ్ చాట్ అసిస్టెంట్" : "AgriShield Chat Assistant",
       roleLabel: isTe ? "రైతు మిత్ర & క్రాప్ డాక్టర్" : "Crop Doctor & Smart Advisor",
       tagline: isTe ? "పంట తెగుళ్ల నివారణ, 16L పంపు మోతాదు, వాతావరణం మరియు మండి ధరలు" : "Crop Disease Prescriptions, 16L Calibrations, Weather Windows & Mandi Rates",
-      welcomeMsg: isTe 
+      welcomeMsg: isTe
         ? `🌾 **నమస్కారం ${user?.name || 'రైతు సోదరులారా'}! నేను మీ అగ్రిషీల్డ్ చాట్ అసిస్టెంట్‌ని.**\n\nపంట తెగుళ్ల గుర్తింపు, 16 లీటర్ల పంపుకి మందు మోతాదు, నేటి వాతావరణంలో మందు కొట్టవచ్చా లేదా, మరియు తాజా మండి మార్కెట్ ధరల గురించి నన్ను అడగండి!`
         : `🌾 **Hello ${user?.name || 'Farmer'}! Welcome to the AgriShield Chat Assistant.**\n\nI can help you diagnose crop diseases, calculate exact 16L knapsack sprayer dilutions, check today's weather spray safety window, and look up real-time Mandi market prices!`,
       suggestionCards: [
@@ -569,7 +569,7 @@ const AIAssistantPage = () => {
       }
 
       // Persist session
-      API.put(`/api/ai/chat/sessions/${activeSessionId}`, { title: newTitle, messages: finalMsgs }).catch(() => {});
+      API.put(`/api/ai/chat/sessions/${activeSessionId}`, { title: newTitle, messages: finalMsgs }).catch(() => { });
     } catch (err) {
       console.error("AI Assistant error:", err);
       const detailMsg = err?.response?.data?.detail;
@@ -613,7 +613,7 @@ const AIAssistantPage = () => {
       return;
     }
     if (isListening) {
-      try { recognitionRef.current?.stop(); } catch {}
+      try { recognitionRef.current?.stop(); } catch { }
       setIsListening(false);
     } else {
       const rec = new SpeechRecognition();
@@ -621,7 +621,7 @@ const AIAssistantPage = () => {
       rec.interimResults = true;
       const langKey = (listeningLang || i18n.language || 'en').split('-')[0].toLowerCase();
       rec.lang = SPEECH_LANG_MAP[langKey] || 'en-IN';
-      
+
       rec.onstart = () => setIsListening(true);
       rec.onresult = (e) => {
         const transcript = processSpeechRecognitionEvent(e);
@@ -636,10 +636,10 @@ const AIAssistantPage = () => {
       };
       rec.onend = () => setIsListening(false);
       recognitionRef.current = rec;
-      try { 
-        rec.start(); 
-      } catch (err) { 
-        console.warn("Speech recognition error:", err); 
+      try {
+        rec.start();
+      } catch (err) {
+        console.warn("Speech recognition error:", err);
         setIsListening(false);
       }
     }
@@ -704,8 +704,8 @@ const AIAssistantPage = () => {
       formattedBody = formattedBody.slice(0, 3200) + '\n\n*(Full details available in AgriShield Platform)*';
     }
 
-    const message = 
-`🌾 *AgriShield Kisan Prescription & Advisory* 🌾
+    const message =
+      `🌾 *AgriShield Kisan Prescription & Advisory* 🌾
 ━━━━━━━━━━━━━━━━━━━━
 🌱 *Target Crop:* ${crop}
 📋 *Diagnosis / Topic:* ${topic}
@@ -776,7 +776,7 @@ ${formattedBody}
 
   return (
     <div className="flex h-full min-h-0 flex-1 w-full bg-slate-50 dark:bg-[#0c0d0e] text-slate-900 dark:text-slate-100 overflow-hidden relative font-sans">
-      
+
       {/* ── 1. SLIDE-OVER CONVERSATION HISTORY DRAWER ── */}
       <AnimatePresence>
         {historyDrawerOpen && (
@@ -806,7 +806,7 @@ ${formattedBody}
                     <span className="text-[10px] text-slate-400">{t('assistant.sessions', 'AgriShield Sessions')}</span>
                   </div>
                 </div>
-                <button 
+                <button
                   onClick={() => setHistoryDrawerOpen(false)}
                   className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800"
                 >
@@ -818,7 +818,7 @@ ${formattedBody}
               <div className="p-3 border-b border-slate-100 dark:border-slate-800/80">
                 <div className="relative">
                   <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-400" />
-                  <input 
+                  <input
                     type="text"
                     value={searchQuery}
                     onChange={e => setSearchQuery(e.target.value)}
@@ -836,7 +836,7 @@ ${formattedBody}
                     setSessions(prev => [s, ...prev]);
                     setActiveSessionId(s.id);
                     setHistoryDrawerOpen(false);
-                    API.post('/api/ai/chat/sessions', s).catch(() => {});
+                    API.post('/api/ai/chat/sessions', s).catch(() => { });
                   }}
                   className={`w-full flex items-center justify-center gap-2 p-2.5 rounded-xl ${activeTheme.pillBg} hover:opacity-90 text-white text-xs font-bold shadow-xs transition-transform active:scale-98`}
                 >
@@ -851,11 +851,10 @@ ${formattedBody}
                   <div
                     key={s.id}
                     onClick={() => { setActiveSessionId(s.id); setHistoryDrawerOpen(false); }}
-                    className={`group flex items-center justify-between px-3 py-2.5 rounded-xl text-xs cursor-pointer transition-all ${
-                      s.id === activeSessionId
-                        ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 font-bold border border-emerald-200 dark:border-emerald-800/50'
-                        : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60'
-                    }`}
+                    className={`group flex items-center justify-between px-3 py-2.5 rounded-xl text-xs cursor-pointer transition-all ${s.id === activeSessionId
+                      ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 font-bold border border-emerald-200 dark:border-emerald-800/50'
+                      : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60'
+                      }`}
                   >
                     <div className="flex items-center gap-2.5 min-w-0">
                       <MessageSquare className="w-3.5 h-3.5 shrink-0 opacity-60" />
@@ -867,7 +866,7 @@ ${formattedBody}
                         if (sessions.length <= 1) return;
                         setSessions(prev => prev.filter(x => x.id !== s.id));
                         if (activeSessionId === s.id) setActiveSessionId(sessions[0]?.id);
-                        API.delete(`/api/ai/chat/sessions/${s.id}`).catch(() => {});
+                        API.delete(`/api/ai/chat/sessions/${s.id}`).catch(() => { });
                       }}
                       className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-rose-500 transition-opacity"
                     >
@@ -910,7 +909,7 @@ ${formattedBody}
                     <span className="text-[10px] text-slate-400">{activeCommandsList.length} High-Precision Commands Available</span>
                   </div>
                 </div>
-                <button 
+                <button
                   onClick={() => setCommandsModalOpen(false)}
                   className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800"
                 >
@@ -954,7 +953,7 @@ ${formattedBody}
 
       {/* ── 3. HYBRID MAIN WORKSPACE ── */}
       <div className="flex-1 min-w-0 h-full flex flex-col relative overflow-hidden">
-        
+
         {/* Sleek Top Navigation Bar with Dynamic Portal Accents */}
         <div className="h-14 sm:h-16 px-3.5 sm:px-6 bg-white/90 dark:bg-[#0c0d0e]/90 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800/80 flex items-center justify-between shrink-0 z-10">
           <div className="flex items-center gap-2.5">
@@ -985,7 +984,7 @@ ${formattedBody}
 
           {/* Right Header Badges & Actions */}
           <div className="flex items-center gap-1.5 sm:gap-2">
-            
+
             {/* Interactive Portal Switcher for Admins/Testers */}
             {isRoleSwitcherAllowed && (
               <div className="flex items-center bg-slate-100 dark:bg-slate-800/90 p-0.5 rounded-xl text-[10px] font-extrabold border border-slate-200 dark:border-slate-700/60">
@@ -1049,11 +1048,10 @@ ${formattedBody}
                   return next;
                 });
               }}
-              className={`p-1.5 sm:px-2.5 sm:py-1 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors ${
-                autoSpeak
-                  ? `${activeTheme.pillBg} shadow-xs`
-                  : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
-              }`}
+              className={`p-1.5 sm:px-2.5 sm:py-1 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors ${autoSpeak
+                ? `${activeTheme.pillBg} shadow-xs`
+                : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                }`}
               title={autoSpeak ? "Voice reading is ON" : "Turn ON voice reading"}
             >
               {autoSpeak ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
@@ -1066,7 +1064,7 @@ ${formattedBody}
                 const s = createNewSession();
                 setSessions(prev => [s, ...prev]);
                 setActiveSessionId(s.id);
-                API.post('/api/ai/chat/sessions', s).catch(() => {});
+                API.post('/api/ai/chat/sessions', s).catch(() => { });
               }}
               className="p-1.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
               title="New Consultation"
@@ -1081,981 +1079,977 @@ ${formattedBody}
 
           {/* ── CHAT COLUMN BODY ── */}
           <div className={`flex-1 min-h-0 flex flex-col relative overflow-hidden ${mobileTab === 'toolkit' ? 'hidden lg:flex' : 'flex'}`}>
-          
-          {/* Scrollable Conversation Stream */}
-          <div
-            ref={chatContainerRef}
-            onScroll={handleScroll}
-            className="flex-1 min-h-0 w-full overflow-y-auto overscroll-contain touch-pan-y mobile-scroll-container"
-          >
-            <div className="max-w-3xl mx-auto px-3.5 sm:px-6 py-4 space-y-4 w-full">
-            {/* Suggestion Cards for Fresh Chat */}
-            {currentSession?.messages.length <= 1 && (
-              <div className="flex flex-col justify-end min-h-[45vh] pb-2">
-                <div className="text-center mb-6">
-                  <div className={`w-12 h-12 rounded-2xl ${activeTheme.badgeBg} flex items-center justify-center mx-auto mb-3 shadow-xs text-xl`}>
-                    {activeTheme.headerIcon}
-                  </div>
-                  <h2 className="text-lg sm:text-xl font-black text-slate-900 dark:text-white">
-                    {activeTheme.title}
-                  </h2>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-md mx-auto">
-                    {activeTheme.tagline}
-                  </p>
-                </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-w-lg mx-auto w-full">
-                  {activeTheme.suggestionCards.map((item, idx) => {
-                    const IconComp = item.icon;
-                    return (
-                      <button
-                        key={idx}
-                        onClick={() => handleSendMessage(item.prompt)}
-                        className="flex items-center gap-3 p-2.5 rounded-xl bg-white dark:bg-[#151619] hover:bg-slate-100 dark:hover:bg-slate-800/80 border border-slate-200/80 dark:border-slate-800 text-left transition-all active:scale-98 shadow-2xs group"
-                      >
-                        <div className={`p-2 rounded-lg bg-slate-100 dark:bg-slate-800 group-hover:scale-105 transition-transform shrink-0`}>
-                          <IconComp className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                        </div>
-                        <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 line-clamp-1">{item.title}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Conversation Messages */}
-            {currentSession?.messages.map((msg) => {
-              const isUser = msg.role === 'user';
-              const hasPrescriptionMention = !isUser && isPrescriptionEligible(msg);
-
-              return (
-                <div key={msg.id} className={`flex w-full ${isUser ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`flex flex-col ${isUser ? 'items-end max-w-[85%] sm:max-w-[75%]' : 'items-start max-w-full w-full'}`}>
-                    
-                    {/* User Attached Photo */}
-                    {isUser && msg.image && (
-                      <div className="mb-2 rounded-2xl overflow-hidden border border-emerald-500/40 shadow-sm max-w-xs">
-                        <img src={msg.image} alt="Crop inspection" className="w-full h-auto max-h-52 object-cover" />
-                        <div className="bg-emerald-900/90 text-white text-[9px] font-bold px-2 py-0.5 text-center">
-                          🌿 Attached Photo
-                        </div>
+            {/* Scrollable Conversation Stream */}
+            <div
+              ref={chatContainerRef}
+              onScroll={handleScroll}
+              className="flex-1 min-h-0 w-full overflow-y-auto overscroll-contain touch-pan-y mobile-scroll-container"
+            >
+              <div className="max-w-3xl mx-auto px-3.5 sm:px-6 py-4 space-y-4 w-full">
+                {/* Suggestion Cards for Fresh Chat */}
+                {currentSession?.messages.length <= 1 && (
+                  <div className="flex flex-col justify-end min-h-[45vh] pb-2">
+                    <div className="text-center mb-6">
+                      <div className={`w-12 h-12 rounded-2xl ${activeTheme.badgeBg} flex items-center justify-center mx-auto mb-3 shadow-xs text-xl`}>
+                        {activeTheme.headerIcon}
                       </div>
-                    )}
+                      <h2 className="text-lg sm:text-xl font-black text-slate-900 dark:text-white">
+                        {activeTheme.title}
+                      </h2>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-md mx-auto">
+                        {activeTheme.tagline}
+                      </p>
+                    </div>
 
-                    {/* Bubble Content */}
-                    <div className={
-                      isUser
-                        ? `px-4 py-2.5 rounded-2xl ${activeTheme.pillBg} text-white text-xs sm:text-sm leading-relaxed shadow-xs`
-                        : 'w-full bg-white dark:bg-[#141518] border border-slate-200/70 dark:border-slate-800/80 rounded-2xl p-4 shadow-2xs text-slate-900 dark:text-slate-100'
-                    }>
-                      {isUser ? (
-                        <p className="whitespace-pre-wrap">{msg.content}</p>
-                      ) : (
-                        <div>
-                          <MarkdownMessage text={msg.content} />
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-w-lg mx-auto w-full">
+                      {activeTheme.suggestionCards.map((item, idx) => {
+                        const IconComp = item.icon;
+                        return (
+                          <button
+                            key={idx}
+                            onClick={() => handleSendMessage(item.prompt)}
+                            className="flex items-center gap-3 p-2.5 rounded-xl bg-white dark:bg-[#151619] hover:bg-slate-100 dark:hover:bg-slate-800/80 border border-slate-200/80 dark:border-slate-800 text-left transition-all active:scale-98 shadow-2xs group"
+                          >
+                            <div className={`p-2 rounded-lg bg-slate-100 dark:bg-slate-800 group-hover:scale-105 transition-transform shrink-0`}>
+                              <IconComp className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                            </div>
+                            <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 line-clamp-1">{item.title}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
 
-                          {/* Interactive Prescription Quick Action Bar (Farmer Portal) */}
-                          {hasPrescriptionMention && selectedPortal === 'farmer' && (
-                            <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800/80 flex flex-wrap items-center justify-between gap-2">
-                              <div className="flex items-center gap-1.5 text-[11px] font-bold text-emerald-700 dark:text-emerald-300">
-                                <Sparkles className="w-3.5 h-3.5 text-emerald-500" />
-                                <span>Official Prescription & Dosage Slip Ready</span>
-                              </div>
-                              <div className="flex items-center gap-1.5">
-                                <button
-                                  type="button"
-                                  onClick={() => handleDownloadPrescription(msg.content)}
-                                  className="px-2.5 py-1 rounded-lg bg-teal-700 hover:bg-teal-800 text-white text-[11px] font-bold flex items-center gap-1 shadow-2xs transition-transform active:scale-95"
-                                >
-                                  <FileText className="w-3 h-3" />
-                                  <span>Prescription Slip</span>
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => handleWhatsAppShare(msg.content)}
-                                  className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold flex items-center gap-1 shadow-2xs transition-transform active:scale-95"
-                                >
-                                  <Share2 className="w-3 h-3" />
-                                  <span>WhatsApp</span>
-                                </button>
+                {/* Conversation Messages */}
+                {currentSession?.messages.map((msg) => {
+                  const isUser = msg.role === 'user';
+                  const hasPrescriptionMention = !isUser && isPrescriptionEligible(msg);
+
+                  return (
+                    <div key={msg.id} className={`flex w-full ${isUser ? 'justify-end' : 'justify-start'}`}>
+                      <div className={`flex flex-col ${isUser ? 'items-end max-w-[85%] sm:max-w-[75%]' : 'items-start max-w-full w-full'}`}>
+
+                        {/* User Attached Photo */}
+                        {isUser && msg.image && (
+                          <div className="mb-2 rounded-2xl overflow-hidden border border-emerald-500/40 shadow-sm max-w-xs">
+                            <img src={msg.image} alt="Crop inspection" className="w-full h-auto max-h-52 object-cover" />
+                            <div className="bg-emerald-900/90 text-white text-[9px] font-bold px-2 py-0.5 text-center">
+                              🌿 Attached Photo
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Bubble Content */}
+                        <div className={
+                          isUser
+                            ? `px-4 py-2.5 rounded-2xl ${activeTheme.pillBg} text-white text-xs sm:text-sm leading-relaxed shadow-xs`
+                            : 'w-full bg-white dark:bg-[#141518] border border-slate-200/70 dark:border-slate-800/80 rounded-2xl p-4 shadow-2xs text-slate-900 dark:text-slate-100'
+                        }>
+                          {isUser ? (
+                            <p className="whitespace-pre-wrap">{msg.content}</p>
+                          ) : (
+                            <div>
+                              <MarkdownMessage text={msg.content} />
+
+                              {/* Interactive Prescription Quick Action Bar (Farmer Portal) */}
+                              {hasPrescriptionMention && selectedPortal === 'farmer' && (
+                                <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800/80 flex flex-wrap items-center justify-between gap-2">
+                                  <div className="flex items-center gap-1.5 text-[11px] font-bold text-emerald-700 dark:text-emerald-300">
+                                    <Sparkles className="w-3.5 h-3.5 text-emerald-500" />
+                                    <span>Official Prescription & Dosage Slip Ready</span>
+                                  </div>
+                                  <div className="flex items-center gap-1.5">
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDownloadPrescription(msg.content)}
+                                      className="px-2.5 py-1 rounded-lg bg-teal-700 hover:bg-teal-800 text-white text-[11px] font-bold flex items-center gap-1 shadow-2xs transition-transform active:scale-95"
+                                    >
+                                      <FileText className="w-3 h-3" />
+                                      <span>Prescription Slip</span>
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleWhatsAppShare(msg.content)}
+                                      className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold flex items-center gap-1 shadow-2xs transition-transform active:scale-95"
+                                    >
+                                      <Share2 className="w-3 h-3" />
+                                      <span>WhatsApp</span>
+                                    </button>
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Message Footer Actions */}
+                              <div className="mt-2.5 pt-2 flex items-center justify-between text-slate-400 text-[11px]">
+                                <div className="flex items-center gap-1">
+                                  <button
+                                    onClick={() => {
+                                      navigator.clipboard.writeText(msg.content);
+                                      setCopiedId(msg.id);
+                                      setTimeout(() => setCopiedId(null), 1800);
+                                    }}
+                                    className="p-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
+                                    title="Copy advice"
+                                  >
+                                    {copiedId === msg.id ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
+                                  </button>
+                                  <button
+                                    onClick={() => speak(msg.content, msg.id, currentLang)}
+                                    className={`p-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors ${speakingId === msg.id ? 'text-emerald-500' : 'hover:text-slate-700 dark:hover:text-slate-200'}`}
+                                    title="Read aloud"
+                                  >
+                                    <Volume2 className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button
+                                    onClick={() => setFeedbackMap(prev => ({ ...prev, [msg.id]: prev[msg.id] === 'up' ? null : 'up' }))}
+                                    className={`p-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors ${feedbackMap[msg.id] === 'up' ? 'text-emerald-500' : ''}`}
+                                  >
+                                    <ThumbsUp className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button
+                                    onClick={() => setFeedbackMap(prev => ({ ...prev, [msg.id]: prev[msg.id] === 'down' ? null : 'down' }))}
+                                    className={`p-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors ${feedbackMap[msg.id] === 'down' ? 'text-rose-500' : ''}`}
+                                  >
+                                    <ThumbsDown className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                                <span className="text-[10px] text-slate-400">Verified Agronomic Model</span>
                               </div>
                             </div>
                           )}
-
-                          {/* Message Footer Actions */}
-                          <div className="mt-2.5 pt-2 flex items-center justify-between text-slate-400 text-[11px]">
-                            <div className="flex items-center gap-1">
-                              <button
-                                onClick={() => {
-                                  navigator.clipboard.writeText(msg.content);
-                                  setCopiedId(msg.id);
-                                  setTimeout(() => setCopiedId(null), 1800);
-                                }}
-                                className="p-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
-                                title="Copy advice"
-                              >
-                                {copiedId === msg.id ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
-                              </button>
-                              <button
-                                onClick={() => speak(msg.content, msg.id, currentLang)}
-                                className={`p-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors ${speakingId === msg.id ? 'text-emerald-500' : 'hover:text-slate-700 dark:hover:text-slate-200'}`}
-                                title="Read aloud"
-                              >
-                                <Volume2 className="w-3.5 h-3.5" />
-                              </button>
-                              <button
-                                onClick={() => setFeedbackMap(prev => ({ ...prev, [msg.id]: prev[msg.id] === 'up' ? null : 'up' }))}
-                                className={`p-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors ${feedbackMap[msg.id] === 'up' ? 'text-emerald-500' : ''}`}
-                              >
-                                <ThumbsUp className="w-3.5 h-3.5" />
-                              </button>
-                              <button
-                                onClick={() => setFeedbackMap(prev => ({ ...prev, [msg.id]: prev[msg.id] === 'down' ? null : 'down' }))}
-                                className={`p-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors ${feedbackMap[msg.id] === 'down' ? 'text-rose-500' : ''}`}
-                              >
-                                <ThumbsDown className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
-                            <span className="text-[10px] text-slate-400">Verified Agronomic Model</span>
-                          </div>
                         </div>
-                      )}
+                      </div>
                     </div>
-                  </div>
-                </div>
-              );
-            })}
+                  );
+                })}
 
-            {/* Typing Indicator */}
-            {isTyping && (
-              <div className="flex items-center gap-1.5 text-slate-400 py-1">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-bounce" />
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-bounce [animation-delay:0.15s]" />
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-bounce [animation-delay:0.3s]" />
-                <span className="text-xs font-semibold ml-1 text-slate-500">AgriShield is thinking...</span>
+                {/* Typing Indicator */}
+                {isTyping && (
+                  <div className="flex items-center gap-1.5 text-slate-400 py-1">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-bounce" />
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-bounce [animation-delay:0.15s]" />
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-bounce [animation-delay:0.3s]" />
+                    <span className="text-xs font-semibold ml-1 text-slate-500">AgriShield is thinking...</span>
+                  </div>
+                )}
+
+                <div ref={chatBottomRef} className="h-4 shrink-0" />
               </div>
-            )}
-
-            <div ref={chatBottomRef} className="h-4 shrink-0" />
-            </div>
-          </div>
-
-          {/* Floating Scroll to Bottom Arrow */}
-          <AnimatePresence>
-            {showScrollBottom && (
-              <motion.button
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.8 }}
-                onClick={scrollToBottom}
-                className={`absolute bottom-24 right-6 p-2 rounded-full ${activeTheme.pillBg} text-white shadow-lg hover:opacity-90 z-20`}
-              >
-                <ChevronDown className="w-4 h-4" />
-              </motion.button>
-            )}
-          </AnimatePresence>
-
-          {/* ── SLEEK BOTTOM INPUT CONTAINER (WITH PORTAL SPECIFIC QUICK COMMANDS) ── */}
-          <div className="px-3.5 sm:px-6 pt-1 pb-2 sm:pb-3 bg-white/95 dark:bg-[#0c0d0e]/95 border-t border-slate-200/60 dark:border-slate-800/60 shrink-0 z-20 max-w-3xl w-full mx-auto">
-            
-            {/* Quick Commands Horizontal Scroller */}
-            <div 
-              onWheel={(e) => {
-                if (e.deltaY !== 0) {
-                  e.currentTarget.scrollLeft += e.deltaY;
-                }
-              }}
-              className="flex items-center gap-1.5 overflow-x-auto overscroll-contain touch-pan-x pb-1.5 scrollbar-none text-[11px] font-semibold"
-            >
-              <button
-                type="button"
-                onClick={() => setCommandsModalOpen(true)}
-                className="shrink-0 flex items-center gap-1 px-2 py-1 rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/30 text-[10px] font-black uppercase tracking-wider hover:bg-amber-500/20"
-              >
-                <Sparkles className="w-3 h-3" />
-                <span>Commands</span>
-              </button>
-              {activeCommandsList.slice(0, 7).map((cmd) => {
-                const ChipIcon = cmd.icon;
-                return (
-                  <button
-                    key={cmd.id}
-                    type="button"
-                    onClick={() => handleSendMessage(cmd.prompt)}
-                    className="shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800/90 text-slate-700 dark:text-slate-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 hover:text-emerald-600 border border-slate-200/60 dark:border-slate-700/50 transition-colors"
-                  >
-                    <ChipIcon className="w-3 h-3 text-emerald-500" />
-                    <span>{cmd.label}</span>
-                  </button>
-                );
-              })}
             </div>
 
-            {/* Hidden Inputs */}
-            <input type="file" accept="image/*" ref={fileInputRef} onChange={handlePhotoSelected} className="hidden" />
-            <input type="file" accept="image/*" capture="environment" ref={cameraInputRef} onChange={handlePhotoSelected} className="hidden" />
-
-            {/* Attachment Dropup Menu */}
+            {/* Floating Scroll to Bottom Arrow */}
             <AnimatePresence>
-              {quickMenuOpen && (
-                <motion.div
-                  initial={{ opacity: 0, y: 8, scale: 0.96 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 8, scale: 0.96 }}
-                  className="absolute bottom-20 left-4 sm:left-6 z-30 p-1.5 rounded-2xl bg-white dark:bg-[#1a1b1e] border border-slate-200 dark:border-slate-700 shadow-xl space-y-0.5 w-60"
+              {showScrollBottom && (
+                <motion.button
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                  onClick={scrollToBottom}
+                  className={`absolute bottom-24 right-6 p-2 rounded-full ${activeTheme.pillBg} text-white shadow-lg hover:opacity-90 z-20`}
                 >
-                  <div className="px-2 py-1 text-[9px] font-black uppercase tracking-wider text-slate-400">
-                    Multimodal Camera
-                  </div>
-                  <button
-                    onClick={() => { setInspectionMode('leaf'); cameraInputRef.current?.click(); setQuickMenuOpen(false); }}
-                    className="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 hover:text-emerald-600"
-                  >
-                    <Camera className="w-3.5 h-3.5 text-emerald-500" />
-                    <span>🌿 Scan Crop Leaf</span>
-                  </button>
-                  <button
-                    onClick={() => { setInspectionMode('pest'); cameraInputRef.current?.click(); setQuickMenuOpen(false); }}
-                    className="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-amber-50 dark:hover:bg-amber-950/40 hover:text-amber-600"
-                  >
-                    <Bug className="w-3.5 h-3.5 text-amber-500" />
-                    <span>🐛 Scan Pest / Insect</span>
-                  </button>
-                  <button
-                    onClick={() => { setInspectionMode('bottle'); cameraInputRef.current?.click(); setQuickMenuOpen(false); }}
-                    className="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-purple-50 dark:hover:bg-purple-950/40 hover:text-purple-600"
-                  >
-                    <FlaskConical className="w-3.5 h-3.5 text-purple-500" />
-                    <span>🧪 Scan Fertilizer / Bottle</span>
-                  </button>
-                  <button
-                    onClick={() => { fileInputRef.current?.click(); setQuickMenuOpen(false); }}
-                    className="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
-                  >
-                    <ImageIcon className="w-3.5 h-3.5 text-teal-500" />
-                    <span>🖼️ Choose Photo from Gallery</span>
-                  </button>
-                </motion.div>
+                  <ChevronDown className="w-4 h-4" />
+                </motion.button>
               )}
             </AnimatePresence>
 
-            {/* Attached Photo Preview */}
-            <AnimatePresence>
-              {attachedPhoto && (
-                <motion.div
-                  initial={{ opacity: 0, y: 6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 6 }}
-                  className="mb-1.5 p-1.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 flex items-center justify-between"
-                >
-                  <div className="flex items-center gap-2 min-w-0">
-                    <img src={attachedPhoto.preview} alt="Target" className="w-8 h-8 rounded-lg object-cover" />
-                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">
-                      {inspectionMode === 'pest' ? '🐛 Pest Photo' : inspectionMode === 'bottle' ? '🧪 Agrochemical Bottle' : '🌿 Crop Leaf'}
-                    </span>
-                  </div>
-                  <button onClick={() => setAttachedPhoto(null)} className="p-1 text-slate-400 hover:text-rose-500">
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                </motion.div>
-              )}
-            </AnimatePresence>
+            {/* ── SLEEK BOTTOM INPUT CONTAINER (WITH PORTAL SPECIFIC QUICK COMMANDS) ── */}
+            <div className="px-3.5 sm:px-6 pt-1 pb-2 sm:pb-3 bg-white/95 dark:bg-[#0c0d0e]/95 border-t border-slate-200/60 dark:border-slate-800/60 shrink-0 z-20 max-w-3xl w-full mx-auto">
 
-            {/* Voice Wave Banner */}
-            <AnimatePresence>
-              {isListening && (
-                <motion.div
-                  initial={{ opacity: 0, y: 6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 6 }}
-                  className="mb-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-700 dark:text-emerald-300 text-xs font-bold flex flex-wrap items-center justify-between gap-2"
-                >
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping" />
-                    <span className="text-[11px] font-bold">Listening in:</span>
-                    <select
-                      value={listeningLang}
-                      onChange={(e) => {
-                        const nextLang = e.target.value;
-                        setListeningLang(nextLang);
-                        if (recognitionRef.current) {
-                          try {
-                            recognitionRef.current.lang = SPEECH_LANG_MAP[nextLang] || 'en-IN';
-                            // Immediate hot-swap: Restart recognition so Chromium switches acoustic language models instantly
-                            if (isListening) {
-                              recognitionRef.current.stop();
-                              setTimeout(() => {
-                                try { recognitionRef.current?.start(); } catch {}
-                              }, 120);
-                            }
-                          } catch (err) {
-                            console.warn("Speech listener switch notice:", err);
-                          }
-                        }
-                      }}
-                      className="bg-white dark:bg-[#1a1b1f] text-emerald-800 dark:text-emerald-200 border border-emerald-400/50 rounded-lg px-2 py-0.5 text-[11px] font-bold outline-none cursor-pointer"
-                    >
-                      {Object.entries(LANGUAGE_NATIVE_NAMES).map(([code, name]) => (
-                        <option key={code} value={code}>
-                          {name} ({SPEECH_LANG_MAP[code]})
-                        </option>
-                      ))}
-                    </select>
-                    <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold animate-pulse">Speak clearly now...</span>
-                  </div>
-                  <button 
-                    onClick={toggleSpeechRecognition} 
-                    className="px-2.5 py-1 rounded-lg bg-rose-500 text-white text-[10px] font-black uppercase hover:bg-rose-600 transition-colors shadow-2xs"
-                  >
-                    Done
-                  </button>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            {/* Input Pill Box */}
-            <div className="flex items-center gap-1.5 p-1 sm:p-1.5 rounded-full bg-slate-100 dark:bg-[#1a1b1e] border border-slate-200/80 dark:border-slate-700/60 shadow-inner focus-within:ring-2 focus-within:ring-emerald-500/50 transition-all min-h-[42px]">
-              
-              <button
-                type="button"
-                onClick={() => setQuickMenuOpen(o => !o)}
-                className="p-1.5 rounded-full text-slate-500 hover:text-emerald-600 dark:text-slate-400 dark:hover:text-emerald-400 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors shrink-0"
-                title="Attach photo or tool"
-              >
-                <Plus className="w-4 h-4" />
-              </button>
-
-              <button
-                type="button"
-                onClick={() => cameraInputRef.current?.click()}
-                className="p-1.5 rounded-full text-slate-500 hover:text-emerald-600 dark:text-slate-400 dark:hover:text-emerald-400 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors shrink-0"
-                title="Camera Shutter"
-              >
-                <Camera className="w-4 h-4" />
-              </button>
-
-              <textarea
-                rows={1}
-                value={inputQuery}
-                onChange={e => {
-                  setInputQuery(e.target.value);
-                  e.target.style.height = 'auto';
-                  e.target.style.height = Math.min(e.target.scrollHeight, 90) + 'px';
-                }}
-                onKeyDown={e => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    handleSendMessage();
+              {/* Quick Commands Horizontal Scroller */}
+              <div
+                onWheel={(e) => {
+                  if (e.deltaY !== 0) {
+                    e.currentTarget.scrollLeft += e.deltaY;
                   }
                 }}
-                placeholder={attachedPhoto ? "Add question or send photo..." : `Ask ${activeTheme.title}...`}
-                className="flex-1 resize-none bg-transparent px-2 py-1 text-xs sm:text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none leading-normal max-h-[90px] overflow-y-auto"
-              />
+                className="flex items-center gap-1.5 overflow-x-auto overscroll-contain touch-pan-x pb-1.5 scrollbar-none text-[11px] font-semibold"
+              >
+                <button
+                  type="button"
+                  onClick={() => setCommandsModalOpen(true)}
+                  className="shrink-0 flex items-center gap-1 px-2 py-1 rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/30 text-[10px] font-black uppercase tracking-wider hover:bg-amber-500/20"
+                >
+                  <Sparkles className="w-3 h-3" />
+                  <span>Commands</span>
+                </button>
+                {activeCommandsList.slice(0, 7).map((cmd) => {
+                  const ChipIcon = cmd.icon;
+                  return (
+                    <button
+                      key={cmd.id}
+                      type="button"
+                      onClick={() => handleSendMessage(cmd.prompt)}
+                      className="shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800/90 text-slate-700 dark:text-slate-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 hover:text-emerald-600 border border-slate-200/60 dark:border-slate-700/50 transition-colors"
+                    >
+                      <ChipIcon className="w-3 h-3 text-emerald-500" />
+                      <span>{cmd.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
 
-              <button
-                type="button"
-                onClick={toggleSpeechRecognition}
-                className={`p-1.5 rounded-full transition-colors shrink-0 ${
-                  isListening
+              {/* Hidden Inputs */}
+              <input type="file" accept="image/*" ref={fileInputRef} onChange={handlePhotoSelected} className="hidden" />
+              <input type="file" accept="image/*" capture="environment" ref={cameraInputRef} onChange={handlePhotoSelected} className="hidden" />
+
+              {/* Attachment Dropup Menu */}
+              <AnimatePresence>
+                {quickMenuOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 8, scale: 0.96 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 8, scale: 0.96 }}
+                    className="absolute bottom-20 left-4 sm:left-6 z-30 p-1.5 rounded-2xl bg-white dark:bg-[#1a1b1e] border border-slate-200 dark:border-slate-700 shadow-xl space-y-0.5 w-60"
+                  >
+                    <div className="px-2 py-1 text-[9px] font-black uppercase tracking-wider text-slate-400">
+                      Multimodal Camera
+                    </div>
+                    <button
+                      onClick={() => { setInspectionMode('leaf'); cameraInputRef.current?.click(); setQuickMenuOpen(false); }}
+                      className="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 hover:text-emerald-600"
+                    >
+                      <Camera className="w-3.5 h-3.5 text-emerald-500" />
+                      <span>🌿 Scan Crop Leaf</span>
+                    </button>
+                    <button
+                      onClick={() => { setInspectionMode('pest'); cameraInputRef.current?.click(); setQuickMenuOpen(false); }}
+                      className="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-amber-50 dark:hover:bg-amber-950/40 hover:text-amber-600"
+                    >
+                      <Bug className="w-3.5 h-3.5 text-amber-500" />
+                      <span>🐛 Scan Pest / Insect</span>
+                    </button>
+                    <button
+                      onClick={() => { setInspectionMode('bottle'); cameraInputRef.current?.click(); setQuickMenuOpen(false); }}
+                      className="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-purple-50 dark:hover:bg-purple-950/40 hover:text-purple-600"
+                    >
+                      <FlaskConical className="w-3.5 h-3.5 text-purple-500" />
+                      <span>🧪 Scan Fertilizer / Bottle</span>
+                    </button>
+                    <button
+                      onClick={() => { fileInputRef.current?.click(); setQuickMenuOpen(false); }}
+                      className="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
+                    >
+                      <ImageIcon className="w-3.5 h-3.5 text-teal-500" />
+                      <span>🖼️ Choose Photo from Gallery</span>
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Attached Photo Preview */}
+              <AnimatePresence>
+                {attachedPhoto && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 6 }}
+                    className="mb-1.5 p-1.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 flex items-center justify-between"
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <img src={attachedPhoto.preview} alt="Target" className="w-8 h-8 rounded-lg object-cover" />
+                      <span className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">
+                        {inspectionMode === 'pest' ? '🐛 Pest Photo' : inspectionMode === 'bottle' ? '🧪 Agrochemical Bottle' : '🌿 Crop Leaf'}
+                      </span>
+                    </div>
+                    <button onClick={() => setAttachedPhoto(null)} className="p-1 text-slate-400 hover:text-rose-500">
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Voice Wave Banner */}
+              <AnimatePresence>
+                {isListening && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 6 }}
+                    className="mb-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-700 dark:text-emerald-300 text-xs font-bold flex flex-wrap items-center justify-between gap-2"
+                  >
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping" />
+                      <span className="text-[11px] font-bold">Listening in:</span>
+                      <select
+                        value={listeningLang}
+                        onChange={(e) => {
+                          const nextLang = e.target.value;
+                          setListeningLang(nextLang);
+                          if (recognitionRef.current) {
+                            try {
+                              recognitionRef.current.lang = SPEECH_LANG_MAP[nextLang] || 'en-IN';
+                              // Immediate hot-swap: Restart recognition so Chromium switches acoustic language models instantly
+                              if (isListening) {
+                                recognitionRef.current.stop();
+                                setTimeout(() => {
+                                  try { recognitionRef.current?.start(); } catch { }
+                                }, 120);
+                              }
+                            } catch (err) {
+                              console.warn("Speech listener switch notice:", err);
+                            }
+                          }
+                        }}
+                        className="bg-white dark:bg-[#1a1b1f] text-emerald-800 dark:text-emerald-200 border border-emerald-400/50 rounded-lg px-2 py-0.5 text-[11px] font-bold outline-none cursor-pointer"
+                      >
+                        {Object.entries(LANGUAGE_NATIVE_NAMES).map(([code, name]) => (
+                          <option key={code} value={code}>
+                            {name} ({SPEECH_LANG_MAP[code]})
+                          </option>
+                        ))}
+                      </select>
+                      <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold animate-pulse">Speak clearly now...</span>
+                    </div>
+                    <button
+                      onClick={toggleSpeechRecognition}
+                      className="px-2.5 py-1 rounded-lg bg-rose-500 text-white text-[10px] font-black uppercase hover:bg-rose-600 transition-colors shadow-2xs"
+                    >
+                      Done
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Input Pill Box */}
+              <div className="flex items-center gap-1.5 p-1 sm:p-1.5 rounded-full bg-slate-100 dark:bg-[#1a1b1e] border border-slate-200/80 dark:border-slate-700/60 shadow-inner focus-within:ring-2 focus-within:ring-emerald-500/50 transition-all min-h-[42px]">
+
+                <button
+                  type="button"
+                  onClick={() => setQuickMenuOpen(o => !o)}
+                  className="p-1.5 rounded-full text-slate-500 hover:text-emerald-600 dark:text-slate-400 dark:hover:text-emerald-400 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors shrink-0"
+                  title="Attach photo or tool"
+                >
+                  <Plus className="w-4 h-4" />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => cameraInputRef.current?.click()}
+                  className="p-1.5 rounded-full text-slate-500 hover:text-emerald-600 dark:text-slate-400 dark:hover:text-emerald-400 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors shrink-0"
+                  title="Camera Shutter"
+                >
+                  <Camera className="w-4 h-4" />
+                </button>
+
+                <textarea
+                  rows={1}
+                  value={inputQuery}
+                  onChange={e => {
+                    setInputQuery(e.target.value);
+                    e.target.style.height = 'auto';
+                    e.target.style.height = Math.min(e.target.scrollHeight, 90) + 'px';
+                  }}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSendMessage();
+                    }
+                  }}
+                  placeholder={attachedPhoto ? "Add question or send photo..." : `Ask ${activeTheme.title}...`}
+                  className="flex-1 resize-none bg-transparent px-2 py-1 text-xs sm:text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none leading-normal max-h-[90px] overflow-y-auto"
+                />
+
+                <button
+                  type="button"
+                  onClick={toggleSpeechRecognition}
+                  className={`p-1.5 rounded-full transition-colors shrink-0 ${isListening
                     ? 'bg-rose-500 text-white animate-pulse'
                     : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-800'
-                }`}
-                title="Speak question"
-              >
-                <Mic className="w-4 h-4" />
-              </button>
+                    }`}
+                  title="Speak question"
+                >
+                  <Mic className="w-4 h-4" />
+                </button>
 
-              <button
-                type="button"
-                onClick={() => handleSendMessage()}
-                disabled={(!inputQuery.trim() && !attachedPhoto) || isTyping}
-                className={`p-2 rounded-full transition-all shadow-xs shrink-0 ${
-                  (inputQuery.trim() || attachedPhoto)
+                <button
+                  type="button"
+                  onClick={() => handleSendMessage()}
+                  disabled={(!inputQuery.trim() && !attachedPhoto) || isTyping}
+                  className={`p-2 rounded-full transition-all shadow-xs shrink-0 ${(inputQuery.trim() || attachedPhoto)
                     ? `${activeTheme.pillBg} hover:opacity-90 scale-100 shadow-md active:scale-95`
                     : 'bg-slate-300 dark:bg-slate-800 text-slate-400 cursor-not-allowed opacity-50'
-                }`}
-                title="Send"
-              >
-                <ArrowUp className="w-4 h-4 stroke-[2.5]" />
-              </button>
+                    }`}
+                  title="Send"
+                >
+                  <ArrowUp className="w-4 h-4 stroke-[2.5]" />
+                </button>
+              </div>
+
+              <p className="text-center text-[9px] text-slate-400 dark:text-slate-500 mt-1 mb-0 leading-none">
+                AgriShield Chat Assistant · AI Intelligence Platform · Portal: {selectedPortal.toUpperCase()}
+              </p>
             </div>
-
-            <p className="text-center text-[9px] text-slate-400 dark:text-slate-500 mt-1 mb-0 leading-none">
-              AgriShield Chat Assistant · AI Intelligence Platform · Portal: {selectedPortal.toUpperCase()}
-            </p>
           </div>
-        </div>
 
-        {/* ── 4. PORTAL-SPECIFIC RIGHT TOOLKIT TRAY ── */}
-        <div 
-          ref={toolkitContainerRef}
-          className={`
+          {/* ── 4. PORTAL-SPECIFIC RIGHT TOOLKIT TRAY ── */}
+          <div
+            ref={toolkitContainerRef}
+            className={`
             w-full lg:w-80 xl:w-[360px] shrink-0 flex-1 lg:flex-initial h-full min-h-0 border-t lg:border-t-0 lg:border-l border-slate-200/80 dark:border-slate-800/80 bg-white dark:bg-[#111215] flex flex-col overflow-y-auto overscroll-contain touch-pan-y mobile-scroll-container p-4 pb-32 sm:pb-24 lg:pb-6 space-y-4 shadow-xs
             ${mobileTab === 'toolkit' ? 'flex' : 'hidden lg:flex'}
           `}
-        >
-          
-          {/* Toolkit Header */}
-          <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-800">
-            <div className="flex items-center gap-2">
-              <span className={`w-7 h-7 rounded-lg ${activeTheme.pillBg} text-white flex items-center justify-center font-bold text-xs shadow-xs`}>
-                🛠️
-              </span>
-              <div>
-                <h3 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider">
-                  {selectedPortal === 'farmer' ? "Field Toolkit" : selectedPortal === 'equipment_provider' ? "Fleet & Operations Hub" : "Admin Operations Hub"}
-                </h3>
-                <span className="text-[10px] text-slate-400">
-                  {selectedPortal === 'farmer' ? "Live Farm Calibrations" : selectedPortal === 'equipment_provider' ? "Machinery & Fuel Economics" : "System Telemetry & Controls"}
-                </span>
-              </div>
-            </div>
-            <button
-              onClick={() => setMobileTab('chat')}
-              className="lg:hidden text-xs font-bold text-emerald-600 dark:text-emerald-400"
-            >
-              ← Back to Chat
-            </button>
-          </div>
+          >
 
-          {/* ══════════════════════════════════════════
+            {/* Toolkit Header */}
+            <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-800">
+              <div className="flex items-center gap-2">
+                <span className={`w-7 h-7 rounded-lg ${activeTheme.pillBg} text-white flex items-center justify-center font-bold text-xs shadow-xs`}>
+                  🛠️
+                </span>
+                <div>
+                  <h3 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider">
+                    {selectedPortal === 'farmer' ? "Field Toolkit" : selectedPortal === 'equipment_provider' ? "Fleet & Operations Hub" : "Admin Operations Hub"}
+                  </h3>
+                  <span className="text-[10px] text-slate-400">
+                    {selectedPortal === 'farmer' ? "Live Farm Calibrations" : selectedPortal === 'equipment_provider' ? "Machinery & Fuel Economics" : "System Telemetry & Controls"}
+                  </span>
+                </div>
+              </div>
+              <button
+                onClick={() => setMobileTab('chat')}
+                className="lg:hidden text-xs font-bold text-emerald-600 dark:text-emerald-400"
+              >
+                ← Back to Chat
+              </button>
+            </div>
+
+            {/* ══════════════════════════════════════════
               PORTAL 1: FARMER TOOLKIT
              ══════════════════════════════════════════ */}
-          {selectedPortal === 'farmer' && (
-            <>
-              {/* Module 1: Active Farm Profile & Crop Context */}
-              <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-[#18191d] border border-slate-200/70 dark:border-slate-800/80 space-y-2.5">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-black uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
-                    🌱 Active Farm Profile
-                  </span>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300">
-                    {activeFarmerCrop || (isTe ? 'పంట ఎంచుకోండి' : 'Active Farm')}
-                  </span>
-                </div>
-                <div className="text-xs font-bold text-slate-800 dark:text-slate-100">
-                  {activeFarm?.farm_name || user?.farm_name || (isTe ? 'నా వ్యవసాయ క్షేత్రం' : 'My Farm Field')}
-                </div>
-                
-                {/* Dynamic Crop Selector */}
-                <div>
-                  <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 block mb-1">
-                    {isTe ? 'సాగు చేస్తున్న పంట:' : 'Select Cultivated Crop:'}
-                  </span>
-                  <select
-                    value={activeFarmerCrop}
-                    onChange={(e) => setFarmerSelectedCrop(e.target.value)}
-                    className="w-full bg-white dark:bg-[#202126] text-xs font-semibold rounded-xl px-2.5 py-1.5 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 focus:outline-none focus:border-emerald-500"
-                  >
-                    <option value="">{isTe ? '-- పంటను ఎంచుకోండి --' : '-- Choose Cultivated Crop --'}</option>
-                    <option value="Paddy / Rice">🌾 {isTe ? 'వరి (Paddy / Rice)' : 'Paddy / Rice'}</option>
-                    <option value="Chilli">🌶️ {isTe ? 'మిరప (Chilli)' : 'Chilli'}</option>
-                    <option value="Cotton">🧶 {isTe ? 'పత్తి (Cotton)' : 'Cotton'}</option>
-                    <option value="Maize">🌽 {isTe ? 'మొక్కజొన్న (Maize / Corn)' : 'Maize / Corn'}</option>
-                    <option value="Groundnut">🥜 {isTe ? 'వేరుశనగ (Groundnut)' : 'Groundnut'}</option>
-                    <option value="Tomato">🍅 {isTe ? 'టమోటా (Tomato)' : 'Tomato'}</option>
-                    <option value="Potato">🥔 {isTe ? 'బంగాళాదుంప (Potato)' : 'Potato'}</option>
-                    <option value="Wheat">🌾 {isTe ? 'గోధుమ (Wheat)' : 'Wheat'}</option>
-                    <option value="Sugarcane">🎋 {isTe ? 'చెరకు (Sugarcane)' : 'Sugarcane'}</option>
-                    <option value="Soybean">🫘 {isTe ? 'సోయాబీన్ (Soybean)' : 'Soybean'}</option>
-                    <option value="Onion">🧅 {isTe ? 'ఉల్లి (Onion)' : 'Onion'}</option>
-                    <option value="Banana">🍌 {isTe ? 'అరటి (Banana)' : 'Banana'}</option>
-                  </select>
-                </div>
-
-                <div className="text-[11px] text-slate-500 dark:text-slate-400 space-y-0.5 pt-1 border-t border-slate-100 dark:border-slate-800/80">
-                  <div>📍 Location: {activeFarm?.location || activeFarm?.village || user?.district || (isTe ? 'మీ ప్రాంతం' : 'Local Region')}</div>
-                  <div>🌱 Soil Type: {activeFarm?.soil_type || (isTe ? 'సారవంతమైన నేల' : 'Fertile Farm Soil')}</div>
-                  <div>📅 Growth Stage: {activeFarm?.growth_stage || (isTe ? 'ప్రస్తుత పంట దశ' : 'Active Growth Phase')}</div>
-                </div>
-              </div>
-
-              {/* Module 2: 16L Knapsack Sprayer Pump Calculator */}
-              <div className="p-3.5 rounded-2xl bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-300/60 dark:border-emerald-800/60 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5">
-                    <Calculator className="w-4 h-4 text-emerald-600" />
-                    <span className="text-xs font-black text-slate-900 dark:text-white">16L Sprayer Calculator</span>
+            {selectedPortal === 'farmer' && (
+              <>
+                {/* Module 1: Active Farm Profile & Crop Context */}
+                <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-[#18191d] border border-slate-200/70 dark:border-slate-800/80 space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
+                      🌱 Active Farm Profile
+                    </span>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300">
+                      {activeFarmerCrop || (isTe ? 'పంట ఎంచుకోండి' : 'Active Farm')}
+                    </span>
                   </div>
-                  <span className="text-[10px] font-extrabold text-emerald-700 dark:text-emerald-300">Standard Mix</span>
+                  <div className="text-xs font-bold text-slate-800 dark:text-slate-100">
+                    {activeFarm?.farm_name || user?.farm_name || (isTe ? 'నా వ్యవసాయ క్షేత్రం' : 'My Farm Field')}
+                  </div>
+
+                  {/* Dynamic Crop Selector */}
+                  <div>
+                    <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 block mb-1">
+                      {isTe ? 'సాగు చేస్తున్న పంట:' : 'Select Cultivated Crop:'}
+                    </span>
+                    <select
+                      value={activeFarmerCrop}
+                      onChange={(e) => setFarmerSelectedCrop(e.target.value)}
+                      className="w-full bg-white dark:bg-[#202126] text-xs font-semibold rounded-xl px-2.5 py-1.5 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 focus:outline-none focus:border-emerald-500"
+                    >
+                      <option value="">{isTe ? '-- పంటను ఎంచుకోండి --' : '-- Choose Cultivated Crop --'}</option>
+                      <option value="Paddy / Rice">🌾 {isTe ? 'వరి (Paddy / Rice)' : 'Paddy / Rice'}</option>
+                      <option value="Chilli">🌶️ {isTe ? 'మిరప (Chilli)' : 'Chilli'}</option>
+                      <option value="Cotton">🧶 {isTe ? 'పత్తి (Cotton)' : 'Cotton'}</option>
+                      <option value="Maize">🌽 {isTe ? 'మొక్కజొన్న (Maize / Corn)' : 'Maize / Corn'}</option>
+                      <option value="Groundnut">🥜 {isTe ? 'వేరుశనగ (Groundnut)' : 'Groundnut'}</option>
+                      <option value="Tomato">🍅 {isTe ? 'టమోటా (Tomato)' : 'Tomato'}</option>
+                      <option value="Potato">🥔 {isTe ? 'బంగాళాదుంప (Potato)' : 'Potato'}</option>
+                      <option value="Wheat">🌾 {isTe ? 'గోధుమ (Wheat)' : 'Wheat'}</option>
+                      <option value="Sugarcane">🎋 {isTe ? 'చెరకు (Sugarcane)' : 'Sugarcane'}</option>
+                      <option value="Soybean">🫘 {isTe ? 'సోయాబీన్ (Soybean)' : 'Soybean'}</option>
+                      <option value="Onion">🧅 {isTe ? 'ఉల్లి (Onion)' : 'Onion'}</option>
+                      <option value="Banana">🍌 {isTe ? 'అరటి (Banana)' : 'Banana'}</option>
+                    </select>
+                  </div>
+
+                  <div className="text-[11px] text-slate-500 dark:text-slate-400 space-y-0.5 pt-1 border-t border-slate-100 dark:border-slate-800/80">
+                    <div>📍 Location: {activeFarm?.location || activeFarm?.village || user?.district || (isTe ? 'మీ ప్రాంతం' : 'Local Region')}</div>
+                    <div>🌱 Soil Type: {activeFarm?.soil_type || (isTe ? 'సారవంతమైన నేల' : 'Fertile Farm Soil')}</div>
+                    <div>📅 Growth Stage: {activeFarm?.growth_stage || (isTe ? 'ప్రస్తుత పంట దశ' : 'Active Growth Phase')}</div>
+                  </div>
                 </div>
 
-                <div>
-                  <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 block mb-1">Select Farm Acreage:</span>
-                  <div className="flex items-center gap-1.5">
-                    {[0.5, 1.0, 2.0, 5.0].map((ac) => (
-                      <button
-                        key={ac}
-                        onClick={() => setSelectedAcres(ac)}
-                        className={`flex-1 py-1 rounded-xl text-xs font-black transition-all ${
-                          selectedAcres === ac
+                {/* Module 2: 16L Knapsack Sprayer Pump Calculator */}
+                <div className="p-3.5 rounded-2xl bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-300/60 dark:border-emerald-800/60 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5">
+                      <Calculator className="w-4 h-4 text-emerald-600" />
+                      <span className="text-xs font-black text-slate-900 dark:text-white">16L Sprayer Calculator</span>
+                    </div>
+                    <span className="text-[10px] font-extrabold text-emerald-700 dark:text-emerald-300">Standard Mix</span>
+                  </div>
+
+                  <div>
+                    <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 block mb-1">Select Farm Acreage:</span>
+                    <div className="flex items-center gap-1.5">
+                      {[0.5, 1.0, 2.0, 5.0].map((ac) => (
+                        <button
+                          key={ac}
+                          onClick={() => setSelectedAcres(ac)}
+                          className={`flex-1 py-1 rounded-xl text-xs font-black transition-all ${selectedAcres === ac
                             ? 'bg-emerald-600 text-white shadow-xs scale-102'
                             : 'bg-white dark:bg-[#202126] text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700'
-                        }`}
-                      >
-                        {ac} Ac
-                      </button>
-                    ))}
+                            }`}
+                        >
+                          {ac} Ac
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="p-2.5 rounded-xl bg-white/80 dark:bg-[#1a1b1f] border border-emerald-200 dark:border-emerald-800/50 text-xs space-y-1.5">
+                    <div className="flex items-center justify-between font-bold text-slate-800 dark:text-slate-200">
+                      <span>🚜 Knapsack 16L Pumps:</span>
+                      <span className="text-emerald-600 dark:text-emerald-400 font-black">{calculatedPumps} Pumps</span>
+                    </div>
+                    <div className="flex items-center justify-between text-slate-600 dark:text-slate-400 text-[11px]">
+                      <span>🧪 Active Medicine:</span>
+                      <span>~{calculatedMlLiquid} ml / grams</span>
+                    </div>
+                    <div className="flex items-center justify-between text-slate-600 dark:text-slate-400 text-[11px]">
+                      <span>💰 Est. Spray Cost:</span>
+                      <span>~₹{calculatedEstCost}</span>
+                    </div>
                   </div>
                 </div>
 
-                <div className="p-2.5 rounded-xl bg-white/80 dark:bg-[#1a1b1f] border border-emerald-200 dark:border-emerald-800/50 text-xs space-y-1.5">
-                  <div className="flex items-center justify-between font-bold text-slate-800 dark:text-slate-200">
-                    <span>🚜 Knapsack 16L Pumps:</span>
-                    <span className="text-emerald-600 dark:text-emerald-400 font-black">{calculatedPumps} Pumps</span>
-                  </div>
-                  <div className="flex items-center justify-between text-slate-600 dark:text-slate-400 text-[11px]">
-                    <span>🧪 Active Medicine:</span>
-                    <span>~{calculatedMlLiquid} ml / grams</span>
-                  </div>
-                  <div className="flex items-center justify-between text-slate-600 dark:text-slate-400 text-[11px]">
-                    <span>💰 Est. Spray Cost:</span>
-                    <span>~₹{calculatedEstCost}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Module 3: 1-Click Doctor Prescription Slip & Sharing */}
-              <div className="p-3.5 rounded-2xl bg-teal-50/70 dark:bg-teal-950/30 border border-teal-300/60 dark:border-teal-800/60 space-y-2">
-                <span className="text-[10px] font-black uppercase tracking-wider text-teal-800 dark:text-teal-300 block">
-                  📄 Official Prescription Slip
-                </span>
-                <p className="text-[11px] text-slate-600 dark:text-slate-400">
-                  Download clean prescription slip or send directly to the fertilizer/pesticide shop.
-                </p>
-                <div className="space-y-1.5 pt-1">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const latestRxMsg = currentSession?.messages?.slice().reverse().find(m => m.role === 'assistant' && isPrescriptionEligible(m));
-                      handleDownloadPrescription(latestRxMsg?.content || `${activeFarmerCrop || 'Field Crop'} preventive protective calibration for ${selectedAcres} acres`);
-                    }}
-                    className="w-full flex items-center justify-center gap-2 py-2 rounded-xl bg-teal-700 hover:bg-teal-800 text-white text-xs font-bold shadow-xs transition-transform active:scale-98"
-                  >
-                    <Download className="w-3.5 h-3.5" />
-                    <span>Download Prescription PDF</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const latestRxMsg = currentSession?.messages?.slice().reverse().find(m => m.role === 'assistant' && isPrescriptionEligible(m));
-                      handleWhatsAppShare(latestRxMsg?.content || `${activeFarmerCrop || 'Field Crop'} preventive spray schedule: Maintain 4-hour rain-free window. Recommended spray mix for ${selectedAcres} acres: ${calculatedPumps} pumps.`);
-                    }}
-                    className="w-full flex items-center justify-center gap-2 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-xs transition-transform active:scale-98"
-                  >
-                    <Share2 className="w-3.5 h-3.5" />
-                    <span>WhatsApp Local Agro Store</span>
-                  </button>
-                  <a
-                    href="tel:18001801551"
-                    className="w-full flex items-center justify-center gap-2 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-semibold hover:bg-slate-200 transition-colors"
-                  >
-                    <PhoneCall className="w-3.5 h-3.5 text-emerald-500" />
-                    <span>Toll-Free Kisan Call 1800-180-1551</span>
-                  </a>
-                </div>
-              </div>
-
-              {/* Module 4: Live Satellite Weather & Spraying Window */}
-              <div className="p-3.5 rounded-2xl bg-sky-50/70 dark:bg-sky-950/30 border border-sky-300/60 dark:border-sky-800/60 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-black uppercase tracking-wider text-sky-800 dark:text-sky-300">
-                    🌦️ Spray Safety Window
+                {/* Module 3: 1-Click Doctor Prescription Slip & Sharing */}
+                <div className="p-3.5 rounded-2xl bg-teal-50/70 dark:bg-teal-950/30 border border-teal-300/60 dark:border-teal-800/60 space-y-2">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-teal-800 dark:text-teal-300 block">
+                    📄 Official Prescription Slip
                   </span>
-                  <span className="px-2 py-0.5 rounded-full bg-emerald-600 text-white text-[9px] font-black">
-                    SAFE TO SPRAY
-                  </span>
+                  <p className="text-[11px] text-slate-600 dark:text-slate-400">
+                    Download clean prescription slip or send directly to the fertilizer/pesticide shop.
+                  </p>
+                  <div className="space-y-1.5 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const latestRxMsg = currentSession?.messages?.slice().reverse().find(m => m.role === 'assistant' && isPrescriptionEligible(m));
+                        handleDownloadPrescription(latestRxMsg?.content || `${activeFarmerCrop || 'Field Crop'} preventive protective calibration for ${selectedAcres} acres`);
+                      }}
+                      className="w-full flex items-center justify-center gap-2 py-2 rounded-xl bg-teal-700 hover:bg-teal-800 text-white text-xs font-bold shadow-xs transition-transform active:scale-98"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      <span>Download Prescription PDF</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const latestRxMsg = currentSession?.messages?.slice().reverse().find(m => m.role === 'assistant' && isPrescriptionEligible(m));
+                        handleWhatsAppShare(latestRxMsg?.content || `${activeFarmerCrop || 'Field Crop'} preventive spray schedule: Maintain 4-hour rain-free window. Recommended spray mix for ${selectedAcres} acres: ${calculatedPumps} pumps.`);
+                      }}
+                      className="w-full flex items-center justify-center gap-2 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-xs transition-transform active:scale-98"
+                    >
+                      <Share2 className="w-3.5 h-3.5" />
+                      <span>WhatsApp Local Agro Store</span>
+                    </button>
+                    <a
+                      href="tel:18001801551"
+                      className="w-full flex items-center justify-center gap-2 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-semibold hover:bg-slate-200 transition-colors"
+                    >
+                      <PhoneCall className="w-3.5 h-3.5 text-emerald-500" />
+                      <span>Toll-Free Kisan Call 1800-180-1551</span>
+                    </a>
+                  </div>
                 </div>
-                <div className="text-xs font-bold text-slate-800 dark:text-slate-100">
-                  Clear Weather Forecast (Dry)
-                </div>
-                <p className="text-[11px] text-slate-600 dark:text-slate-400">
-                  4-Hour rain-free rule satisfied. Spray early morning (6:00 – 9:00 AM) or late evening to prevent leaf scorch.
-                </p>
-              </div>
 
-              {/* Module 5: AP Agriculture Hubs (GPS Locator) */}
-              <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-[#18191d] border border-slate-200/70 dark:border-slate-800/80 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                    📍 Nearby Agriculture Hubs
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => handleOpenGpsMaps('Rythu Bharosa Kendram near me')}
-                    disabled={locationLoading}
-                    className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1"
-                  >
-                    <Compass className={`w-3 h-3 ${locationLoading ? 'animate-spin' : ''}`} />
-                    <span>{locationLoading ? 'Locating...' : 'GPS Search'}</span>
-                  </button>
+                {/* Module 4: Live Satellite Weather & Spraying Window */}
+                <div className="p-3.5 rounded-2xl bg-sky-50/70 dark:bg-sky-950/30 border border-sky-300/60 dark:border-sky-800/60 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-sky-800 dark:text-sky-300">
+                      🌦️ Spray Safety Window
+                    </span>
+                    <span className="px-2 py-0.5 rounded-full bg-emerald-600 text-white text-[9px] font-black">
+                      SAFE TO SPRAY
+                    </span>
+                  </div>
+                  <div className="text-xs font-bold text-slate-800 dark:text-slate-100">
+                    Clear Weather Forecast (Dry)
+                  </div>
+                  <p className="text-[11px] text-slate-600 dark:text-slate-400">
+                    4-Hour rain-free rule satisfied. Spray early morning (6:00 – 9:00 AM) or late evening to prevent leaf scorch.
+                  </p>
                 </div>
-                <div className="grid grid-cols-1 gap-1.5 text-xs">
-                  <a
-                    href="https://www.google.com/maps/search/Rythu+Bharosa+Kendram+near+me"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="flex items-center gap-2 p-2 rounded-xl bg-white dark:bg-[#202126] border border-slate-200/60 dark:border-slate-800 hover:border-emerald-500 text-slate-800 dark:text-slate-200 transition-colors"
-                  >
-                    <Building2 className="w-3.5 h-3.5 text-emerald-500" />
-                    <span className="font-semibold text-xs truncate">🏛️ Nearest RBK Center</span>
-                  </a>
-                  <a
-                    href="https://www.google.com/maps/search/Agro+chemical+pesticide+fertilizer+store+near+me"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="flex items-center gap-2 p-2 rounded-xl bg-white dark:bg-[#202126] border border-slate-200/60 dark:border-slate-800 hover:border-emerald-500 text-slate-800 dark:text-slate-200 transition-colors"
-                  >
-                    <Store className="w-3.5 h-3.5 text-teal-500" />
-                    <span className="font-semibold text-xs truncate">🏪 Agro Chemical Stores</span>
-                  </a>
-                  <a
-                    href="https://www.google.com/maps/search/Mandal+Agriculture+Office+near+me"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="flex items-center gap-2 p-2 rounded-xl bg-white dark:bg-[#202126] border border-slate-200/60 dark:border-slate-800 hover:border-emerald-500 text-slate-800 dark:text-slate-200 transition-colors"
-                  >
-                    <MapPin className="w-3.5 h-3.5 text-sky-500" />
-                    <span className="font-semibold text-xs truncate">🏢 MAO Mandal Office</span>
-                  </a>
-                </div>
-              </div>
-            </>
-          )}
 
-          {/* ══════════════════════════════════════════
+                {/* Module 5: AP Agriculture Hubs (GPS Locator) */}
+                <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-[#18191d] border border-slate-200/70 dark:border-slate-800/80 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                      📍 Nearby Agriculture Hubs
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleOpenGpsMaps('Rythu Bharosa Kendram near me')}
+                      disabled={locationLoading}
+                      className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1"
+                    >
+                      <Compass className={`w-3 h-3 ${locationLoading ? 'animate-spin' : ''}`} />
+                      <span>{locationLoading ? 'Locating...' : 'GPS Search'}</span>
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-1 gap-1.5 text-xs">
+                    <a
+                      href="https://www.google.com/maps/search/Rythu+Bharosa+Kendram+near+me"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex items-center gap-2 p-2 rounded-xl bg-white dark:bg-[#202126] border border-slate-200/60 dark:border-slate-800 hover:border-emerald-500 text-slate-800 dark:text-slate-200 transition-colors"
+                    >
+                      <Building2 className="w-3.5 h-3.5 text-emerald-500" />
+                      <span className="font-semibold text-xs truncate">🏛️ Nearest RBK Center</span>
+                    </a>
+                    <a
+                      href="https://www.google.com/maps/search/Agro+chemical+pesticide+fertilizer+store+near+me"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex items-center gap-2 p-2 rounded-xl bg-white dark:bg-[#202126] border border-slate-200/60 dark:border-slate-800 hover:border-emerald-500 text-slate-800 dark:text-slate-200 transition-colors"
+                    >
+                      <Store className="w-3.5 h-3.5 text-teal-500" />
+                      <span className="font-semibold text-xs truncate">🏪 Agro Chemical Stores</span>
+                    </a>
+                    <a
+                      href="https://www.google.com/maps/search/Mandal+Agriculture+Office+near+me"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex items-center gap-2 p-2 rounded-xl bg-white dark:bg-[#202126] border border-slate-200/60 dark:border-slate-800 hover:border-emerald-500 text-slate-800 dark:text-slate-200 transition-colors"
+                    >
+                      <MapPin className="w-3.5 h-3.5 text-sky-500" />
+                      <span className="font-semibold text-xs truncate">🏢 MAO Mandal Office</span>
+                    </a>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* ══════════════════════════════════════════
               PORTAL 2: EQUIPMENT PROVIDER TOOLKIT
              ══════════════════════════════════════════ */}
-          {selectedPortal === 'equipment_provider' && (
-            <>
-              {/* Module 1: Fleet Inventory Overview */}
-              <div className="p-3.5 rounded-2xl bg-indigo-50/70 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-800/60 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-black uppercase tracking-wider text-indigo-700 dark:text-indigo-400">
-                    🚜 Fleet Inventory Status
-                  </span>
-                  <span className="px-2 py-0.5 rounded-full bg-indigo-600 text-white text-[9px] font-black">
-                    Active Fleet
-                  </span>
-                </div>
-                <div className="space-y-1.5 text-xs">
-                  <div className="flex items-center justify-between p-2 rounded-xl bg-white dark:bg-[#1b1c20] border border-indigo-100 dark:border-indigo-900/40">
-                    <div className="font-bold text-slate-800 dark:text-slate-200">Mahindra 575 DI (45HP)</div>
-                    <span className="text-[10px] font-bold text-emerald-600">Available</span>
+            {selectedPortal === 'equipment_provider' && (
+              <>
+                {/* Module 1: Fleet Inventory Overview */}
+                <div className="p-3.5 rounded-2xl bg-indigo-50/70 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-800/60 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-indigo-700 dark:text-indigo-400">
+                      🚜 Fleet Inventory Status
+                    </span>
+                    <span className="px-2 py-0.5 rounded-full bg-indigo-600 text-white text-[9px] font-black">
+                      Active Fleet
+                    </span>
                   </div>
-                  <div className="flex items-center justify-between p-2 rounded-xl bg-white dark:bg-[#1b1c20] border border-indigo-100 dark:border-indigo-900/40">
-                    <div className="font-bold text-slate-800 dark:text-slate-200">Shaktiman 6ft Rotavator</div>
-                    <span className="text-[10px] font-bold text-emerald-600">Available</span>
+                  <div className="space-y-1.5 text-xs">
+                    <div className="flex items-center justify-between p-2 rounded-xl bg-white dark:bg-[#1b1c20] border border-indigo-100 dark:border-indigo-900/40">
+                      <div className="font-bold text-slate-800 dark:text-slate-200">Mahindra 575 DI (45HP)</div>
+                      <span className="text-[10px] font-bold text-emerald-600">Available</span>
+                    </div>
+                    <div className="flex items-center justify-between p-2 rounded-xl bg-white dark:bg-[#1b1c20] border border-indigo-100 dark:border-indigo-900/40">
+                      <div className="font-bold text-slate-800 dark:text-slate-200">Shaktiman 6ft Rotavator</div>
+                      <span className="text-[10px] font-bold text-emerald-600">Available</span>
+                    </div>
+                    <div className="flex items-center justify-between p-2 rounded-xl bg-white dark:bg-[#1b1c20] border border-indigo-100 dark:border-indigo-900/40">
+                      <div className="font-bold text-slate-800 dark:text-slate-200">16L Hexacopter Spray Drone</div>
+                      <span className="text-[10px] font-bold text-indigo-600">Ready for Flight</span>
+                    </div>
                   </div>
-                  <div className="flex items-center justify-between p-2 rounded-xl bg-white dark:bg-[#1b1c20] border border-indigo-100 dark:border-indigo-900/40">
-                    <div className="font-bold text-slate-800 dark:text-slate-200">16L Hexacopter Spray Drone</div>
-                    <span className="text-[10px] font-bold text-indigo-600">Ready for Flight</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Module 2: Interactive Diesel & Rental Estimator */}
-              <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-[#18191d] border border-slate-200/80 dark:border-slate-800 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5">
-                    <Fuel className="w-4 h-4 text-indigo-600" />
-                    <span className="text-xs font-black text-slate-900 dark:text-white">Diesel & Job Estimator</span>
-                  </div>
-                  <span className="text-[10px] font-extrabold text-indigo-600 dark:text-indigo-400">@ ₹98/L Diesel</span>
                 </div>
 
-                <div>
-                  <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 block mb-1">Select Implement:</span>
-                  <select
-                    value={selectedImplement}
-                    onChange={e => setSelectedImplement(e.target.value)}
-                    className="w-full bg-white dark:bg-[#202126] text-xs font-semibold rounded-xl px-2.5 py-1.5 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 focus:outline-none focus:border-indigo-500"
-                  >
-                    <option value="rotavator">6ft Rotavator (5.0 L/ac)</option>
-                    <option value="mb_plough">MB Plough Deep Tillage (7.0 L/ac)</option>
-                    <option value="cultivator">9-Tyne Cultivator (3.0 L/ac)</option>
-                    <option value="harvester">Paddy Combine Harvester (9.5 L/ac)</option>
-                    <option value="seed_drill">Zero-Till Seed Drill (2.5 L/ac)</option>
-                  </select>
-                </div>
+                {/* Module 2: Interactive Diesel & Rental Estimator */}
+                <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-[#18191d] border border-slate-200/80 dark:border-slate-800 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5">
+                      <Fuel className="w-4 h-4 text-indigo-600" />
+                      <span className="text-xs font-black text-slate-900 dark:text-white">Diesel & Job Estimator</span>
+                    </div>
+                    <span className="text-[10px] font-extrabold text-indigo-600 dark:text-indigo-400">@ ₹98/L Diesel</span>
+                  </div>
 
-                <div>
-                  <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 block mb-1">Select Field Acreage:</span>
-                  <div className="flex items-center gap-1.5">
-                    {[1.0, 2.0, 5.0, 10.0].map((ac) => (
-                      <button
-                        key={ac}
-                        onClick={() => setProviderAcres(ac)}
-                        className={`flex-1 py-1 rounded-xl text-xs font-black transition-all ${
-                          providerAcres === ac
+                  <div>
+                    <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 block mb-1">Select Implement:</span>
+                    <select
+                      value={selectedImplement}
+                      onChange={e => setSelectedImplement(e.target.value)}
+                      className="w-full bg-white dark:bg-[#202126] text-xs font-semibold rounded-xl px-2.5 py-1.5 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 focus:outline-none focus:border-indigo-500"
+                    >
+                      <option value="rotavator">6ft Rotavator (5.0 L/ac)</option>
+                      <option value="mb_plough">MB Plough Deep Tillage (7.0 L/ac)</option>
+                      <option value="cultivator">9-Tyne Cultivator (3.0 L/ac)</option>
+                      <option value="harvester">Paddy Combine Harvester (9.5 L/ac)</option>
+                      <option value="seed_drill">Zero-Till Seed Drill (2.5 L/ac)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 block mb-1">Select Field Acreage:</span>
+                    <div className="flex items-center gap-1.5">
+                      {[1.0, 2.0, 5.0, 10.0].map((ac) => (
+                        <button
+                          key={ac}
+                          onClick={() => setProviderAcres(ac)}
+                          className={`flex-1 py-1 rounded-xl text-xs font-black transition-all ${providerAcres === ac
                             ? 'bg-indigo-600 text-white shadow-xs scale-102'
                             : 'bg-white dark:bg-[#202126] text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700'
-                        }`}
-                      >
-                        {ac} Ac
-                      </button>
-                    ))}
+                            }`}
+                        >
+                          {ac} Ac
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Calculation Output Cards */}
+                  <div className="p-2.5 rounded-xl bg-white dark:bg-[#202126] border border-indigo-100 dark:border-indigo-900/50 space-y-1.5 text-xs">
+                    <div className="flex items-center justify-between font-bold text-slate-800 dark:text-slate-200">
+                      <span>⛽ Estimated Diesel:</span>
+                      <span className="text-indigo-600 dark:text-indigo-400 font-black">{totalDieselLitres} Litres</span>
+                    </div>
+                    <div className="flex items-center justify-between text-slate-600 dark:text-slate-400 text-[11px]">
+                      <span>⏱️ Total Engine Hours:</span>
+                      <span>~{totalWorkingHours} Hours</span>
+                    </div>
+                    <div className="flex items-center justify-between text-slate-600 dark:text-slate-400 text-[11px]">
+                      <span>🔥 Fuel Cost (@ ₹98/L):</span>
+                      <span>₹{totalFuelCost}</span>
+                    </div>
+                    <div className="flex items-center justify-between font-bold text-emerald-600 dark:text-emerald-400 pt-1 border-t border-slate-100 dark:border-slate-800">
+                      <span>💰 Recommended Quote:</span>
+                      <span>₹{totalRentalCharge}</span>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => handleSendMessage(`Please verify my dispatch quote for ${providerAcres} acres with a ${activeImp.name}: Estimated diesel is ${totalDieselLitres} litres, working time ${totalWorkingHours} hours, fuel cost ₹${totalFuelCost}, and rental charge ₹${totalRentalCharge}.`)}
+                    className="w-full py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-xs transition-transform active:scale-98"
+                  >
+                    Send Estimate to AI Copilot
+                  </button>
+                </div>
+
+                {/* Module 3: Tractor Maintenance Countdown */}
+                <div className="p-3.5 rounded-2xl bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-amber-800 dark:text-amber-400">
+                      ⏳ Service Interval Countdown
+                    </span>
+                    <span className="text-[10px] font-bold text-amber-700 dark:text-amber-300">Next Service</span>
+                  </div>
+                  <div className="space-y-2 text-xs">
+                    <div>
+                      <div className="flex justify-between text-[11px] font-semibold mb-1">
+                        <span>Engine Oil (15W-40)</span>
+                        <span className="font-bold text-amber-700 dark:text-amber-400">185 / 250 hrs</span>
+                      </div>
+                      <div className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                        <div className="h-full bg-amber-500 rounded-full" style={{ width: '74%' }} />
+                      </div>
+                    </div>
+                    <div>
+                      <div className="flex justify-between text-[11px] font-semibold mb-1">
+                        <span>Hydraulic Fluid</span>
+                        <span className="font-bold text-emerald-600">620 / 1000 hrs</span>
+                      </div>
+                      <div className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                        <div className="h-full bg-emerald-500 rounded-full" style={{ width: '62%' }} />
+                      </div>
+                    </div>
+                    <div>
+                      <div className="flex justify-between text-[11px] font-semibold mb-1">
+                        <span>Air Cleaner Clean</span>
+                        <span className="font-bold text-rose-500">48 / 50 hrs (Due)</span>
+                      </div>
+                      <div className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                        <div className="h-full bg-rose-500 rounded-full" style={{ width: '96%' }} />
+                      </div>
+                    </div>
                   </div>
                 </div>
 
-                {/* Calculation Output Cards */}
-                <div className="p-2.5 rounded-xl bg-white dark:bg-[#202126] border border-indigo-100 dark:border-indigo-900/50 space-y-1.5 text-xs">
-                  <div className="flex items-center justify-between font-bold text-slate-800 dark:text-slate-200">
-                    <span>⛽ Estimated Diesel:</span>
-                    <span className="text-indigo-600 dark:text-indigo-400 font-black">{totalDieselLitres} Litres</span>
+                {/* Module 4: DGCA Spray Drone Pre-Flight Checklist */}
+                <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-[#18191d] border border-slate-200/80 dark:border-slate-800 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                      🚁 Drone Pre-Flight Checklist
+                    </span>
+                    <span className="text-[10px] font-bold text-indigo-600">DGCA SOP</span>
                   </div>
-                  <div className="flex items-center justify-between text-slate-600 dark:text-slate-400 text-[11px]">
-                    <span>⏱️ Total Engine Hours:</span>
-                    <span>~{totalWorkingHours} Hours</span>
-                  </div>
-                  <div className="flex items-center justify-between text-slate-600 dark:text-slate-400 text-[11px]">
-                    <span>🔥 Fuel Cost (@ ₹98/L):</span>
-                    <span>₹{totalFuelCost}</span>
-                  </div>
-                  <div className="flex items-center justify-between font-bold text-emerald-600 dark:text-emerald-400 pt-1 border-t border-slate-100 dark:border-slate-800">
-                    <span>💰 Recommended Quote:</span>
-                    <span>₹{totalRentalCharge}</span>
+                  <div className="space-y-1.5 text-xs">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={droneChecklist.battery}
+                        onChange={() => setDroneChecklist(p => ({ ...p, battery: !p.battery }))}
+                        className="rounded text-indigo-600 focus:ring-indigo-500"
+                      />
+                      <span className="text-slate-700 dark:text-slate-300">LiPo Smart Battery @ 4.2V/cell</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={droneChecklist.wind}
+                        onChange={() => setDroneChecklist(p => ({ ...p, wind: !p.wind }))}
+                        className="rounded text-indigo-600 focus:ring-indigo-500"
+                      />
+                      <span className="text-slate-700 dark:text-slate-300">Wind Speed &lt; 10 km/h (No Drift)</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={droneChecklist.altitude}
+                        onChange={() => setDroneChecklist(p => ({ ...p, altitude: !p.altitude }))}
+                        className="rounded text-indigo-600 focus:ring-indigo-500"
+                      />
+                      <span className="text-slate-700 dark:text-slate-300">Flight Altitude set 2.0 – 2.5m</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={droneChecklist.nozzle}
+                        onChange={() => setDroneChecklist(p => ({ ...p, nozzle: !p.nozzle }))}
+                        className="rounded text-indigo-600 focus:ring-indigo-500"
+                      />
+                      <span className="text-slate-700 dark:text-slate-300">Nozzle Flow Calibrated (150-250µ)</span>
+                    </label>
                   </div>
                 </div>
+              </>
+            )}
 
-                <button
-                  type="button"
-                  onClick={() => handleSendMessage(`Please verify my dispatch quote for ${providerAcres} acres with a ${activeImp.name}: Estimated diesel is ${totalDieselLitres} litres, working time ${totalWorkingHours} hours, fuel cost ₹${totalFuelCost}, and rental charge ₹${totalRentalCharge}.`)}
-                  className="w-full py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-xs transition-transform active:scale-98"
-                >
-                  Send Estimate to AI Copilot
-                </button>
-              </div>
-
-              {/* Module 3: Tractor Maintenance Countdown */}
-              <div className="p-3.5 rounded-2xl bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-black uppercase tracking-wider text-amber-800 dark:text-amber-400">
-                    ⏳ Service Interval Countdown
-                  </span>
-                  <span className="text-[10px] font-bold text-amber-700 dark:text-amber-300">Next Service</span>
-                </div>
-                <div className="space-y-2 text-xs">
-                  <div>
-                    <div className="flex justify-between text-[11px] font-semibold mb-1">
-                      <span>Engine Oil (15W-40)</span>
-                      <span className="font-bold text-amber-700 dark:text-amber-400">185 / 250 hrs</span>
-                    </div>
-                    <div className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
-                      <div className="h-full bg-amber-500 rounded-full" style={{ width: '74%' }} />
-                    </div>
-                  </div>
-                  <div>
-                    <div className="flex justify-between text-[11px] font-semibold mb-1">
-                      <span>Hydraulic Fluid</span>
-                      <span className="font-bold text-emerald-600">620 / 1000 hrs</span>
-                    </div>
-                    <div className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
-                      <div className="h-full bg-emerald-500 rounded-full" style={{ width: '62%' }} />
-                    </div>
-                  </div>
-                  <div>
-                    <div className="flex justify-between text-[11px] font-semibold mb-1">
-                      <span>Air Cleaner Clean</span>
-                      <span className="font-bold text-rose-500">48 / 50 hrs (Due)</span>
-                    </div>
-                    <div className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
-                      <div className="h-full bg-rose-500 rounded-full" style={{ width: '96%' }} />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Module 4: DGCA Spray Drone Pre-Flight Checklist */}
-              <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-[#18191d] border border-slate-200/80 dark:border-slate-800 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                    🚁 Drone Pre-Flight Checklist
-                  </span>
-                  <span className="text-[10px] font-bold text-indigo-600">DGCA SOP</span>
-                </div>
-                <div className="space-y-1.5 text-xs">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={droneChecklist.battery}
-                      onChange={() => setDroneChecklist(p => ({ ...p, battery: !p.battery }))}
-                      className="rounded text-indigo-600 focus:ring-indigo-500"
-                    />
-                    <span className="text-slate-700 dark:text-slate-300">LiPo Smart Battery @ 4.2V/cell</span>
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={droneChecklist.wind}
-                      onChange={() => setDroneChecklist(p => ({ ...p, wind: !p.wind }))}
-                      className="rounded text-indigo-600 focus:ring-indigo-500"
-                    />
-                    <span className="text-slate-700 dark:text-slate-300">Wind Speed &lt; 10 km/h (No Drift)</span>
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={droneChecklist.altitude}
-                      onChange={() => setDroneChecklist(p => ({ ...p, altitude: !p.altitude }))}
-                      className="rounded text-indigo-600 focus:ring-indigo-500"
-                    />
-                    <span className="text-slate-700 dark:text-slate-300">Flight Altitude set 2.0 – 2.5m</span>
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={droneChecklist.nozzle}
-                      onChange={() => setDroneChecklist(p => ({ ...p, nozzle: !p.nozzle }))}
-                      className="rounded text-indigo-600 focus:ring-indigo-500"
-                    />
-                    <span className="text-slate-700 dark:text-slate-300">Nozzle Flow Calibrated (150-250µ)</span>
-                  </label>
-                </div>
-              </div>
-            </>
-          )}
-
-          {/* ══════════════════════════════════════════
+            {/* ══════════════════════════════════════════
               PORTAL 3: ADMIN TOOLKIT
              ══════════════════════════════════════════ */}
-          {selectedPortal === 'admin' && (
-            <>
-              {/* Module 1: Core Microservices & Engine Health */}
-              <div className="p-3.5 rounded-2xl bg-violet-50/70 dark:bg-violet-950/30 border border-violet-200 dark:border-violet-800/60 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-black uppercase tracking-wider text-violet-700 dark:text-violet-400">
-                    ⚡ Core Platform Microservices
-                  </span>
-                  <span className="px-2 py-0.5 rounded-full bg-emerald-600 text-white text-[9px] font-black">
-                    ALL OPERATIONAL
-                  </span>
-                </div>
-                <div className="space-y-1.5 text-xs">
-                  <div className="flex items-center justify-between p-2 rounded-xl bg-white dark:bg-[#1b1c20] border border-violet-100 dark:border-violet-900/40">
-                    <span className="font-bold text-slate-800 dark:text-slate-200">FastAPI API Engine</span>
-                    <span className="text-[10px] font-bold text-emerald-600">200 OK (~18ms)</span>
+            {selectedPortal === 'admin' && (
+              <>
+                {/* Module 1: Core Microservices & Engine Health */}
+                <div className="p-3.5 rounded-2xl bg-violet-50/70 dark:bg-violet-950/30 border border-violet-200 dark:border-violet-800/60 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-violet-700 dark:text-violet-400">
+                      ⚡ Core Platform Microservices
+                    </span>
+                    <span className="px-2 py-0.5 rounded-full bg-emerald-600 text-white text-[9px] font-black">
+                      ALL OPERATIONAL
+                    </span>
                   </div>
-                  <div className="flex items-center justify-between p-2 rounded-xl bg-white dark:bg-[#1b1c20] border border-violet-100 dark:border-violet-900/40">
-                    <span className="font-bold text-slate-800 dark:text-slate-200">PyTorch ML Diagnostic Engine</span>
-                    <span className="text-[10px] font-bold text-emerald-600">1226 Classes Loaded</span>
+                  <div className="space-y-1.5 text-xs">
+                    <div className="flex items-center justify-between p-2 rounded-xl bg-white dark:bg-[#1b1c20] border border-violet-100 dark:border-violet-900/40">
+                      <span className="font-bold text-slate-800 dark:text-slate-200">FastAPI API Engine</span>
+                      <span className="text-[10px] font-bold text-emerald-600">200 OK (~18ms)</span>
+                    </div>
+                    <div className="flex items-center justify-between p-2 rounded-xl bg-white dark:bg-[#1b1c20] border border-violet-100 dark:border-violet-900/40">
+                      <span className="font-bold text-slate-800 dark:text-slate-200">PyTorch ML Diagnostic Engine</span>
+                      <span className="text-[10px] font-bold text-emerald-600">1226 Classes Loaded</span>
+                    </div>
+                    <div className="flex items-center justify-between p-2 rounded-xl bg-white dark:bg-[#1b1c20] border border-violet-100 dark:border-violet-900/40">
+                      <span className="font-bold text-slate-800 dark:text-slate-200">MongoDB Replica/Atlas</span>
+                      <span className="text-[10px] font-bold text-emerald-600">Connected & Indexed</span>
+                    </div>
                   </div>
-                  <div className="flex items-center justify-between p-2 rounded-xl bg-white dark:bg-[#1b1c20] border border-violet-100 dark:border-violet-900/40">
-                    <span className="font-bold text-slate-800 dark:text-slate-200">MongoDB Replica/Atlas</span>
-                    <span className="text-[10px] font-bold text-emerald-600">Connected & Indexed</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Module 2: OWASP Top 10 Security Telemetry */}
-              <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-[#18191d] border border-slate-200/80 dark:border-slate-800 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                    🔒 OWASP Protection Telemetry
-                  </span>
-                  <span className="text-[10px] font-bold text-emerald-600">Compliant</span>
-                </div>
-                <div className="grid grid-cols-2 gap-1.5 text-[11px]">
-                  <div className="p-2 rounded-xl bg-white dark:bg-[#202126] border border-slate-200/60 dark:border-slate-800">
-                    <div className="font-bold text-slate-700 dark:text-slate-300">AI Chat Rate Limit</div>
-                    <div className="text-emerald-600 font-extrabold text-xs">60 req / min</div>
-                  </div>
-                  <div className="p-2 rounded-xl bg-white dark:bg-[#202126] border border-slate-200/60 dark:border-slate-800">
-                    <div className="font-bold text-slate-700 dark:text-slate-300">Auth Rate Limit</div>
-                    <div className="text-emerald-600 font-extrabold text-xs">10 req / min</div>
-                  </div>
-                  <div className="p-2 rounded-xl bg-white dark:bg-[#202126] border border-slate-200/60 dark:border-slate-800">
-                    <div className="font-bold text-slate-700 dark:text-slate-300">JWT Rotation</div>
-                    <div className="text-emerald-600 font-extrabold text-xs">24 Hours</div>
-                  </div>
-                  <div className="p-2 rounded-xl bg-white dark:bg-[#202126] border border-slate-200/60 dark:border-slate-800">
-                    <div className="font-bold text-slate-700 dark:text-slate-300">Prompt Sanitizer</div>
-                    <div className="text-emerald-600 font-extrabold text-xs">Bleach Shield Active</div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Module 3: 1-Click Outbreak Broadcast Drafter */}
-              <div className="p-3.5 rounded-2xl bg-rose-50/70 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800/60 space-y-2.5">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5">
-                    <Bell className="w-4 h-4 text-rose-600" />
-                    <span className="text-xs font-black text-slate-900 dark:text-white">Emergency Outbreak Alert</span>
-                  </div>
-                  <span className="text-[10px] font-black text-rose-600">SMS / WhatsApp</span>
                 </div>
 
-                <div>
-                  <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 block mb-1">Target Crop / Outbreak:</span>
-                  <select
-                    value={outbreakCrop}
-                    onChange={e => setOutbreakCrop(e.target.value)}
-                    className="w-full bg-white dark:bg-[#202126] text-xs font-semibold rounded-xl px-2.5 py-1.5 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 focus:outline-none focus:border-rose-500"
+                {/* Module 2: OWASP Top 10 Security Telemetry */}
+                <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-[#18191d] border border-slate-200/80 dark:border-slate-800 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                      🔒 OWASP Protection Telemetry
+                    </span>
+                    <span className="text-[10px] font-bold text-emerald-600">Compliant</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-1.5 text-[11px]">
+                    <div className="p-2 rounded-xl bg-white dark:bg-[#202126] border border-slate-200/60 dark:border-slate-800">
+                      <div className="font-bold text-slate-700 dark:text-slate-300">AI Chat Rate Limit</div>
+                      <div className="text-emerald-600 font-extrabold text-xs">60 req / min</div>
+                    </div>
+                    <div className="p-2 rounded-xl bg-white dark:bg-[#202126] border border-slate-200/60 dark:border-slate-800">
+                      <div className="font-bold text-slate-700 dark:text-slate-300">Auth Rate Limit</div>
+                      <div className="text-emerald-600 font-extrabold text-xs">10 req / min</div>
+                    </div>
+                    <div className="p-2 rounded-xl bg-white dark:bg-[#202126] border border-slate-200/60 dark:border-slate-800">
+                      <div className="font-bold text-slate-700 dark:text-slate-300">JWT Rotation</div>
+                      <div className="text-emerald-600 font-extrabold text-xs">24 Hours</div>
+                    </div>
+                    <div className="p-2 rounded-xl bg-white dark:bg-[#202126] border border-slate-200/60 dark:border-slate-800">
+                      <div className="font-bold text-slate-700 dark:text-slate-300">Prompt Sanitizer</div>
+                      <div className="text-emerald-600 font-extrabold text-xs">Bleach Shield Active</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Module 3: 1-Click Outbreak Broadcast Drafter */}
+                <div className="p-3.5 rounded-2xl bg-rose-50/70 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800/60 space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5">
+                      <Bell className="w-4 h-4 text-rose-600" />
+                      <span className="text-xs font-black text-slate-900 dark:text-white">Emergency Outbreak Alert</span>
+                    </div>
+                    <span className="text-[10px] font-black text-rose-600">SMS / WhatsApp</span>
+                  </div>
+
+                  <div>
+                    <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 block mb-1">Target Crop / Outbreak:</span>
+                    <select
+                      value={outbreakCrop}
+                      onChange={e => setOutbreakCrop(e.target.value)}
+                      className="w-full bg-white dark:bg-[#202126] text-xs font-semibold rounded-xl px-2.5 py-1.5 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 focus:outline-none focus:border-rose-500"
+                    >
+                      <option value="Tomato Early Blight">Tomato Early Blight</option>
+                      <option value="Rice Blast">Rice Blast (Magnaporthe)</option>
+                      <option value="Cotton Whitefly & Leaf Curl">Cotton Whitefly & Leaf Curl</option>
+                      <option value="Chilli Powdery Mildew">Chilli Powdery Mildew</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 block mb-1">Target District:</span>
+                    <select
+                      value={outbreakDistrict}
+                      onChange={e => setOutbreakDistrict(e.target.value)}
+                      className="w-full bg-white dark:bg-[#202126] text-xs font-semibold rounded-xl px-2.5 py-1.5 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 focus:outline-none focus:border-rose-500"
+                    >
+                      <option value="Guntur">Guntur District (AP)</option>
+                      <option value="Chittoor">Chittoor District (AP)</option>
+                      <option value="Kurnool">Kurnool District (AP)</option>
+                      <option value="Krishna">Krishna District (AP)</option>
+                    </select>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleDraftOutbreakBroadcast}
+                    className="w-full py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-xs transition-transform active:scale-98 flex items-center justify-center gap-1.5"
                   >
-                    <option value="Tomato Early Blight">Tomato Early Blight</option>
-                    <option value="Rice Blast">Rice Blast (Magnaporthe)</option>
-                    <option value="Cotton Whitefly & Leaf Curl">Cotton Whitefly & Leaf Curl</option>
-                    <option value="Chilli Powdery Mildew">Chilli Powdery Mildew</option>
-                  </select>
+                    <Send className="w-3.5 h-3.5" />
+                    <span>Draft Farmer Alert Broadcast</span>
+                  </button>
                 </div>
 
-                <div>
-                  <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 block mb-1">Target District:</span>
-                  <select
-                    value={outbreakDistrict}
-                    onChange={e => setOutbreakDistrict(e.target.value)}
-                    className="w-full bg-white dark:bg-[#202126] text-xs font-semibold rounded-xl px-2.5 py-1.5 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 focus:outline-none focus:border-rose-500"
-                  >
-                    <option value="Guntur">Guntur District (AP)</option>
-                    <option value="Chittoor">Chittoor District (AP)</option>
-                    <option value="Kurnool">Kurnool District (AP)</option>
-                    <option value="Krishna">Krishna District (AP)</option>
-                  </select>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={handleDraftOutbreakBroadcast}
-                  className="w-full py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-xs transition-transform active:scale-98 flex items-center justify-center gap-1.5"
-                >
-                  <Send className="w-3.5 h-3.5" />
-                  <span>Draft Farmer Alert Broadcast</span>
-                </button>
-              </div>
-
-              {/* Module 4: In-Field ESP32 IoT Fleet Status */}
-              <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-[#18191d] border border-slate-200/80 dark:border-slate-800 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                    📟 In-Field ESP32 Fleet
-                  </span>
-                  <span className="text-[10px] font-bold text-emerald-600">1 Node Online</span>
-                </div>
-                <div className="p-2.5 rounded-xl bg-white dark:bg-[#202126] border border-slate-200/60 dark:border-slate-800 space-y-1 text-xs">
-                  <div className="flex justify-between font-bold text-slate-800 dark:text-slate-200">
-                    <span>Node Alpha (ESP32-WROOM)</span>
-                    <span className="text-emerald-500">Live</span>
+                {/* Module 4: In-Field ESP32 IoT Fleet Status */}
+                <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-[#18191d] border border-slate-200/80 dark:border-slate-800 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                      📟 In-Field ESP32 Fleet
+                    </span>
+                    <span className="text-[10px] font-bold text-emerald-600">1 Node Online</span>
                   </div>
-                  <div className="text-[11px] text-slate-500 dark:text-slate-400">
-                    <div>📶 Wi-Fi RSSI: -65 dBm (Good)</div>
-                    <div>🔋 Battery: 92% (Li-ion 4.1V)</div>
-                    <div>🌱 Soil Moisture: 72% (Wet)</div>
+                  <div className="p-2.5 rounded-xl bg-white dark:bg-[#202126] border border-slate-200/60 dark:border-slate-800 space-y-1 text-xs">
+                    <div className="flex justify-between font-bold text-slate-800 dark:text-slate-200">
+                      <span>Node Alpha (ESP32-WROOM)</span>
+                      <span className="text-emerald-500">Live</span>
+                    </div>
+                    <div className="text-[11px] text-slate-500 dark:text-slate-400">
+                      <div>📶 Wi-Fi RSSI: -65 dBm (Good)</div>
+                      <div>🔋 Battery: 92% (Li-ion 4.1V)</div>
+                      <div>🌱 Soil Moisture: 72% (Wet)</div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </>
-          )}
+              </>
+            )}
 
-        </div>
+          </div>
         </div>
       </div>
 
       {/* Multimodal Voice Crop Doctor Modal */}
-      <VoiceCropDoctorModal 
-        isOpen={showVoiceDoctor} 
-        onClose={() => setShowVoiceDoctor(false)} 
-        initialCrop={activeFarmerCrop || 'Field Crop'} 
+      <VoiceCropDoctorModal
+        isOpen={showVoiceDoctor}
+        onClose={() => setShowVoiceDoctor(false)}
+        initialCrop={activeFarmerCrop || 'Field Crop'}
       />
     </div>
   );

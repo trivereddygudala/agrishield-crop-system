@@ -12416,3 +12416,17 @@ pm --prefix frontend run build (vite v4.5.14 built cleanly in 20.50s with 0 erro
 - **Verification:**
   - Executed production Vite build `npm.cmd run build`: 3,211 modules transformed cleanly with 0 errors.
 
+
+
+## [2026-11-27 21:45:00] - Implement 7 Real-World Agricultural Upgrades for Equipment Provider Portal (`ProviderDashboardPage.jsx` & `providerHubTranslations.js`)
+- **Implemented Upgrades:**
+  1. **Interactive Rental Schedule Calendar (`tab=calendar`):** Added a dedicated 4th tab to the provider workstation showing a 7-day rolling schedule grid for all fleet machinery. Features slot locking for personal farming/repairs (`SlotBlockModal`), status color-coding (Green=Free, Yellow=Pending, Red=Booked, Sky/Gray=Blocked), and navigation between weeks.
+  2. **Diesel & Driver Net Pocket Profit Calculator:** Added modal and tracking for operational expenses (Diesel Liters × ₹94/L + Driver Daily Bata + Misc) to calculate actual net profit margin (%) alongside gross rental revenue.
+  3. **1-Tap WhatsApp Digital Rental Invoice & Receipt:** Implemented printable/shareable bilingual rental bill with breakdown of acres, hours, equipment specs, advance collected, and remaining balance with 1-tap `wa.me` sharing.
+  4. **1-Tap Google Maps Plot Navigation (`handleNavigateToPlot`):** Integrated GPS route navigation button on all active booking cards that launches Google Maps with turn-by-turn driving directions to the farmer's village, mandal, and plot.
+  5. **Advance Payment & Pending Balance Dues Tracker (*Udhari / బాకీ లెడ్జర్*):** Added dues tracking modal and status badges displaying advance collected vs pending balance dues, fully settled indicators, and reminder shortcuts.
+  6. **Machinery Engine Running Hours & 250hr Service Meter:** Added engine hours meter to each fleet card with visual progress bar tracking the 250-hour oil change interval, urgent warnings, and a 1-tap `Mark Serviced 🛠️` reset button.
+  7. **Live Machinery Camera Photo Upload:** Added camera photo capture input with client-side image compression (`compressImageForUpload`) and initial engine hours setup inside the Add Machinery modal.
+  8. **Localization Suite (`providerHubTranslations.js`):** Added comprehensive English and Telugu translations for all 7 upgrades.
+- **Verification:**
+  - Production build `npm.cmd run build` compiled 3,211 modules cleanly in 48.72s with 0 errors.
