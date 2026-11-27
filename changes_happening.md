@@ -12192,3 +12192,18 @@ pm --prefix frontend run build (vite v4.5.14 built cleanly in 20.50s with 0 erro
   - `frontend/src/index.css`
   - `frontend/vite.config.js`
   - `changes_happening.md`
+
+
+## [2026-11-27 08:56:00] - Complete Decommissioning & Removal of Offline AI Model Management Tab (87MB)
+- **MorePage (`MorePage.jsx`):**
+  - Completely removed the "⚡ Offline AI & Storage" section header and the "Offline AI Model Management (87MB)" / "ఆఫ్‌లైన్ AI మోడల్ మేనేజ్‌మెంట్ (87MB)" menu item card.
+  - Removed `OfflineStorageModal` component import, `offlineModalOpen` state hooks, and `<OfflineStorageModal />` JSX dialog tree.
+- **Decommissioned Components:**
+  - Deleted `frontend/src/components/common/OfflineStorageModal.jsx` (the 87MB downloader modal dialog).
+  - Deleted `frontend/src/components/common/OfflineAiStatusPill.jsx` (the 87MB download pill indicator).
+- **Background Pre-caching Decommission (`App.jsx`):**
+  - Removed the background task that was automatically streaming the heavy 87MB full-precision AI model into mobile IndexedDB storage via `ensureFullModelDownloaded()`. This saves user mobile data, prevents storage bloat, and eliminates background CPU/RAM churn.
+- **Scan Flow Copy Cleanup (`UploadImagePage.jsx`):**
+  - Cleaned up the offline notice message to avoid directing users to the removed "More" tab for an 87MB download.
+- **Verification:**
+  - Production build `npm.cmd run build` compiled 3,207 modules cleanly in 20.95s with 0 errors. Verified 0 broken imports or missing component references across the frontend.

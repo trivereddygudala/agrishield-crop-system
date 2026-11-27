@@ -502,7 +502,7 @@ const UploadImagePage = () => {
             loading: false,
             errorMsg: t(
               'scan_page.offline_model_not_downloaded',
-              '📡 Offline Field Mode: The offline AI model has not been downloaded to your phone yet. Please connect to mobile data/Wi-Fi to scan online, or download the model (87MB) from the "More" tab (ఇతర సేవలు) for 100% offline field use.'
+              '📡 Offline Field Mode: You are currently offline. Please connect to mobile data or Wi-Fi to scan your crop.'
             )
           });
           return;

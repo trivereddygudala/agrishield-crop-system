@@ -169,20 +169,11 @@ function ThemeInitializer({ children }) {
     // Keep alive pulse every 4 minutes while farmer tab is open
     const interval = setInterval(warmUp, 240000);
 
-    // Silent background pre-cache of offline AI model into IndexedDB for zero-internet rural fields
+    // Pre-cache edge runtime helpers
     if (typeof window !== 'undefined') {
       const preloadEdgeAi = () => {
         import('./utils/onDeviceModelRunner').then(({ preloadOnDeviceModel }) => {
           preloadOnDeviceModel().catch(() => {});
-        }).catch(() => {});
-
-        // Background stream of full 87MB High-Precision AI model into IndexedDB
-        import('./utils/chunkedModelDownloader').then(({ ensureFullModelDownloaded, isFullModelCached }) => {
-          isFullModelCached().then(cached => {
-            if (!cached && navigator.onLine) {
-              ensureFullModelDownloaded().catch(() => {});
-            }
-          }).catch(() => {});
         }).catch(() => {});
       };
 
