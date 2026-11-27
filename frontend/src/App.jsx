@@ -163,20 +163,7 @@ function ThemeInitializer({ children }) {
     // Keep alive pulse every 4 minutes while farmer tab is open
     const interval = setInterval(warmUp, 240000);
 
-    // Pre-cache edge runtime helpers
-    if (typeof window !== 'undefined') {
-      const preloadEdgeAi = () => {
-        import('./utils/onDeviceModelRunner').then(({ preloadOnDeviceModel }) => {
-          preloadOnDeviceModel().catch(() => {});
-        }).catch(() => {});
-      };
 
-      if ('requestIdleCallback' in window) {
-        window.requestIdleCallback(preloadEdgeAi, { timeout: 6000 });
-      } else {
-        setTimeout(preloadEdgeAi, 3500);
-      }
-    }
 
     return () => {
       stopSync();

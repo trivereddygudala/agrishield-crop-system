@@ -12317,3 +12317,16 @@ pm --prefix frontend run build (vite v4.5.14 built cleanly in 20.50s with 0 erro
   - Totally eliminated `net::ERR_FAILED` and `The FetchEvent for "https://agrishield-ai-worker-*.onrender.com/health" resulted in a network error response` from the Chrome DevTools console.
 - **Verification:**
   - Production build `npm.cmd run build` compiled 3,213 modules cleanly in 32.63s with 0 errors.
+
+## [2026-11-27 18:45:00] - Decommissioning of Background 83MB On-Device Model Preloader (`App.jsx`)
+- **Analysis of 83MB Console Message:**
+  - In user's F12 screenshot on `/notifications`, the console showed:
+    `[On-Device AI] Session initialized (fp32_full_87mb, 1252 classes, ~83 MB)`
+    `[On-Device AI] Model JIT kernels successfully warmed.`
+  - **Why it occurred:** `crop_disease_model_full.onnx` is an 87,012,722-byte (~83MB) on-device AI model file. When downloaded previously, it was persisted in the browser's local `IndexedDB` storage (`agrishield_edge_ai_models`). In `frontend/src/App.jsx`, `preloadEdgeAi()` was scheduled via `requestIdleCallback` / 3.5s timeout on every page load, automatically initializing the 83MB model into memory even on unrelated pages (Notifications, Settings, Khata).
+- **Fix Applied:**
+  - Completely removed the unprompted `preloadEdgeAi` background task from `frontend/src/App.jsx`.
+  - The 83MB on-device model will now only load on-demand when a farmer explicitly opens the Scan/Upload page to diagnose a crop leaf offline.
+  - All other routes (Notifications, Dashboard, Field, Admin, Rental Hub) remain lightweight, quiet, and consume 0 extra RAM.
+- **Verification:**
+  - Production build `npm.cmd run build` compiled 3,213 modules with 0 errors in 19.93s.
