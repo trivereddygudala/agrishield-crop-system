@@ -447,14 +447,26 @@ const FieldIntelligenceWidget = ({ farmId, lat, lon }) => {
               </motion.div>
             </div>
             <div>
-              <h4 className="text-base sm:text-lg font-black tracking-tight leading-snug">
+              <h4 className={`text-base sm:text-lg font-black tracking-tight leading-snug ${
+                isNight
+                  ? 'text-white'
+                  : isSprayActive
+                  ? 'text-emerald-950 dark:text-white'
+                  : 'text-amber-950 dark:text-white'
+              }`}>
                 {isNight
                   ? (isTe ? '🌙 రాత్రి వేళ స్ప్రే చేయవద్దు' : '🌙 Do Not Spray at Night')
                   : isSprayActive
                   ? (isTe ? '✅ ఇప్పుడు స్ప్రే చేయడానికి అనుకూలం' : '✅ Safe to Spray Right Now')
                   : (isTe ? '⚠️ ఎండ తీవ్రత ఎక్కువ — ఆగండి' : '⚠️ Pause Spraying (Midday Heat)')}
               </h4>
-              <p className="text-xs font-semibold text-emerald-200 dark:text-emerald-300 mt-1 leading-relaxed">
+              <p className={`text-xs font-semibold mt-1 leading-relaxed ${
+                isNight
+                  ? 'text-emerald-200/90'
+                  : isSprayActive
+                  ? 'text-emerald-800 dark:text-emerald-300'
+                  : 'text-amber-900 dark:text-amber-300'
+              }`}>
                 {isNight
                   ? (isTe ? 'రాత్రి పడే మంచు వల్ల మందు కారిపోతుంది. రేపు ఉదయం 7:30 AM కి స్ప్రే చేయండి.' : 'Heavy night dew washes spray away. Safe window reopens tomorrow at 7:30 AM.')
                   : isSprayActive

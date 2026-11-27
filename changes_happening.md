@@ -12115,3 +12115,16 @@ pm --prefix frontend run build (vite v4.5.14 built cleanly in 20.50s with 0 erro
   2. `frontend/src/App.jsx`: Attached `.full-viewport-main` to `<main>` and ensured `motion.div` passes 100% height explicitly to `Outlet`.
   3. `frontend/src/pages/farmer/FieldAreaCalculatorPage.jsx`: Added explicit `style={{ height: '100%', minHeight: '100%' }}` ensuring the container fills the entire viewport down to the bottom navigation bar.
   4. `frontend/src/components/farm/FieldBoundaryMap.jsx`: In `calculator` mode (`mode === 'calculator'`), removed `rounded-2xl border` and `min-h-[400px]`, making the map card edge-to-edge full bleed (`rounded-none border-0`) like genuine Google Maps.
+
+
+## [2026-11-27 07:25:00] - Fix Crop Spraying Window Text Contrast & Notifications Tab Instant Hydration
+- **Issue 1 (Crop Spraying Window Contrast):**
+  - In `FieldIntelligenceWidget.jsx`, the subtitle under "Safe to Spray Right Now" was hardcoded with `text-emerald-200` on top of a light pastel green background (`bg-emerald-500/15`).
+  - In light mode, light-green on light-green had near-zero contrast, rendering "Gentle breeze and cool temperature ensure maximum chemical absorption" virtually unreadable.
+  - Upgraded to high-contrast WCAG AAA accessible typography: `text-emerald-800 dark:text-emerald-300` when spraying is safe, and `text-amber-900 dark:text-amber-300` during midday heat.
+- **Issue 2 (Alerts Tab Loading & Unread Badge Sync):**
+  - In `NotificationsPage.jsx`, `notifications` state initialized to an empty array `[]` with `loading: true`, causing full-screen skeleton flash and empty lists on client-side navigation.
+  - Implemented instant Stale-While-Revalidate hydration: lazy-initializes `notifications` from `getUserNotificationCache(user)` for 0ms immediate render.
+  - Added dual-endpoint resilience (`/api/v1/notifications` -> `/api/notifications`) and normalized response shapes (`Array.isArray(res.data)` vs `res.data.notifications`).
+  - Protected `setUnreadCount` against clearing the badge to 0 on transient network delays or empty payloads.
+  - Added `pb-28 lg:pb-6` bottom padding so the thread list can be scrolled cleanly above the fixed mobile bottom navigation bar.

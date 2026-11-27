@@ -478,9 +478,30 @@ export default function NotificationsPage() {
   const isEquipmentProvider = user?.role?.toLowerCase() === 'equipment_provider';
   const isTe = i18n?.language === 'te' || currentLang.startsWith('te');
 
-  const [notifications, setNotifications] = useState([]);
-  const [total, setTotal] = useState(0);
-  const [loading, setLoading] = useState(true);
+  const [notifications, setNotifications] = useState(() => {
+    try {
+      const cached = getUserNotificationCache(user);
+      return Array.isArray(cached) && cached.length > 0 ? cached : [];
+    } catch {
+      return [];
+    }
+  });
+  const [total, setTotal] = useState(() => {
+    try {
+      const cached = getUserNotificationCache(user);
+      return Array.isArray(cached) ? cached.length : 0;
+    } catch {
+      return 0;
+    }
+  });
+  const [loading, setLoading] = useState(() => {
+    try {
+      const cached = getUserNotificationCache(user);
+      return !(Array.isArray(cached) && cached.length > 0);
+    } catch {
+      return true;
+    }
+  });
   const hasLoadedOnceRef = React.useRef(false);
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('All');
@@ -822,9 +843,17 @@ export default function NotificationsPage() {
       const deletedNotifIds = getUserDeletedNotificationIds(user);
 
       let serverNotifs = [];
+      let serverSuccess = false;
       try {
-        const res = await API.get(`/api/v1/notifications?${params}`);
-        serverNotifs = (res.data.notifications || [])
+        let res;
+        try {
+          res = await API.get(`/api/v1/notifications?${params}`);
+        } catch (_) {
+          res = await API.get(`/api/notifications?${params}`);
+        }
+        const rawList = Array.isArray(res?.data) ? res.data : (res?.data?.notifications || []);
+        serverSuccess = true;
+        serverNotifs = rawList
           .filter(sn => {
             const sId = sn.notification_id || sn.id || sn._id;
             return !deletedNotifIds.has(sId) && !deletedNotifIds.has(String(sId));
@@ -1205,7 +1234,7 @@ export default function NotificationsPage() {
 
       // Reconcile and synchronize unreadCount directly with the loaded notifications list
       const actualUnreadCount = finalMerged.filter(n => !n.read).length;
-      if (typeof setUnreadCount === 'function') {
+      if (typeof setUnreadCount === 'function' && (serverSuccess || finalMerged.length > 0)) {
         setUnreadCount(actualUnreadCount);
       }
     } catch {
@@ -2195,7 +2224,7 @@ export default function NotificationsPage() {
         )}
 
         {/* Thread Rows List */}
-        <div className="flex-1 min-h-0 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/60">
+        <div className="flex-1 min-h-0 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/60 pb-28 lg:pb-6">
           {filteredNotifications.length === 0 ? (
             <div className="p-8 text-center space-y-3">
               <div className="w-14 h-14 rounded-full bg-slate-100 dark:bg-slate-800/80 text-slate-400 flex items-center justify-center mx-auto text-2xl">
