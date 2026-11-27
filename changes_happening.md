@@ -12290,3 +12290,15 @@ pm --prefix frontend run build (vite v4.5.14 built cleanly in 20.50s with 0 erro
     11. **Internal Security Secrets:** JWT secret, Refresh token secret, and ESP32 IoT handshake key (`crop_iot_secure_key_2026`).
 - **Verification:**
   - Production build `npm.cmd run build` inside `frontend` compiled 3,213 modules cleanly in 22.46s with 0 errors.
+
+## [2026-11-27 17:52:00] - DevTools Console Clean-Up & Service Worker Same-Origin Isolation
+- **Service Worker Same-Origin Hardening (`frontend/public/firebase-messaging-sw.js`):**
+  - Restricted Service Worker `fetch` interceptor strictly to same-origin requests (`event.request.url.startsWith(self.location.origin)`).
+  - Explicitly bypassed external API and `/health` endpoints to prevent cross-origin network fetch interception.
+  - Resolved `Uncaught (in promise) TypeError: Failed to convert value to 'Response'` when free-tier cloud Render backend workers (`agrishield-ai-worker-*.onrender.com`) are cold-starting or offline.
+- **Chrome DevTools F12 Diagnostic Audit:**
+  - Audited DevTools Console and Issues tabs from user screenshots.
+  - Confirmed 0 API keys, passwords, or secret tokens are visible in DevTools.
+  - Explained Render free-tier health poll timeouts and WebAssembly `SharedArrayBuffer` browser advisory notices.
+- **Verification:**
+  - Production build `npm.cmd run build` compiled 3,213 modules with 0 errors in 20.49s.

@@ -55,8 +55,10 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   // Only handle GET requests
   if (event.request.method !== 'GET') return;
-  // Ignore backend API and WebSocket endpoints
-  if (event.request.url.includes('/api/') || event.request.url.includes('/ws')) return;
+  // Only handle same-origin requests (never intercept external APIs or backend Render workers)
+  if (!event.request.url.startsWith(self.location.origin)) return;
+  // Ignore backend API, health, and WebSocket endpoints
+  if (event.request.url.includes('/api/') || event.request.url.includes('/health') || event.request.url.includes('/ws')) return;
 
   event.respondWith(
     fetch(event.request)
