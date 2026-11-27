@@ -99,7 +99,11 @@ const DashboardLayout = () => {
         
         {/* Main Content Area — full width on mobile (sidebar is overlay), indent only on lg+ */}
         <main
-          className={`flex-1 w-full min-w-0 ${sidebarOpen ? 'lg:pl-64' : 'lg:pl-0'} transition-all duration-300 ${isFullViewportPage ? 'h-[calc(100dvh-8rem-env(safe-area-inset-bottom,0px))] lg:h-[calc(100dvh-4rem)] max-h-[calc(100dvh-8rem-env(safe-area-inset-bottom,0px))] lg:max-h-[calc(100dvh-4rem)] min-h-0 overflow-hidden flex flex-col' : 'min-h-[calc(100vh-4rem)] flex flex-col justify-between overflow-x-hidden'}`}
+          className={`flex-1 w-full min-w-0 ${sidebarOpen ? 'lg:pl-64' : 'lg:pl-0'} transition-all duration-300 ${
+            isFullViewportPage 
+              ? 'full-viewport-main' 
+              : 'min-h-[calc(100vh-4rem)] flex flex-col justify-between overflow-x-hidden'
+          }`}
           role="main"
         >
           <div className={isFullViewportPage ? 'p-0 h-full max-h-full flex flex-col flex-1 min-h-0 overflow-hidden' : 'p-3 sm:p-6 lg:p-8 pb-[calc(6.5rem+env(safe-area-inset-bottom,0px))] lg:pb-8 w-full flex-1'}>
@@ -113,6 +117,7 @@ const DashboardLayout = () => {
                     exit={{ opacity: 0, y: -6 }}
                     transition={{ duration: 0.18, ease: 'easeOut' }}
                     className={`w-full ${isFullViewportPage ? 'h-full max-h-full flex-1 flex flex-col min-h-0 overflow-hidden' : ''}`}
+                    style={isFullViewportPage ? { height: '100%', minHeight: '100%' } : undefined}
                   >
                     <Outlet />
                   </motion.div>

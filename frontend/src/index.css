@@ -1475,3 +1475,23 @@
 .animate-bounce-slow {
   animation: bounce-slow 2.4s ease-in-out infinite;
 }
+
+/* ── 6. Full Viewport Mobile Main Layout (Field Calculator & AI Assistant) ── */
+.full-viewport-main {
+  height: calc(100dvh - 8rem - env(safe-area-inset-bottom, 0px));
+  max-height: calc(100dvh - 8rem - env(safe-area-inset-bottom, 0px));
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  flex: 1 1 0%;
+  width: 100%;
+}
+
+@media (min-width: 1024px) {
+  .full-viewport-main {
+    height: calc(100dvh - 4rem);
+    max-height: calc(100dvh - 4rem);
+  }
+}
+

@@ -406,6 +406,7 @@ export default function FieldAreaCalculatorPage() {
     return (
       <div 
         className="relative w-full h-full flex-1 min-h-0 bg-slate-950 overflow-hidden select-none flex flex-col"
+        style={{ height: '100%', minHeight: '100%' }}
       >
         
         {/* Unified Full-Viewport Map Canvas with Integrated Controls */}

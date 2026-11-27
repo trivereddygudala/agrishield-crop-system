@@ -12102,3 +12102,16 @@ pm --prefix frontend run build (vite v4.5.14 built cleanly in 20.50s with 0 erro
   - `frontend/src/pages/farmer/FieldAreaCalculatorPage.jsx`
   - `frontend/src/components/farm/FieldBoundaryMap.jsx`
   - `changes_happening.md`
+
+
+## [2026-11-27 07:05:00] - Fix Field Area Calculator Full-Screen Google Maps Height & Edge-to-Edge Expansion
+- **Root Cause Analysis:**
+  - The build succeeded with 0 errors in commit `d719cf3` and high-res Google Satellite tiles loaded cleanly.
+  - However, in `App.jsx`, the arbitrary Tailwind utility `h-[calc(100dvh-8rem-env(safe-area-inset-bottom,0px))]` failed JIT compilation due to nested unescaped commas in `env()`.
+  - Without an explicit height, `<main>` evaluated to `height: auto`, which forced child containers with `height: 100%` to resolve as `auto` and fall back to the card's `min-height: 400px`.
+  - On typical 800-900px smartphone screens, 400px took exactly half the screen, leaving a large blank empty space above the bottom navigation bar.
+- **Architectural Fixes Applied:**
+  1. `frontend/src/index.css`: Added robust `.full-viewport-main` class with CSS media query (`height: calc(100dvh - 8rem - env(safe-area-inset-bottom, 0px))` on mobile and `calc(100dvh - 4rem)` on desktop lg+), bypassing Tailwind JIT parser limitations.
+  2. `frontend/src/App.jsx`: Attached `.full-viewport-main` to `<main>` and ensured `motion.div` passes 100% height explicitly to `Outlet`.
+  3. `frontend/src/pages/farmer/FieldAreaCalculatorPage.jsx`: Added explicit `style={{ height: '100%', minHeight: '100%' }}` ensuring the container fills the entire viewport down to the bottom navigation bar.
+  4. `frontend/src/components/farm/FieldBoundaryMap.jsx`: In `calculator` mode (`mode === 'calculator'`), removed `rounded-2xl border` and `min-h-[400px]`, making the map card edge-to-edge full bleed (`rounded-none border-0`) like genuine Google Maps.

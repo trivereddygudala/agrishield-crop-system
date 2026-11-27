@@ -1351,6 +1351,7 @@ export default function FieldBoundaryMap({
     }
   }, [pins, centerLat, centerLng, farmName, cropName, interactive, isTelugu, showRadarRings, nearbyFarms, area.acres, isWalkMode, spectralMode, isSunlightMode]);
 
+  const isCalculatorMode = mode === 'calculator';
   const isFullScreenView = isFullscreen || isDedicated;
 
   // Lock body scroll when in fullscreen mode to eliminate background window scrolling
@@ -1378,19 +1379,21 @@ export default function FieldBoundaryMap({
       className={
         isFullScreenView
           ? 'fixed inset-0 z-[99999] w-screen h-screen h-[100dvh] max-h-[100dvh] bg-slate-950 flex flex-col overflow-hidden overscroll-none touch-none select-none'
-          : 'relative w-full max-w-full min-w-0 flex flex-col rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-md bg-slate-900 overflow-hidden flex-1 h-full min-h-[400px]'
+          : isCalculatorMode
+            ? 'relative w-full max-w-full min-w-0 flex flex-col rounded-none border-0 shadow-none bg-slate-950 overflow-hidden flex-1 h-full'
+            : 'relative w-full max-w-full min-w-0 flex flex-col rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-md bg-slate-900 overflow-hidden flex-1 h-full min-h-[400px]'
       }
       style={{
         height: isFullScreenView ? '100dvh' : (height || '100%'),
         maxHeight: isFullScreenView ? '100dvh' : (height || '100%'),
-        minHeight: isFullScreenView ? '100dvh' : '400px'
+        minHeight: isFullScreenView ? '100dvh' : isCalculatorMode ? '100%' : '400px'
       }}
     >
       {/* ═══════ 1. TOP HEADER BAR: SINGLE, CLEAN, FIXED 56px HEIGHT (NO OVERLAPS) ═══════ */}
       <div className={`h-14 shrink-0 px-2 sm:px-3 py-2 flex items-center justify-between gap-1 sm:gap-1.5 z-30 min-w-0 max-w-full ${
         isSunlightMode
           ? 'bg-amber-300 text-black border-b-2 border-black font-black shadow-md'
-          : isFullScreenView
+          : isFullScreenView || isCalculatorMode
             ? 'bg-slate-900 text-white border-b border-slate-800 shadow-md'
             : 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white border-b border-slate-200 dark:border-slate-800'
       }`}>
