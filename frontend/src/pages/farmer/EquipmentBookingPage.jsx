@@ -991,7 +991,7 @@ export default function EquipmentBookingPage() {
               >
                 <div className="flex items-center gap-1.5 truncate">
                   <MapPin className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                  <span className="truncate">{locationMandal || 'Mundlamuru'}, {locationDistrict || 'Prakasam'} (Within 10 km)</span>
+                  <span className="truncate">{locationMandal || 'Mundlamuru'}, {locationDistrict || 'Prakasam'} ({t('equipment_hub.within_radius', 'Within 10 km')})</span>
                 </div>
                 <span className="text-slate-400 text-[10px]">▾</span>
               </button>
@@ -1106,7 +1106,7 @@ export default function EquipmentBookingPage() {
                     {/* Specs Line matching Concept 2 */}
                     <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mt-1 line-clamp-1">
                       {item.horsepower ? `${item.horsepower} · ` : ''}
-                      {item.category === 'drone' ? 'Pilot Included' : item.operatorIncluded ? 'Driver Included' : 'Self-Drive'} · {item.distanceKm || 2.1} km away
+                      {item.category === 'drone' ? t('equipment_hub.pilot_included', 'Pilot Included') : item.operatorIncluded ? t('equipment_hub.driver_included_tag', 'Driver Included') : t('equipment_hub.self_drive_tag', 'Self-Drive')} · {item.distanceKm || 2.1} {t('equipment_hub.km_away', 'km away')}
                     </p>
 
                     {/* Pricing Display */}
@@ -1119,7 +1119,7 @@ export default function EquipmentBookingPage() {
                       </span>
                       {item.dailyRate && (
                         <span className="text-[11px] text-slate-400 font-medium ml-1">
-                          (or ₹{item.dailyRate}/day)
+                          (₹{item.dailyRate}/{t('equipment_hub.per_day', 'day')})
                         </span>
                       )}
                     </div>
@@ -1468,10 +1468,10 @@ export default function EquipmentBookingPage() {
                               />
 
                               {[
-                                { step: 1, labelEn: 'Requested', labelTe: 'అభ్యర్థన' },
-                                { step: 2, labelEn: 'Approved', labelTe: 'ధృవీకరణ' },
-                                { step: 3, labelEn: 'En Route', labelTe: 'మార్గంలో' },
-                                { step: 4, labelEn: 'Completed', labelTe: 'పూర్తయింది' }
+                                { step: 1, label: t('equipment_hub.step_requested', 'Requested') },
+                                { step: 2, label: t('equipment_hub.step_approved', 'Approved') },
+                                { step: 3, label: t('equipment_hub.step_en_route', 'En Route') },
+                                { step: 4, label: t('equipment_hub.step_completed', 'Completed') }
                               ].map((st) => {
                                 const isStepDone = currentStepNumber > st.step;
                                 const isStepCurrent = currentStepNumber === st.step;
@@ -1887,7 +1887,7 @@ export default function EquipmentBookingPage() {
             <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
             <div className="text-xs text-amber-900 dark:text-amber-200 space-y-0.5">
               <p className="font-black text-sm">
-                #{cancelModalBooking?.id || cancelModalBooking?.bookingId}: {cancelModalBooking?.title}
+                #{cancelModalBooking?.id || cancelModalBooking?.bookingId}: {getLocalizedField(cancelModalBooking, 'title', currentLang) || cancelModalBooking?.title}
               </p>
               <p className="text-amber-800/90 dark:text-amber-300/90">
                 {t('equipment_hub.cancel_modal_desc', 'Are you sure you want to cancel this equipment booking? The equipment provider will be notified immediately.')}
@@ -1982,7 +1982,7 @@ export default function EquipmentBookingPage() {
             <Trash2 className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
             <div className="text-xs text-rose-900 dark:text-rose-200 space-y-1">
               <p className="font-black text-sm">
-                #{deleteModalBooking?.id || deleteModalBooking?.bookingId}: {deleteModalBooking?.title}
+                #{deleteModalBooking?.id || deleteModalBooking?.bookingId}: {getLocalizedField(deleteModalBooking, 'title', currentLang) || deleteModalBooking?.title}
               </p>
               <p className="text-rose-800/90 dark:text-rose-300/90 leading-relaxed">
                 {t('equipment_hub.voucher_permanent_del_warn', 'This voucher will be permanently deleted from your passbook record. You will no longer see this voucher.')}
@@ -2359,10 +2359,10 @@ function BookEquipmentModal({ equipment, activeFarm, user, serviceLocation, isPr
               {t('equipment_hub.instant_slot_reservation', 'Instant Slot Reservation')}
             </span>
             <h2 className="text-base sm:text-lg font-black text-slate-900 dark:text-slate-100 mt-0.5">
-              {equipment.title}
+              {getLocalizedField(equipment, 'title', currentLang) || equipment.title}
             </h2>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              {equipment.providerName} • ₹{baseRate}/{unitMode === 'acres' ? 'Acre' : 'Hr'}
+              {equipment.providerName} • ₹{baseRate}/{unitMode === 'acres' ? t('equipment_hub.acre_short', 'Acre') : t('equipment_hub.hr_short', 'Hr')}
             </p>
           </div>
           <button
@@ -2509,9 +2509,9 @@ function BookEquipmentModal({ equipment, activeFarm, user, serviceLocation, isPr
                   onChange={(e) => setTimeSlot(e.target.value)}
                   className="w-full p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 font-bold text-slate-900 dark:text-white"
                 >
-                  <option value="Early Morning (6:00 AM - 10:00 AM)">🌅 Early Morning (6:00 AM - 10:00 AM)</option>
-                  <option value="Afternoon (2:00 PM - 6:00 PM)">☀️ Afternoon (2:00 PM - 6:00 PM)</option>
-                  <option value="Full Day (8:00 AM - 5:00 PM)">⏰ Full Day (8:00 AM - 5:00 PM)</option>
+                  <option value="Early Morning (6:00 AM - 10:00 AM)">{t('equipment_hub.time_early_morning', '🌅 Early Morning (6:00 AM - 10:00 AM)')}</option>
+                  <option value="Afternoon (2:00 PM - 6:00 PM)">{t('equipment_hub.time_afternoon', '☀️ Afternoon (2:00 PM - 6:00 PM)')}</option>
+                  <option value="Full Day (8:00 AM - 5:00 PM)">{t('equipment_hub.time_full_day', '⏰ Full Day (8:00 AM - 5:00 PM)')}</option>
                 </select>
               </div>
             </div>
@@ -2547,14 +2547,14 @@ function BookEquipmentModal({ equipment, activeFarm, user, serviceLocation, isPr
                       onClick={() => setUnitMode('acres')}
                       className={`px-3 py-2 font-black text-xs ${unitMode === 'acres' ? 'bg-emerald-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'}`}
                     >
-                      Acres
+                      {t('equipment_hub.acres_unit', 'Acres')}
                     </button>
                     <button
                       type="button"
                       onClick={() => setUnitMode('hours')}
                       className={`px-3 py-2 font-black text-xs ${unitMode === 'hours' ? 'bg-emerald-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'}`}
                     >
-                      Hours
+                      {t('equipment_hub.hours_unit', 'Hours')}
                     </button>
                   </div>
                 </div>

@@ -12222,3 +12222,22 @@ pm --prefix frontend run build (vite v4.5.14 built cleanly in 20.50s with 0 erro
   - Guaranteed zero fallback to untranslated English strings when Telugu (`te`) is active.
 - **Verification:**
   - Ran `npm.cmd run build`: 3,207 modules compiled with 0 errors in 20.90s.
+
+## [2026-11-27 16:40:00] - Machinery Rental Hub 8-Language Complete Localization & Hardcoded String Eradication
+- **100% Vernacular Localization Across All 8 Supported Languages:**
+  - Designed and deployed `frontend/src/i18n/equipmentHubTranslations.js` containing 201 keys across all 8 languages: English (`en`), Telugu (`te`), Hindi (`hi`), Tamil (`ta`), Kannada (`kn`), Malayalam (`ml`), Marathi (`mr`), Odia (`or`).
+  - Added Marathi (`mr`) language block from 0 to 201 keys, resolving a complete language gap.
+  - Full translations for all 10 Land Stages, all 22 Agricultural Operations, 4-stage booking stepper, provider online badges, time slots, units, passbook filters, cancel/delete dialogs, and CHC subsidies.
+- **Deep i18next Integration (`config.js`):**
+  - Registered `equipmentHubResources` via `deepMerge` into `resources[lang].translation`.
+- **Intelligent Machinery Name Localization (`localizationHelper.js`):**
+  - Built `EQUIPMENT_TERMS` dictionary and `localizeEquipmentText` to translate machinery terms (Tractor, Drone, Combine Harvester, Rotavator, Solar Pump, etc.) in titles and implements.
+  - Enhanced `getLocalizedField` to automatically localize machinery titles.
+  - Added Marathi (`mr`) support to `MEASUREMENT_UNITS`.
+- **Refactored Hardcoded Strings (`EquipmentBookingPage.jsx`):**
+  - Replaced hardcoded 'Within 10 km', 'Driver Included', 'Pilot Included', 'Self-Drive', 'km away', '(or ₹/day)' with localized `t()` keys.
+  - Replaced hardcoded time slots dropdown options with `t('equipment_hub.time_early_morning')`, `t('equipment_hub.time_afternoon')`, `t('equipment_hub.time_full_day')`.
+  - Replaced hardcoded 'Acres' / 'Hours' unit mode toggle buttons with `t('equipment_hub.acres_unit')` and `t('equipment_hub.hours_unit')`.
+  - Upgraded stepper labels to dynamic localized tags.
+- **Verification:**
+  - Production build `npm.cmd run build` transformed 3,208 modules in 23.80s with 0 errors.

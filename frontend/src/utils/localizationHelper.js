@@ -107,19 +107,60 @@ export function getLocalizedField(entity, fieldName, lang = 'en') {
   ];
 
   for (const fb of fallbacks) {
-    if (fb != null && fb !== '') return fb;
+    if (fb != null && fb !== '') {
+      if (fieldName === 'title' && typeof fb === 'string' && cleanLang !== 'en') {
+        return localizeEquipmentText(fb, cleanLang);
+      }
+      return fb;
+    }
   }
 
   return '';
 }
 
+export const EQUIPMENT_TERMS = {
+  'Spraying Drone': { te: 'స్ప్రేయింగ్ డ్రోన్', hi: 'स्प्रेइंग ड्रोन', ta: 'தெளிப்பு ட்ரோன்', kn: 'ಸಿಂಪಡಣೆ ಡ್ರೋನ್', ml: 'സ്പ്രേയിംഗ് ഡ്രോൺ', mr: 'फवारणी ड्रोन', or: 'ସ୍ପ୍ରେୟିଂ ଡ୍ରୋନ୍' },
+  'Combine Harvester': { te: 'కంబైన్ హార్వెస్టర్', hi: 'कंबाइन हार्वेस्टर', ta: 'கம்பைன் அறுவடை இயந்திரம்', kn: 'ಕಂಬೈನ್ ಕೊಯ್ಲು ಯಂತ್ರ', ml: 'കംബൈൻ കൊയ്ത്തുയന്ത്രം', mr: 'कंबाईन हार्वेस्टर', or: 'କମ୍ବାଇନ୍ ହାର୍ଭେଷ୍ଟର' },
+  'Irrigation Pump': { te: 'నీటిపారుదల పంపు', hi: 'सिंचाई पंप', ta: 'பாசன பம்ப்', kn: 'ನೀರಾವರಿ ಪಂಪ್', ml: 'ജലസേചന പമ്പ്', mr: 'सिंचन पंप', or: 'ଜଳସେଚନ ପମ୍ପ' },
+  'Solar Pump': { te: 'సోలార్ పంప్', hi: 'सोलर पंप', ta: 'சோலார் பம்ப்', kn: 'ಸೋಲಾರ್ ಪಂಪ್', ml: 'സോളാർ പമ്പ്', mr: 'सौर पंप', or: 'ସୌର ପମ୍ପ' },
+  'Diesel Pump': { te: 'డీజిల్ పంప్', hi: 'डीजल पंप', ta: 'டீசல் பம்ப்', kn: 'ಡೀಸೆಲ್ ಪಂಪ್', ml: 'ഡീസൽ പമ്പ്', mr: 'डिझेल पंप', or: 'ଡିଜେଲ୍ ପମ୍ପ' },
+  'Laser Leveler': { te: 'లేజర్ లెవెలర్', hi: 'लेजर लेवलर', ta: 'லேசர் சமன்படுத்தி', kn: 'ಲೇಸರ್ ಲೆವೆಲರ್', ml: 'ലേസർ ലെവലർ', mr: 'लेझर लेव्हलर', or: 'ଲେଜର ଲେଭେଲର୍' },
+  'Power Tiller': { te: 'పవర్ టిల్లర్', hi: 'पावर टिलर', ta: 'பவர் டில்லர்', kn: 'ಪವರ್ ಟಿಲ್ಲರ್', ml: 'പവർ ടില്ലർ', mr: 'पॉवर टिलर', or: 'ପାୱାର୍ ଟିଲର୍' },
+  'Seed Drill': { te: 'విత్తన గొర్రు', hi: 'सीड ड्रिल', ta: 'விதைப்புக் கருவி', kn: 'ಸೀಡ್ ಡ್ರಿಲ್', ml: 'സീഡ് ഡ്രിൽ', mr: 'सीड ड्रिल', or: 'ସିଡ୍ ଡ୍ରିଲ୍' },
+  'Tractor': { te: 'ట్రాక్టర్', hi: 'ट्रैक्टर', ta: 'டிராக்டர்', kn: 'ಟ್ರ್ಯಾಕ್ಟರ್', ml: 'ട്രാക്ടർ', mr: 'ट्रॅक्टर', or: 'ଟ୍ରାକ୍ଟର' },
+  'Drone': { te: 'డ్రోన్', hi: 'ड्रोन', ta: 'ட்ரோன்', kn: 'ಡ್ರೋನ್', ml: 'ഡ്രോൺ', mr: 'ड्रोन', or: 'ଡ୍ରୋନ୍' },
+  'Harvester': { te: 'హార్వెస్టర్', hi: 'हार्वेस्टर', ta: 'அறுவடை இயந்திரம்', kn: 'ಕೊಯ್ಲು ಯಂತ್ರ', ml: 'കൊയ്ത്തുയന്ത്രം', mr: 'हार्वेस्टर', or: 'ହାର୍ଭେଷ୍ଟର' },
+  'Rotavator': { te: 'రోటవేటర్', hi: 'रोटावेटर', ta: 'ரோட்டவேட்டர்', kn: 'ರೋಟವೇಟರ್', ml: 'റോട്ടവേറ്റർ', mr: 'रोटाव्हेटर', or: 'ରୋଟାଭେଟର' },
+  'Cultivator': { te: 'కల్టివేటర్', hi: 'कल्टीवेटर', ta: 'கல்டிவேட்டர்', kn: 'ಕಲ್ಟಿವೇಟರ್', ml: 'കൾട്ടിവേറ്റർ', mr: 'कल्टिव्हेटर', or: 'କଲ୍ଟିଭେଟର୍' },
+  'Subsoiler': { te: 'సబ్‌సాయిలర్', hi: 'सबसॉइलर', ta: 'சப்சாயிலர்', kn: 'ಸಬ್‌ಸಾಯಿಲರ್', ml: 'സബ്സോയിലർ', mr: 'सबसॉइलर', or: 'ସବସଏଲର' },
+  'Mulcher': { te: 'మల్చర్', hi: 'मल्चर', ta: 'மல்ச்சர்', kn: 'ಮಲ್ಚರ್', ml: 'മൽച്ചർ', mr: 'मल्चर', or: 'ମଲଚର' },
+  'Trolley': { te: 'ట్రాలీ', hi: 'ट्रॉली', ta: 'டிராலி', kn: 'ಟ್ರಾಲಿ', ml: 'ട്രോളി', mr: 'ट्रॉली', or: 'ଟ୍ରଲି' }
+};
+
+export function localizeEquipmentText(text = '', lang = 'en') {
+  if (!text || typeof text !== 'string') return text;
+  const cleanLang = normalizeLanguage(lang);
+  if (cleanLang === 'en') return text;
+
+  let localized = text;
+  const sortedTerms = Object.keys(EQUIPMENT_TERMS).sort((a, b) => b.length - a.length);
+  for (const term of sortedTerms) {
+    const translation = EQUIPMENT_TERMS[term]?.[cleanLang];
+    if (translation) {
+      const regex = new RegExp(`\\b${term}\\b`, 'gi');
+      localized = localized.replace(regex, translation);
+    }
+  }
+  return localized;
+}
+
 export const MEASUREMENT_UNITS = {
-  ml: { en: 'ml', te: 'మి.లీ', ta: 'மி.லி', kn: 'ಮಿ.ಲೀ', hi: 'मि.ली', ml: 'മി.ലി', or: 'ମି.ଲି' },
-  g: { en: 'g', te: 'గ్రా', ta: 'கி', kn: 'ಗ್ರಾಂ', hi: 'ग्रा', ml: 'ഗ്രാം', or: 'ଗ୍ରା' },
-  kg: { en: 'kg', te: 'కి.గ్రా', ta: 'கிலோ', kn: 'ಕೆ.ಜಿ', hi: 'कि.ग्रा', ml: 'കി.ഗ്രാം', or: 'କି.ଗ୍ରା' },
-  l: { en: 'L', te: 'లీ', ta: 'லி', kn: 'ಲೀ', hi: 'ली', ml: 'ലി', or: 'ଲି' },
-  acre: { en: 'acre', te: 'ఎకరం', ta: 'ஏக்கர்', kn: 'ಎಕರೆ', hi: 'एकड़', ml: 'ഏക്കർ', or: 'ଏକର' },
-  hectare: { en: 'hectare', te: 'హెక్టారు', ta: 'ஹெக்டேர்', kn: 'ಹೆಕ್ಟೇರ್', hi: 'हेक्टेयर', ml: 'ഹെക്ടർ', or: 'ହେକ୍ଟର' }
+  ml: { en: 'ml', te: 'మి.లీ', ta: 'மி.லி', kn: 'ಮಿ.ಲೀ', hi: 'मि.ली', ml: 'മി.ലി', mr: 'मि.ली', or: 'ମି.ଲି' },
+  g: { en: 'g', te: 'గ్రా', ta: 'கி', kn: 'ಗ್ರಾಂ', hi: 'ग्रा', ml: 'ഗ്രാം', mr: 'ग्रॅम', or: 'ଗ୍ରା' },
+  kg: { en: 'kg', te: 'కి.గ్రా', ta: 'கிலோ', kn: 'ಕೆ.ಜಿ', hi: 'कि.ग्रा', ml: 'കി.ഗ്രാം', mr: 'कि.ग्रॅ.', or: 'କି.ଗ୍ରା' },
+  l: { en: 'L', te: 'లీ', ta: 'லி', kn: 'ಲೀ', hi: 'ली', ml: 'ലി', mr: 'ली', or: 'ଲି' },
+  acre: { en: 'acre', te: 'ఎకరం', ta: 'ஏக்கர்', kn: 'ಎಕರೆ', hi: 'एकड़', ml: 'ഏക്കർ', mr: 'एकर', or: 'ଏକର' },
+  hectare: { en: 'hectare', te: 'హెక్టారు', ta: 'ஹெக்டேர்', kn: 'ಹೆಕ್ಟೇರ್', hi: 'हेक्टेयर', ml: 'ഹെക്ടർ', mr: 'हेक्टर', or: 'ହେକ୍ଟର' }
 };
 
 /**

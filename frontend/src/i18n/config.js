@@ -4,6 +4,7 @@ import LanguageDetector from 'i18next-browser-languagedetector';
 import { resources } from './translations.js';
 import { extendedResources } from './extendedTranslations.js';
 import { comprehensiveResources } from './comprehensiveTranslations.js';
+import { equipmentHubResources } from './equipmentHubTranslations.js';
 
 // Deep merge helper so sub-objects and nested domains are never overwritten
 function deepMerge(target, source) {
@@ -33,6 +34,16 @@ if (extendedResources && typeof extendedResources === 'object') {
 // 2. Deep merge comprehensive resources (all core nav, dashboard, weather, and scanner keys)
 if (comprehensiveResources && typeof comprehensiveResources === 'object') {
   for (const [lang, domains] of Object.entries(comprehensiveResources)) {
+    if (resources && resources[lang]) {
+      if (!resources[lang].translation) resources[lang].translation = {};
+      deepMerge(resources[lang].translation, domains);
+    }
+  }
+}
+
+// 3. Deep merge equipment hub resources (100% complete coverage for all 8 languages)
+if (equipmentHubResources && typeof equipmentHubResources === 'object') {
+  for (const [lang, domains] of Object.entries(equipmentHubResources)) {
     if (resources && resources[lang]) {
       if (!resources[lang].translation) resources[lang].translation = {};
       deepMerge(resources[lang].translation, domains);
