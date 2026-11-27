@@ -12330,3 +12330,15 @@ pm --prefix frontend run build (vite v4.5.14 built cleanly in 20.50s with 0 erro
   - All other routes (Notifications, Dashboard, Field, Admin, Rental Hub) remain lightweight, quiet, and consume 0 extra RAM.
 - **Verification:**
   - Production build `npm.cmd run build` compiled 3,213 modules with 0 errors in 19.93s.
+
+## [2026-11-27 18:55:00] - Decommissioning of GitHub Actions Android APK Build Workflow (`build_android_apk.yml`)
+- **Analysis of GitHub Actions Failure Email:**
+  - The user received an email from GitHub with subject `[trivereddygudala/agrishield-crop-system] Build Standalone Offline Android APK: All jobs have failed`.
+  - **Root-Cause:** `.github/workflows/build_android_apk.yml` had a push trigger on `frontend/**`. Whenever updates were pushed to the frontend, GitHub Actions automatically launched an Ubuntu runner to build an Android APK via `gradle assembleDebug` in the `./android` folder. The cloud Gradle build failed after 3 minutes 14 seconds due to cloud environment SDK/license mismatches, triggering automated error notification emails from GitHub.
+- **Fix Applied:**
+  - Completely deleted `.github/workflows/build_android_apk.yml` using `git rm`.
+  - GitHub Actions will no longer attempt to build Android APKs on push.
+  - No further APK build failure emails will be sent by GitHub.
+- **Verification:**
+  - Verified no `.apk` binaries exist in the repository.
+  - Successfully staged and committed workflow removal to `origin/main`.
