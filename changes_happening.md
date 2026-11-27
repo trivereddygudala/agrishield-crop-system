@@ -12430,3 +12430,19 @@ pm --prefix frontend run build (vite v4.5.14 built cleanly in 20.50s with 0 erro
   8. **Localization Suite (`providerHubTranslations.js`):** Added comprehensive English and Telugu translations for all 7 upgrades.
 - **Verification:**
   - Production build `npm.cmd run build` compiled 3,211 modules cleanly in 48.72s with 0 errors.
+
+
+## [2026-11-27 21:51:00] - Fix "ReferenceError: currentLang is not defined" in Farmer Rental Booking (`EquipmentBookingPage.jsx`)
+- **Root Cause Analysis from User's Mobile Error Screen:**
+  - When a farmer tapped "Book Now" / "Rent Machine" on an equipment card in the Farmer Portal, the `BookEquipmentModal` component was mounted.
+  - At line 2364 of `EquipmentBookingPage.jsx`, the modal rendered:
+    `{getLocalizedField(equipment, 'title', currentLang) || equipment.title}`
+  - However, while `EquipmentBookingPage` had `currentLang` defined in its parent scope, `BookEquipmentModal` was declared as a separate component outside `EquipmentBookingPage()` and only destructured `{ t } = useTranslation()`, omitting `i18n` and never defining `currentLang`.
+  - Evaluating `currentLang` threw `ReferenceError: currentLang is not defined`, crashing the React rendering tree into the global Error Boundary.
+- **Fix Applied:**
+  - In `frontend/src/pages/farmer/EquipmentBookingPage.jsx`:
+    - Updated `BookEquipmentModal` parameter signature to accept `currentLang: propLang`.
+    - Added `const { t, i18n } = useTranslation()` and `const currentLang = propLang || (i18n?.language || 'en').split('-')[0].toLowerCase()`.
+    - Passed `currentLang={currentLang}` explicitly from `<BookEquipmentModal />` invocation.
+- **Verification:**
+  - Production build `npm.cmd run build` compiled 3,211 modules cleanly in 31.91s with 0 errors.

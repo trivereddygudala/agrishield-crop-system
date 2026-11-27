@@ -1714,6 +1714,7 @@ export default function EquipmentBookingPage() {
             equipment={selectedEquipment}
             activeFarm={activeFarm}
             user={user}
+            currentLang={currentLang}
             serviceLocation={{
               state: locationState,
               district: locationDistrict,
@@ -2057,8 +2058,9 @@ export default function EquipmentBookingPage() {
 // ═══════════════════════════════════════════════════════════════════
 // SUB-COMPONENT: BOOKING MODAL WITH ALL REQUIRED FIELDS & LIVE MATH
 // ═══════════════════════════════════════════════════════════════════
-function BookEquipmentModal({ equipment, activeFarm, user, serviceLocation, isProviderOnline, onClose, onConfirm }) {
-  const { t } = useTranslation();
+function BookEquipmentModal({ equipment, activeFarm, user, serviceLocation, isProviderOnline, currentLang: propLang, onClose, onConfirm }) {
+  const { t, i18n } = useTranslation();
+  const currentLang = propLang || (i18n?.language || 'en').split('-')[0].toLowerCase();
   const [farmerName, setFarmerName] = useState(user?.name || user?.full_name || t('equipment_hub.farmer', 'Farmer'));
   const [farmerPhone, setFarmerPhone] = useState(user?.phone || user?.mobile || '');
   const [farmSector, setFarmSector] = useState(activeFarm?.farm_name || 'My Farm Field 1');
