@@ -12471,3 +12471,13 @@ pm --prefix frontend run build (vite v4.5.14 built cleanly in 20.50s with 0 erro
 - **Verification**:
   - Validated 0 missing keys across all 8 languages for 224 distinct `t('provider_hub.*')` calls in `ProviderDashboardPage.jsx`.
   - Production build `npm.cmd run build` passed with 0 errors (3,211 modules transformed in 42.00s).
+
+## [2026-11-28 07:29:40] - WhatsApp Receipt Direct Member & Contact Selector
+- **Problem**: In `ProviderDashboardPage.jsx`, tapping "Share Bill on WhatsApp" forced a fixed recipient phone number (`https://wa.me/91${cleanPhone}?text=...`). This automatically opened a single 1-on-1 chat with that specific number, preventing the equipment provider from choosing other members, farmers, or WhatsApp groups.
+- **Modifications**:
+  1. `frontend/src/pages/provider/ProviderDashboardPage.jsx`:
+     - Refactored `handleShareReceiptWhatsApp` to remove the hardcoded phone binding.
+     - On mobile devices, redirected via `whatsapp://send?text=${text}` to immediately launch the native WhatsApp app directly to the contact and group picker screen ("Send to...").
+     - Added desktop fallback using `https://api.whatsapp.com/send?text=${text}` to allow selecting any chat or group on WhatsApp Web or WhatsApp Desktop.
+- **Verification**:
+  - Production build `npm.cmd run build` passed with 0 errors (3,211 modules transformed in 38.57s).

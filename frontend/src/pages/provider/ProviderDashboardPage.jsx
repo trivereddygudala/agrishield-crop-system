@@ -349,8 +349,23 @@ export default function ProviderDashboardPage() {
       `🙏 *Thank you for choosing AgriShield Farm Mechanization!*`
     );
 
-    const waUrl = cleanPhone ? `https://wa.me/91${cleanPhone}?text=${text}` : `https://wa.me/?text=${text}`;
-    window.open(waUrl, '_blank', 'noopener,noreferrer');
+    // Direct WhatsApp redirect to contact & member selector without locking to a single pre-filled recipient
+    const isMobile = typeof navigator !== 'undefined' && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    const whatsappWebUrl = `https://api.whatsapp.com/send?text=${text}`;
+
+    if (isMobile) {
+      // Directly launches native WhatsApp app and immediately opens contact/group selector screen
+      window.location.href = `whatsapp://send?text=${text}`;
+      // Fallback to web URL if custom scheme is unhandled
+      setTimeout(() => {
+        if (typeof document !== 'undefined' && document.hasFocus && document.hasFocus()) {
+          window.open(whatsappWebUrl, '_blank', 'noopener,noreferrer');
+        }
+      }, 750);
+    } else {
+      // On desktop, opens WhatsApp Web or prompts desktop app to choose recipient
+      window.open(whatsappWebUrl, '_blank', 'noopener,noreferrer');
+    }
   };
 
   // ── 4. GPS Plot Route Navigator ──
