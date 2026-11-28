@@ -12457,3 +12457,17 @@ pm --prefix frontend run build (vite v4.5.14 built cleanly in 20.50s with 0 erro
   5. **Bilingual Localization:** Added English and Telugu translations for `complete_and_paid`, `completed_with_due`, `pay_on_completion`, `mark_due_paid`, and `quick_settle_btn`.
 - **Verification:**
   - Production build `npm.cmd run build` compiled 3,211 modules cleanly in 39.14s with 0 errors.
+
+## [2026-11-28 07:22:30] - Complete 8-Language Translation Overhaul for Equipment Provider Portal
+- **Problem**: UI modals (Machinery Rental Bill & Receipt, Diesel & Driver Expenses, Advance Payment & Dues Tracker, Schedule Slot Lock) in the Equipment Provider Portal were displaying hardcoded English strings, ignoring language switches. Furthermore, language dictionaries (`hi`, `ta`, `kn`, `ml`, `or`) only had 5 keys in `providerHubTranslations.js`, causing silent fallback to English.
+- **Modifications**:
+  1. `frontend/src/i18n/providerHubTranslations.js`:
+     - Expanded dictionary across all 8 supported Indian languages: English (`en`), Telugu (`te`), Hindi (`hi`), Tamil (`ta`), Kannada (`kn`), Malayalam (`ml`), Marathi (`mr`), and Odia (`or`).
+     - Added 50+ missing translation keys covering all modal headers, field labels, receipts, voucher badges, diesel formulas, operating expenses, dues tracking, and calendar slot reasons.
+     - Reached 100% dictionary parity (264 keys in `provider_hub` namespace across all 8 languages).
+  2. `frontend/src/pages/provider/ProviderDashboardPage.jsx`:
+     - Refactored `receiptModalBooking`, `expenseModalBooking`, `duesModalBooking`, and `slotBlockModalData` to wrap all 46 raw text strings with dynamic `t('provider_hub.xyz', 'Fallback')` calls.
+     - Cleaned up mixed script strings (e.g. `Remaining Balance Due (బాకీ):`).
+- **Verification**:
+  - Validated 0 missing keys across all 8 languages for 224 distinct `t('provider_hub.*')` calls in `ProviderDashboardPage.jsx`.
+  - Production build `npm.cmd run build` passed with 0 errors (3,211 modules transformed in 42.00s).

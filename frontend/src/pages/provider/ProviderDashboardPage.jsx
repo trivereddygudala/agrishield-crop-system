@@ -3334,10 +3334,10 @@ export default function ProviderDashboardPage() {
                 </div>
                 <div>
                   <h3 className="text-base font-black text-slate-900 dark:text-white">
-                    Machinery Rental Bill & Receipt
+                    {t('provider_hub.bill_modal_title', 'Machinery Rental Bill & Receipt')}
                   </h3>
                   <p className="text-[11px] text-slate-400">
-                    Official Voucher #{receiptModalBooking.id || receiptModalBooking.bookingId}
+                    {t('provider_hub.official_voucher', 'Official Voucher #')}{receiptModalBooking.id || receiptModalBooking.bookingId}
                   </p>
                 </div>
               </div>
@@ -3360,28 +3360,30 @@ export default function ProviderDashboardPage() {
                     <span className="text-xl">🚜</span>
                     <div>
                       <span className="font-black text-slate-900 dark:text-white text-sm tracking-tight block">
-                        AGRISHIELD FARM MECHANIZATION
+                        {t('provider_hub.farm_mechanization_network', 'AGRISHIELD FARM MECHANIZATION')}
                       </span>
                       <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">
-                        Verified Machinery Rental Network
+                        {t('provider_hub.verified_rental_network', 'Verified Machinery Rental Network')}
                       </span>
                     </div>
                   </div>
                   <span className="px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300">
-                    {receiptModalBooking.status === 'completed' ? 'PAID INVOICE' : 'BOOKING RECEIPT'}
+                    {receiptModalBooking.status === 'completed'
+                      ? t('provider_hub.paid_invoice_badge', 'PAID INVOICE')
+                      : t('provider_hub.booking_receipt_badge', 'BOOKING RECEIPT')}
                   </span>
                 </div>
 
                 {/* Farmer & Provider Dual Column */}
                 <div className="grid grid-cols-2 gap-3 p-3 rounded-xl bg-white dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-700/60">
                   <div>
-                    <span className="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">FARMER RECIPIENT</span>
+                    <span className="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">{t('provider_hub.farmer_recipient_hdr', 'FARMER RECIPIENT')}</span>
                     <p className="font-black text-slate-900 dark:text-white">{receiptModalBooking.farmerName || 'Registered Farmer'}</p>
                     <p className="text-[11px] text-slate-500">{receiptModalBooking.village || 'Field Sector'}, {receiptModalBooking.mandal || 'Andhra Pradesh'}</p>
                     <p className="text-[10px] font-mono text-slate-400 mt-0.5">{receiptModalBooking.farmerPhone || receiptModalBooking.phone || 'Direct Field Dispatch'}</p>
                   </div>
                   <div className="border-l border-slate-100 dark:border-slate-700/60 pl-3">
-                    <span className="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">ISSUED BY PROVIDER</span>
+                    <span className="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">{t('provider_hub.issued_by_provider_hdr', 'ISSUED BY PROVIDER')}</span>
                     <p className="font-black text-slate-900 dark:text-white">{user?.name || user?.username || 'Verified Machinery Hub'}</p>
                     <p className="text-[11px] text-slate-500">{userLocation.village || 'Local Hub'}, {userLocation.district || 'Andhra Pradesh'}</p>
                     <p className="text-[10px] font-mono text-slate-400 mt-0.5">{user?.phone || 'Field Dispatch'}</p>
@@ -3390,7 +3392,7 @@ export default function ProviderDashboardPage() {
 
                 {/* Machinery & Job Details */}
                 <div className="space-y-2">
-                  <span className="text-[10px] uppercase font-bold text-slate-400 block">JOB BREAKDOWN</span>
+                  <span className="text-[10px] uppercase font-bold text-slate-400 block">{t('provider_hub.job_breakdown_hdr', 'JOB BREAKDOWN')}</span>
                   <div className="p-3 rounded-xl bg-white dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-700/60 space-y-2">
                     <div className="flex justify-between items-center text-xs">
                       <div>
@@ -3398,7 +3400,7 @@ export default function ProviderDashboardPage() {
                           {receiptModalBooking.equipmentTitle || receiptModalBooking.title || 'Agricultural Tractor'}
                         </span>
                         <span className="text-[10px] text-slate-400">
-                          {receiptModalBooking.category || 'Tractor'} • {receiptModalBooking.acres || 2} Acres • {receiptModalBooking.bookingDate || 'Scheduled'}
+                          {receiptModalBooking.category || 'Tractor'} • {receiptModalBooking.acres || 2} {t('provider_hub.acres_unit', 'Acres')} • {receiptModalBooking.bookingDate || 'Scheduled'}
                         </span>
                       </div>
                       <span className="font-black text-slate-900 dark:text-white">
@@ -3407,7 +3409,7 @@ export default function ProviderDashboardPage() {
                     </div>
 
                     <div className="pt-2 border-t border-slate-100 dark:border-slate-700/60 flex justify-between items-center text-[11px]">
-                      <span className="text-slate-500">Advance Paid:</span>
+                      <span className="text-slate-500">{t('provider_hub.advance_paid_label', 'Advance Paid:')}</span>
                       <span className="font-bold text-emerald-600 dark:text-emerald-400">
                         ₹{((duesMap[String(receiptModalBooking.id || receiptModalBooking.bookingId)]?.advancePaid !== undefined) 
                           ? duesMap[String(receiptModalBooking.id || receiptModalBooking.bookingId)].advancePaid 
@@ -3417,7 +3419,7 @@ export default function ProviderDashboardPage() {
 
                     {duesMap[String(receiptModalBooking.id || receiptModalBooking.bookingId)]?.balanceDue > 0 && (
                       <div className="flex justify-between items-center text-[11px]">
-                        <span className="text-rose-500 font-bold">Balance Due:</span>
+                        <span className="text-rose-500 font-bold">{t('provider_hub.balance_due_label', 'Balance Due:')}</span>
                         <span className="font-black text-rose-600 dark:text-rose-400">
                           ₹{duesMap[String(receiptModalBooking.id || receiptModalBooking.bookingId)].balanceDue.toLocaleString('en-IN')}
                         </span>
@@ -3429,8 +3431,8 @@ export default function ProviderDashboardPage() {
                 {/* Total Paid Badge */}
                 <div className="p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 flex items-center justify-between">
                   <div>
-                    <span className="text-[10px] font-black uppercase text-emerald-800 dark:text-emerald-300 block">TOTAL RENTAL SETTLEMENT</span>
-                    <span className="text-[10px] text-emerald-600 dark:text-emerald-400">Direct cash on field / UPI payment (0% commission)</span>
+                    <span className="text-[10px] font-black uppercase text-emerald-800 dark:text-emerald-300 block">{t('provider_hub.total_settlement_hdr', 'TOTAL RENTAL SETTLEMENT')}</span>
+                    <span className="text-[10px] text-emerald-600 dark:text-emerald-400">{t('provider_hub.direct_settlement_sub', 'Direct cash on field / UPI payment (0% commission)')}</span>
                   </div>
                   <span className="text-xl font-black text-emerald-700 dark:text-emerald-300 font-mono">
                     ₹{getBookingCost(receiptModalBooking).toLocaleString('en-IN')}
@@ -3441,7 +3443,7 @@ export default function ProviderDashboardPage() {
                 <div className="flex items-center justify-between pt-2 border-t border-slate-200 dark:border-slate-800 text-[10px] text-slate-400 font-mono">
                   <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-bold">
                     <ShieldCheck className="w-4 h-4" />
-                    <span>Digitally Authenticated by AgriShield Hub</span>
+                    <span>{t('provider_hub.digitally_authenticated', 'Digitally Authenticated by AgriShield Hub')}</span>
                   </div>
                   <span>{new Date().toLocaleDateString('en-IN')}</span>
                 </div>
@@ -3455,7 +3457,7 @@ export default function ProviderDashboardPage() {
                 onClick={() => setReceiptModalBooking(null)}
                 className="px-4 py-2.5 rounded-2xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 transition-colors cursor-pointer"
               >
-                Close
+                {t('provider_hub.close_btn', 'Close')}
               </button>
               <button
                 type="button"
@@ -3465,7 +3467,7 @@ export default function ProviderDashboardPage() {
                 className="px-4 py-2.5 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-100 text-xs font-bold text-slate-700 dark:text-slate-200 flex items-center gap-1.5 transition-colors cursor-pointer"
               >
                 <Download className="w-4 h-4 text-slate-600 dark:text-slate-300" />
-                <span>Print Receipt</span>
+                <span>{t('provider_hub.print_receipt_btn', 'Print Receipt')}</span>
               </button>
               <button
                 type="button"
@@ -3473,7 +3475,7 @@ export default function ProviderDashboardPage() {
                 className="px-5 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black flex items-center gap-2 shadow-lg shadow-emerald-600/25 transition-transform active:scale-95 cursor-pointer"
               >
                 <Share2 className="w-4 h-4" />
-                <span>Share Bill on WhatsApp</span>
+                <span>{t('provider_hub.share_whatsapp_bill', 'Share Bill on WhatsApp')}</span>
               </button>
             </div>
           </div>
@@ -3491,10 +3493,10 @@ export default function ProviderDashboardPage() {
                 </div>
                 <div>
                   <h3 className="text-base font-black text-slate-900 dark:text-white">
-                    Log Diesel & Driver Expenses
+                    {t('provider_hub.log_expenses_title', 'Log Diesel & Driver Expenses')}
                   </h3>
                   <p className="text-[11px] text-slate-400">
-                    Calculate real net profit for {expenseModalBooking.equipmentTitle || 'Rental Job'}
+                    {t('provider_hub.calculate_profit_sub', 'Calculate real net profit for {{title}}', { title: expenseModalBooking.equipmentTitle || 'Rental Job' })}
                   </p>
                 </div>
               </div>
@@ -3510,15 +3512,15 @@ export default function ProviderDashboardPage() {
             <form onSubmit={handleSaveJobExpenses} className="p-5 space-y-4 text-xs">
               <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800 flex justify-between items-center">
                 <div>
-                  <span className="text-[10px] text-slate-400 font-bold uppercase block">Gross Rental Fee</span>
+                  <span className="text-[10px] text-slate-400 font-bold uppercase block">{t('provider_hub.gross_rental_fee', 'Gross Rental Fee')}</span>
                   <span className="text-base font-black text-slate-900 dark:text-white">
                     ₹{getBookingCost(expenseModalBooking).toLocaleString('en-IN')}
                   </span>
                 </div>
                 <div className="text-right">
-                  <span className="text-[10px] text-slate-400 font-bold uppercase block">Field Area</span>
+                  <span className="text-[10px] text-slate-400 font-bold uppercase block">{t('provider_hub.field_area_label', 'Field Area')}</span>
                   <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                    {expenseModalBooking.acres || 2} Acres ({expenseModalBooking.farmerName || 'Farmer'})
+                    {expenseModalBooking.acres || 2} {t('provider_hub.acres_unit', 'Acres')} ({expenseModalBooking.farmerName || 'Farmer'})
                   </span>
                 </div>
               </div>
@@ -3526,7 +3528,7 @@ export default function ProviderDashboardPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <label className="text-[11px] font-black uppercase text-slate-700 dark:text-slate-300">
-                    Diesel Consumed (Liters)
+                    {t('provider_hub.diesel_liters', 'Diesel Consumed (Liters)')}
                   </label>
                   <input
                     type="number"
@@ -3540,7 +3542,7 @@ export default function ProviderDashboardPage() {
                 </div>
                 <div className="space-y-1">
                   <label className="text-[11px] font-black uppercase text-slate-700 dark:text-slate-300">
-                    Diesel Rate (₹/L)
+                    {t('provider_hub.diesel_price_per_l', 'Diesel Rate (₹/L)')}
                   </label>
                   <input
                     type="number"
@@ -3556,7 +3558,7 @@ export default function ProviderDashboardPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <label className="text-[11px] font-black uppercase text-slate-700 dark:text-slate-300">
-                    Driver Wage / Bata (₹)
+                    {t('provider_hub.driver_wage', 'Driver Wage / Bata (₹)')}
                   </label>
                   <input
                     type="number"
@@ -3569,7 +3571,7 @@ export default function ProviderDashboardPage() {
                 </div>
                 <div className="space-y-1">
                   <label className="text-[11px] font-black uppercase text-slate-700 dark:text-slate-300">
-                    Misc (Grease/Tolls) (₹)
+                    {t('provider_hub.misc_expense', 'Misc (Grease/Tolls) (₹)')}
                   </label>
                   <input
                     type="number"
@@ -3596,13 +3598,13 @@ export default function ProviderDashboardPage() {
                 return (
                   <div className="p-3.5 rounded-2xl bg-emerald-50/70 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/80 space-y-1.5">
                     <div className="flex justify-between text-[11px]">
-                      <span className="text-slate-500">Total Operating Expenses:</span>
+                      <span className="text-slate-500">{t('provider_hub.total_operating_expenses', 'Total Operating Expenses:')}</span>
                       <span className="font-bold text-rose-600 dark:text-rose-400">-₹{expTotal.toLocaleString('en-IN')}</span>
                     </div>
                     <div className="flex justify-between items-center pt-1.5 border-t border-emerald-200/80 dark:border-emerald-800/60">
                       <div>
-                        <span className="font-black text-emerald-900 dark:text-emerald-200 block text-xs">Estimated Net Pocket Profit:</span>
-                        <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">{margin}% Operating Margin</span>
+                        <span className="font-black text-emerald-900 dark:text-emerald-200 block text-xs">{t('provider_hub.estimated_net_profit', 'Estimated Net Pocket Profit:')}</span>
+                        <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">{margin}% {t('provider_hub.operating_margin', 'Operating Margin')}</span>
                       </div>
                       <span className="text-lg font-black text-emerald-700 dark:text-emerald-300 font-mono">
                         ₹{net.toLocaleString('en-IN')}
@@ -3618,14 +3620,14 @@ export default function ProviderDashboardPage() {
                   onClick={() => setExpenseModalBooking(null)}
                   className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 transition-colors cursor-pointer"
                 >
-                  Cancel
+                  {t('provider_hub.cancel_modal_btn', 'Cancel')}
                 </button>
                 <button
                   type="submit"
                   className="px-5 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-black flex items-center gap-1.5 shadow-md shadow-amber-600/30 transition-transform active:scale-95 cursor-pointer"
                 >
                   <Check className="w-4 h-4 stroke-[3]" />
-                  <span>Save Expenses & Profit</span>
+                  <span>{t('provider_hub.save_expenses_btn', 'Save Expenses & Profit')}</span>
                 </button>
               </div>
             </form>
@@ -3644,10 +3646,10 @@ export default function ProviderDashboardPage() {
                 </div>
                 <div>
                   <h3 className="text-base font-black text-slate-900 dark:text-white">
-                    Advance Payment & Dues Tracker
+                    {t('provider_hub.dues_modal_title', 'Advance Payment & Dues Tracker')}
                   </h3>
                   <p className="text-[11px] text-slate-400">
-                    Record cash collected vs pending balance for #{duesModalBooking.id || duesModalBooking.bookingId}
+                    {t('provider_hub.dues_modal_sub', 'Record cash collected vs pending balance for #{{id}}', { id: duesModalBooking.id || duesModalBooking.bookingId })}
                   </p>
                 </div>
               </div>
@@ -3663,13 +3665,13 @@ export default function ProviderDashboardPage() {
             <form onSubmit={handleSaveDues} className="p-5 space-y-4 text-xs">
               <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800 flex justify-between items-center">
                 <div>
-                  <span className="text-[10px] text-slate-400 font-bold uppercase block">Total Agreed Rental</span>
+                  <span className="text-[10px] text-slate-400 font-bold uppercase block">{t('provider_hub.total_agreed_rental', 'Total Agreed Rental')}</span>
                   <span className="text-base font-black text-slate-900 dark:text-white">
                     ₹{getBookingCost(duesModalBooking).toLocaleString('en-IN')}
                   </span>
                 </div>
                 <div className="text-right">
-                  <span className="text-[10px] text-slate-400 font-bold uppercase block">Farmer</span>
+                  <span className="text-[10px] text-slate-400 font-bold uppercase block">{t('provider_hub.farmer_label', 'Farmer')}</span>
                   <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
                     {duesModalBooking.farmerName || 'Farmer'}
                   </span>
@@ -3678,7 +3680,7 @@ export default function ProviderDashboardPage() {
 
               <div className="space-y-1">
                 <label className="text-[11px] font-black uppercase text-slate-700 dark:text-slate-300">
-                  Advance Cash / UPI Received (₹)
+                  {t('provider_hub.advance_received_input', 'Advance Cash / UPI Received (₹)')}
                 </label>
                 <input
                   type="number"
@@ -3703,15 +3705,15 @@ export default function ProviderDashboardPage() {
                       : 'bg-emerald-50/70 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800/80'
                   } space-y-1`}>
                     <div className="flex justify-between text-xs">
-                      <span className="font-bold text-slate-600 dark:text-slate-300">Remaining Balance Due (బాకీ):</span>
+                      <span className="font-bold text-slate-600 dark:text-slate-300">{t('provider_hub.remaining_balance_due', 'Remaining Balance Due')}:</span>
                       <span className={`font-black ${balance > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
                         ₹{balance.toLocaleString('en-IN')}
                       </span>
                     </div>
                     <p className="text-[10px] text-slate-400">
                       {balance > 0
-                        ? 'Farmer will be tracked under Unpaid Dues ledger until fully collected.'
-                        : '100% rental fee collected. No pending dues.'}
+                        ? t('provider_hub.dues_pending_notice', 'Farmer will be tracked under Unpaid Dues ledger until fully collected.')
+                        : t('provider_hub.dues_cleared_notice', '100% rental fee collected. No pending dues.')}
                     </p>
                   </div>
                 );
@@ -3723,14 +3725,14 @@ export default function ProviderDashboardPage() {
                   onClick={() => setDuesModalBooking(null)}
                   className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 transition-colors cursor-pointer"
                 >
-                  Cancel
+                  {t('provider_hub.cancel_modal_btn', 'Cancel')}
                 </button>
                 <button
                   type="submit"
                   className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-black flex items-center gap-1.5 shadow-md shadow-indigo-600/30 transition-transform active:scale-95 cursor-pointer"
                 >
                   <Check className="w-4 h-4 stroke-[3]" />
-                  <span>Update Dues Record</span>
+                  <span>{t('provider_hub.update_dues_btn', 'Update Dues Record')}</span>
                 </button>
               </div>
             </form>
@@ -3746,7 +3748,7 @@ export default function ProviderDashboardPage() {
               <div className="flex items-center gap-2">
                 <Calendar className="w-5 h-5 text-sky-500" />
                 <h3 className="text-base font-black text-slate-900 dark:text-white">
-                  Lock Schedule Slot
+                  {t('provider_hub.lock_slot_title', 'Lock Schedule Slot')}
                 </h3>
               </div>
               <button
@@ -3764,16 +3766,16 @@ export default function ProviderDashboardPage() {
             </div>
 
             <div className="space-y-1 text-xs">
-              <label className="font-bold text-slate-700 dark:text-slate-300">Lock Reason:</label>
+              <label className="font-bold text-slate-700 dark:text-slate-300">{t('provider_hub.lock_reason_label', 'Lock Reason:')}</label>
               <select
                 value={slotBlockReason}
                 onChange={(e) => setSlotBlockReason(e.target.value)}
                 className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-bold"
               >
-                <option value="Personal Farm Use">Personal Farm Use (Sowing/Ploughing)</option>
-                <option value="Routine Maintenance">Routine Workshop Maintenance / Greasing</option>
-                <option value="Operator Unavailable">Driver / Operator Leave</option>
-                <option value="Festive Holiday">Village Festive Break</option>
+                <option value="Personal Farm Use">{t('provider_hub.reason_personal_farm', 'Personal Farm Use (Sowing/Ploughing)')}</option>
+                <option value="Routine Maintenance">{t('provider_hub.reason_maintenance', 'Routine Workshop Maintenance / Greasing')}</option>
+                <option value="Operator Unavailable">{t('provider_hub.reason_driver_leave', 'Driver / Operator Leave')}</option>
+                <option value="Festive Holiday">{t('provider_hub.reason_festive_holiday', 'Village Festive Break')}</option>
               </select>
             </div>
 
@@ -3783,14 +3785,14 @@ export default function ProviderDashboardPage() {
                 onClick={() => setSlotBlockModalData(null)}
                 className="px-3.5 py-1.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 cursor-pointer"
               >
-                Cancel
+                {t('provider_hub.cancel_modal_btn', 'Cancel')}
               </button>
               <button
                 type="button"
                 onClick={() => toggleBlockSlot(slotBlockModalData.machine.id, slotBlockModalData.dateIso, slotBlockReason)}
                 className="px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-black shadow-md shadow-sky-600/30 cursor-pointer"
               >
-                Confirm Lock
+                {t('provider_hub.confirm_lock_btn', 'Confirm Lock')}
               </button>
             </div>
           </div>
