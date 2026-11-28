@@ -12539,3 +12539,13 @@ Successfully implemented the approved 9 real-world upgrades across the Equipment
 
 ### Production Verification:
 - Production bundle compiled successfully with Vite (3,211 modules transformed in 41.17s, 0 errors).
+
+## [2026-11-28 09:27:00] - Production Hostless Cloud Build Configuration Rectification
+- **Hostless Cloud Declarative Manifest (hostless.yaml):**
+  - Created root `hostless.yaml` defining `name: agrishield-worker-1`, `builder: nixpacks`, fast binary build command (`pip install --prefer-binary --no-cache-dir -r backend/requirements.txt`), and production Uvicorn start command on `${PORT:-8000}`.
+- **Nixpacks Configuration (nixpacks.toml):**
+  - Created root `nixpacks.toml` explicitly selecting `python310` and `gcc` packages, ensuring Hostless Nixpacks builder does not get misled by root `package.json`.
+- **Root Dockerfile (Dockerfile):**
+  - Added optimized multi-stage production Dockerfile at root utilizing `python:3.10-slim` with OpenCV C++ runtime dependencies (`libgl1`, `libglib2.0-0`), non-root system user (`appuser`), and fast `--prefer-binary` pip installation.
+- **Root Launcher Fallback (package.json):**
+  - Added `"start": "python backend/run.py"` to root `package.json` to prevent crashes if any runner attempts Node start invocation.
