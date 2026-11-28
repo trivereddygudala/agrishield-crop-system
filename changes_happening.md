@@ -12481,3 +12481,12 @@ pm --prefix frontend run build (vite v4.5.14 built cleanly in 20.50s with 0 erro
      - Added desktop fallback using `https://api.whatsapp.com/send?text=${text}` to allow selecting any chat or group on WhatsApp Web or WhatsApp Desktop.
 - **Verification**:
   - Production build `npm.cmd run build` passed with 0 errors (3,211 modules transformed in 38.57s).
+
+## [2026-11-28 07:36:45] - Replace Native Browser Alert with In-App Floating Toast in Farmer Portal
+- **Problem**: When a farmer tapped "Add to Digital Farm Khata" on an equipment booking card in `EquipmentBookingPage.jsx`, the browser executed native `alert(...)`. This displayed a modal with domain prefixes (`agrishield-crop-system-rust.vercel.app says`) instead of an in-app notification.
+- **Modifications**:
+  1. `frontend/src/pages/farmer/EquipmentBookingPage.jsx`:
+     - Replaced all 5 instances of native `alert(...)` with `showToast(message, type)`.
+     - Upgraded the floating `bookingToast` notification container to dynamically support `success` (Emerald badge with `CheckCircle2`), `error` (Rose badge with `AlertCircle`), and `info` (Sky Blue badge with `AlertCircle`) with frosted glass backdrop blur and close controls.
+- **Verification**:
+  - Production build `npm.cmd run build` passed with 0 errors (3,211 modules transformed in 38.63s).

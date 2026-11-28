@@ -579,13 +579,13 @@ export default function EquipmentBookingPage() {
     const bookingId = booking.id || booking._id;
 
     if (!canonicalFarmId) {
-      alert(t('equipment_hub.select_farm_first', 'Please select an active farm profile first.'));
+      showToast(t('equipment_hub.select_farm_first', 'Please select an active farm profile first.'), 'error');
       return;
     }
 
     // Prevent duplicate booking-expense insertion when the same booking is synced repeatedly
     if (booking.syncedToKhata) {
-      alert(t('equipment_hub.already_synced_khata', 'This booking is already synced to Farm Khata!'));
+      showToast(t('equipment_hub.already_synced_khata', 'This booking is already synced to Farm Khata!'), 'info');
       return;
     }
 
@@ -623,11 +623,11 @@ export default function EquipmentBookingPage() {
         prev.map((b) => ((b.id === booking.id || b._id === booking._id) ? { ...b, syncedToKhata: true } : b))
       );
 
-      alert(t('equipment_hub.sync_khata_success', 'Rental cost successfully logged into Digital Farm Khata passbook!'));
+      showToast(t('equipment_hub.sync_khata_success', 'Rental cost successfully logged into Digital Farm Khata passbook!'), 'success');
     } catch (apiErr) {
       console.error('Backend Khata sync error:', apiErr);
       // DO NOT mark synced. Allow farmer to retry.
-      alert(t('equipment_hub.sync_khata_failed', 'Failed to sync with Farm Khata. Please check your connection and try again.'));
+      showToast(t('equipment_hub.sync_khata_failed', 'Failed to sync with Farm Khata. Please check your connection and try again.'), 'error');
     }
   };
 
@@ -1744,7 +1744,7 @@ export default function EquipmentBookingPage() {
               } catch (err) {
                 console.warn('Backend booking sync notice:', err);
                 const detail = err?.response?.data?.detail;
-      alert(t('equipment_hub.booking_failed_msg', { detail: detail || t('equipment_hub.please_retry', 'Please retry.'), defaultValue: `Booking failed: ${detail || 'Please retry.'}` }));
+                showToast(t('equipment_hub.booking_failed_msg', { detail: detail || t('equipment_hub.please_retry', 'Please retry.'), defaultValue: `Booking failed: ${detail || 'Please retry.'}` }), 'error');
               }
             }}
           />
@@ -2022,9 +2022,21 @@ export default function EquipmentBookingPage() {
             initial={{ opacity: 0, y: 30, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
-            className="fixed bottom-20 sm:bottom-6 right-4 sm:right-6 z-[110] flex items-center gap-3 px-4 py-3 rounded-2xl bg-slate-900/95 dark:bg-emerald-600/95 text-white shadow-2xl border border-slate-700 dark:border-emerald-500 font-bold text-xs max-w-[calc(100vw-32px)] sm:max-w-sm backdrop-blur-md"
+            className={`fixed bottom-20 sm:bottom-6 right-4 sm:right-6 z-[110] flex items-center gap-3 px-4 py-3 rounded-2xl ${
+              bookingToast.type === 'error'
+                ? 'bg-rose-950/95 dark:bg-rose-900/95 text-white border-rose-700 dark:border-rose-600 shadow-rose-950/40'
+                : bookingToast.type === 'info'
+                ? 'bg-sky-950/95 dark:bg-sky-900/95 text-white border-sky-700 dark:border-sky-600 shadow-sky-950/40'
+                : 'bg-slate-900/95 dark:bg-emerald-600/95 text-white border-slate-700 dark:border-emerald-500 shadow-emerald-950/30'
+            } shadow-2xl border font-bold text-xs max-w-[calc(100vw-32px)] sm:max-w-sm backdrop-blur-md`}
           >
-            <CheckCircle2 className="w-4 h-4 text-emerald-400 dark:text-white shrink-0" />
+            {bookingToast.type === 'error' ? (
+              <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+            ) : bookingToast.type === 'info' ? (
+              <AlertCircle className="w-4 h-4 text-sky-400 shrink-0" />
+            ) : (
+              <CheckCircle2 className="w-4 h-4 text-emerald-400 dark:text-white shrink-0" />
+            )}
             <span className="leading-snug">{bookingToast.message}</span>
             <button
               type="button"
