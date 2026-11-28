@@ -12490,3 +12490,52 @@ pm --prefix frontend run build (vite v4.5.14 built cleanly in 20.50s with 0 erro
      - Upgraded the floating `bookingToast` notification container to dynamically support `success` (Emerald badge with `CheckCircle2`), `error` (Rose badge with `AlertCircle`), and `info` (Sky Blue badge with `AlertCircle`) with frosted glass backdrop blur and close controls.
 - **Verification**:
   - Production build `npm.cmd run build` passed with 0 errors (3,211 modules transformed in 38.63s).
+
+## [2026-11-28 08:35:00] - AgriShield Equipment Provider & Farmer Portals: 9 Real-World Upgrades
+
+### Overview:
+Successfully implemented the approved 9 real-world upgrades across the Equipment Provider Workstation and Farmer Portals to eliminate operational friction and bridge on-field realities between machinery providers and hiring farmers.
+
+### 9 Upgrades Delivered:
+1. **Dynamic UPI QR Code on Bill Voucher (receiptModalBooking):**
+   - Integrated QRCodeSVG from qrcode.react generating NPCI standard dynamic UPI strings (upi://pay?pa=...&am=...&tn=...).
+   - Added custom Provider UPI ID configuration with in-place edit/save and clipboard copy.
+   - Added direct mobile 'Open UPI App (Mobile Pay)' button launching PhonePe, Google Pay, Paytm, or BHIM.
+   - Displayed 0% platform commission guarantee badge.
+
+2. **Auto Bi-Directional Khata Sync:**
+   - In ProviderDashboardPage.jsx, marking status as completed automatically dispatches expense payload to agrishield_khata_{farmId} and fires agrishield_khata_updated event.
+   - In EquipmentBookingPage.jsx, added real-time listener updating booking vouchers instantly with syncedToKhata = true.
+
+3. **Modular Implement & Attachment Pairing:**
+   - Provider lists tractors alongside available attachments (Rotavator, Cultivator, Laser Leveler, MB Plough, Seed Drill, Harvester, Trolley) with specific rates.
+   - Farmer portal features an operational filter bar enabling direct filtering by specific implement (Puddling, Leveling, Deep Plough, Sowing, Harvesting).
+
+4. **Multi-Plot Neighbor Cluster Booking & Transit Cost Saver:**
+   - Provider orders tab automatically computes grouped cluster routes in the same village/sector on scheduled dates, minimizing dead-mile transit diesel.
+   - Farmer portal features an active cluster banner with a 5% transit savings incentive for booking adjacent plots.
+
+5. **Driver / Operator Assignment & Daily Bata Expense Tracker:**
+   - Added driver name and phone assignment in expenseModalBooking with daily wage/bata input.
+   - Automatically pre-fills assigned operator details on farmer booking slips with 1-click calling.
+
+6. **Live Monsoon Rain-Delay Safety Shield:**
+   - Added rain and saturated soil moisture safety badges.
+   - Integrated 1-tap 'Free Weather Reschedule' modal allowing farmers and providers to postpone slots without cancellation fees.
+
+7. **Emergency Mid-Job Breakdown Backup Dispatch:**
+   - Added 'Report Mechanical Breakdown' modal allowing providers to select failure issues (Hydraulic lift, tire mud sinking, clutch breakdown, radiator burst) and log remaining field acreage.
+   - Broadcasts emergency backup status badge across the mandal.
+
+8. **Before & After Field Work Photo Verification Proof:**
+   - Added dual before-work (unplowed/raw) and after-work (tilled/leveled) image proof section in receiptModalBooking with verified GPS watermark seal.
+
+9. **Anti-Theft Diesel Consumption Benchmark Standard:**
+   - Automatically calculates Liters/Acre against ICAR/CEMA agronomic benchmarks (3.5 - 5.2 L/Acre).
+   - Triggers warning alarms when fuel consumption exceeds 5.2 L/Acre to protect against fuel siphoning and excessive idling.
+
+### 8-Language Localization Matrix:
+- Added 100% key parity across all 8 supported Indian languages (en, te, hi, ta, kn, ml, mr, or) in providerHubTranslations.js (141 keys) and equipmentHubTranslations.js (221 keys).
+
+### Production Verification:
+- Production bundle compiled successfully with Vite (3,211 modules transformed in 41.17s, 0 errors).

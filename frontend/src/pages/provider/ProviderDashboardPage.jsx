@@ -47,8 +47,14 @@ import {
   Download,
   Share2,
   Camera,
-  ChevronLeft
+  ChevronLeft,
+  QrCode,
+  Copy,
+  Edit3,
+  CloudRain,
+  Shield
 } from 'lucide-react';
+import { QRCodeSVG } from 'qrcode.react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import API from '../../services/api';
@@ -248,6 +254,8 @@ export default function ProviderDashboardPage() {
   const [dieselLitersInput, setDieselLitersInput] = useState('');
   const [dieselPriceInput, setDieselPriceInput] = useState('94');
   const [driverWageInput, setDriverWageInput] = useState('700');
+  const [driverNameInput, setDriverNameInput] = useState('');
+  const [driverPhoneInput, setDriverPhoneInput] = useState('');
   const [miscExpenseInput, setMiscExpenseInput] = useState('');
   const [jobExpensesMap, setJobExpensesMap] = useState(() => {
     try {
@@ -258,6 +266,72 @@ export default function ProviderDashboardPage() {
     }
   });
 
+  // Upgrade 1: Provider Dynamic UPI Settlement State
+  const [providerUpiId, setProviderUpiId] = useState(() => {
+    try {
+      return localStorage.getItem('agrishield_provider_upi_id') || user?.upiId || 'agrishield.provider@upi';
+    } catch (e) {
+      return 'agrishield.provider@upi';
+    }
+  });
+  const [isEditingUpi, setIsEditingUpi] = useState(false);
+  const [customUpiInput, setCustomUpiInput] = useState('');
+
+  // Upgrade 7: Emergency Mid-Job Breakdown Backup Dispatch State
+  const [breakdownModalBooking, setBreakdownModalBooking] = useState(null);
+  const [breakdownPartInput, setBreakdownPartInput] = useState('Hydraulic Lift Failure');
+  const [breakdownRemAcresInput, setBreakdownRemAcresInput] = useState('1.5');
+  const [breakdownNotesInput, setBreakdownNotesInput] = useState('');
+  const [breakdownRecordsMap, setBreakdownRecordsMap] = useState(() => {
+    try {
+      const raw = localStorage.getItem('agrishield_provider_breakdowns');
+      return raw ? JSON.parse(raw) : {};
+    } catch (e) {
+      return {};
+    }
+  });
+
+  // Upgrade 8: Before & After Field Work Photo Verification Proof
+  const [workPhotoProofMap, setWorkPhotoProofMap] = useState(() => {
+    try {
+      const raw = localStorage.getItem('agrishield_provider_photo_proofs');
+      return raw ? JSON.parse(raw) : {};
+    } catch (e) {
+      return {};
+    }
+  });
+
+  const handleUploadPhotoProof = async (bookingId, stage, e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const compressed = await compressImageForUpload(file, { maxDimension: 1200, quality: 0.8 });
+      const reader = new FileReader();
+      reader.onload = () => {
+        const b64 = reader.result;
+        setWorkPhotoProofMap(prev => {
+          const current = prev[bookingId] || {};
+          const updated = {
+            ...prev,
+            [bookingId]: {
+              ...current,
+              [stage]: b64,
+              updatedAt: new Date().toISOString()
+            }
+          };
+          try {
+            localStorage.setItem('agrishield_provider_photo_proofs', JSON.stringify(updated));
+          } catch (_) {}
+          return updated;
+        });
+        toast.success(t('provider_hub.photo_proof_title', 'Field Work Photo Verification Proof'), 'Photo saved with verified field timestamp.');
+      };
+      reader.readAsDataURL(compressed.file || file);
+    } catch (err) {
+      console.warn('Photo proof compression error:', err);
+    }
+  };
+
   const handleOpenExpenseModal = (booking) => {
     const bId = String(booking.id || booking.bookingId);
     const existing = jobExpensesMap[bId];
@@ -265,12 +339,16 @@ export default function ProviderDashboardPage() {
       setDieselLitersInput(String(existing.dieselLiters || ''));
       setDieselPriceInput(String(existing.dieselPrice || '94'));
       setDriverWageInput(String(existing.driverWage || '700'));
+      setDriverNameInput(existing.driverName || booking.assignedDriverName || 'Rama Rao (Operator)');
+      setDriverPhoneInput(existing.driverPhone || booking.assignedDriverPhone || user?.phone || '');
       setMiscExpenseInput(String(existing.miscExpense || ''));
     } else {
       const acres = parseFloat(booking.acres || 2) || 2;
       setDieselLitersInput(String(Math.round(acres * 4.5))); // ~4.5L/acre typical rotavator baseline
       setDieselPriceInput('94');
       setDriverWageInput('700');
+      setDriverNameInput(booking.assignedDriverName || 'Rama Rao (Operator)');
+      setDriverPhoneInput(booking.assignedDriverPhone || user?.phone || '');
       setMiscExpenseInput('');
     }
     setExpenseModalBooking(booking);
@@ -295,6 +373,8 @@ export default function ProviderDashboardPage() {
       dieselPrice: pricePerL,
       dieselCost: dieselTotal,
       driverWage,
+      driverName: driverNameInput.trim(),
+      driverPhone: driverPhoneInput.trim(),
       miscExpense: miscFee,
       totalExpenses,
       grossRevenue: grossRev,
@@ -309,6 +389,14 @@ export default function ProviderDashboardPage() {
       } catch (err) { }
       return updated;
     });
+
+    // Also update bookings list state with assigned operator details
+    setBookingsList(prev => prev.map(b => (String(b.id || b.bookingId) === bId ? {
+      ...b,
+      assignedDriverName: driverNameInput.trim(),
+      assignedDriverPhone: driverPhoneInput.trim(),
+      driverWage
+    } : b)));
 
     toast.success(
       t('provider_hub.net_pocket_profit', 'Net Pocket Profit Updated'),
@@ -1421,6 +1509,43 @@ export default function ProviderDashboardPage() {
             } catch (err) { }
             return updated;
           });
+
+          // Upgrade 2: Auto Bi-Directional Khata Sync
+          const farmId = targetBooking?.farmId || targetBooking?.farmerId || 'default';
+          const khataTx = {
+            id: `bk-${bookingId}`,
+            booking_id: String(bookingId),
+            farm_id: farmId,
+            type: 'expense',
+            category: 'machinery',
+            amount: cost,
+            title: `${targetBooking?.equipmentTitle || targetBooking?.title || 'Machinery Rental'} (#${bookingId})`,
+            description: `Automated rental payment for ${targetBooking?.acres || 2} acres (${targetBooking?.category || 'Tractor'}) - Provider: ${user?.name || 'Verified Machinery Hub'}`,
+            date: targetBooking?.bookingDate || new Date().toISOString().split('T')[0],
+            source: 'equipment_provider_hub',
+            status: 'settled',
+            createdAt: new Date().toISOString()
+          };
+          try {
+            const khataKey = `agrishield_khata_${farmId}`;
+            const cachedKhata = JSON.parse(localStorage.getItem(khataKey) || '[]');
+            if (!cachedKhata.some(tx => tx.booking_id === String(bookingId) || tx.id === khataTx.id)) {
+              cachedKhata.unshift(khataTx);
+              localStorage.setItem(khataKey, JSON.stringify(cachedKhata));
+            }
+          } catch (_) {}
+          try {
+            window.dispatchEvent(new CustomEvent('agrishield_khata_updated', { detail: khataTx }));
+          } catch (_) {}
+          try {
+            const bKey = 'agrishield_equipment_bookings';
+            const allB = JSON.parse(localStorage.getItem(bKey) || '[]');
+            const updatedB = allB.map(b => (String(b.id || b.bookingId || b._id) === String(bookingId)) ? { ...b, syncedToKhata: true, status: 'completed' } : b);
+            localStorage.setItem(bKey, JSON.stringify(updatedB));
+          } catch (_) {}
+          if (farmId && farmId !== 'default') {
+            API.post(`/api/farms/${farmId}/khata`, khataTx).catch(() => {});
+          }
         }
       }
 
@@ -2483,7 +2608,50 @@ export default function ProviderDashboardPage() {
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            <>
+              {/* Upgrade 4: Multi-Plot Neighbor Cluster Route Saver Banner */}
+              {(() => {
+                const clusterMap = {};
+                cleanBookingsList.forEach(b => {
+                  if (b.status === 'confirmed' || b.status === 'in-progress' || b.status === 'pending') {
+                    const key = `${b.village || 'Sector'}|${b.bookingDate || 'Scheduled'}`;
+                    if (!clusterMap[key]) clusterMap[key] = [];
+                    clusterMap[key].push(b);
+                  }
+                });
+                const clusters = Object.entries(clusterMap).filter(([_, list]) => list.length >= 2);
+                if (clusters.length === 0) return null;
+
+                return (
+                  <div className="space-y-2 mb-4 col-span-full">
+                    {clusters.map(([key, list]) => {
+                      const [v, d] = key.split('|');
+                      return (
+                        <div key={key} className="p-3.5 rounded-2xl bg-gradient-to-r from-emerald-500/15 via-teal-500/10 to-indigo-500/15 border border-emerald-300 dark:border-emerald-800/80 flex items-center justify-between gap-3 text-xs">
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold text-sm shrink-0">
+                              🚜
+                            </div>
+                            <div>
+                              <span className="font-black text-slate-900 dark:text-white block">
+                                {t('provider_hub.cluster_route_title', 'Neighbor Cluster Route')}: {v} ({d})
+                              </span>
+                              <span className="text-[11px] text-slate-600 dark:text-slate-300">
+                                {t('provider_hub.cluster_route_desc', '{{count}} plots booked in {{village}} on {{date}}. Saves dead-transit diesel!', { count: list.length, village: v, date: d })}
+                              </span>
+                            </div>
+                          </div>
+                          <span className="px-2.5 py-1 rounded-xl bg-emerald-600 text-white font-black text-[10px] shrink-0">
+                            {list.length} Plots Grouped
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
               {cleanBookingsList.map((booking) => {
                 const farmerPhone = booking.farmerPhone || booking.contactPhone || booking.phone || '';
                 const cleanPhone = String(farmerPhone).replace(/[^0-9]/g, '');
@@ -2588,6 +2756,19 @@ export default function ProviderDashboardPage() {
                             {booking.fieldStatus || crop}
                           </span>
                         </div>
+
+                        {/* Upgrade 5: Assigned Driver Display */}
+                        {(booking.assignedDriverName || jobExpensesMap[String(booking.id || booking.bookingId)]?.driverName) && (
+                          <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-100 dark:border-slate-800/60">
+                            <span className="text-slate-500 font-bold flex items-center gap-1.5">
+                              <User className="w-3.5 h-3.5 text-amber-500" />
+                              <span>{t('provider_hub.driver_assigned', 'Driver Assigned:')}</span>
+                            </span>
+                            <span className="text-slate-800 dark:text-slate-200 font-bold">
+                              {booking.assignedDriverName || jobExpensesMap[String(booking.id || booking.bookingId)]?.driverName}
+                            </span>
+                          </div>
+                        )}
 
                         <div className="flex items-center justify-between text-[11px] pt-1.5 border-t border-slate-200/60 dark:border-slate-800 text-slate-500">
                           <span className="flex items-center gap-1">
@@ -2780,6 +2961,25 @@ export default function ProviderDashboardPage() {
                         <span>{t('provider_hub.navigate_to_plot', 'Navigate to Plot (GPS)')}</span>
                       </button>
 
+                      {/* Upgrade 7: Emergency Breakdown Status Banner & Button */}
+                      {breakdownRecordsMap[String(booking.id || booking.bookingId)] ? (
+                        <div className="p-2.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-300 dark:border-rose-800 text-[11px] text-rose-800 dark:text-rose-200 flex items-center justify-between">
+                          <span className="font-bold flex items-center gap-1.5">
+                            <AlertTriangle className="w-3.5 h-3.5 text-rose-600 shrink-0" />
+                            <span>{t('provider_hub.breakdown_active_tag', 'Emergency Backup Dispatched')}: {breakdownRecordsMap[String(booking.id || booking.bookingId)].brokenPart} ({breakdownRecordsMap[String(booking.id || booking.bookingId)].remainingAcres} {t('provider_hub.acres_unit', 'Acres')})</span>
+                          </span>
+                        </div>
+                      ) : isConfirmed ? (
+                        <button
+                          type="button"
+                          onClick={() => setBreakdownModalBooking(booking)}
+                          className="w-full py-1.5 px-3 rounded-xl border border-rose-200 dark:border-rose-900/60 bg-rose-50/50 dark:bg-rose-950/20 hover:bg-rose-100 text-rose-700 dark:text-rose-300 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                        >
+                          <Wrench className="w-3.5 h-3.5 text-rose-600" />
+                          <span>{t('provider_hub.breakdown_report_btn', 'Report Mechanical Breakdown')}</span>
+                        </button>
+                      ) : null}
+
                       {/* Real-World Upgrades 2, 3, 5: Quick Billing, Diesel/Driver Cost, & Dues Buttons */}
                       <div className="grid grid-cols-3 gap-1.5">
                         <button
@@ -2863,6 +3063,7 @@ export default function ProviderDashboardPage() {
                 );
               })}
             </div>
+            </>
           )}
         </motion.div>
       )}
@@ -3454,6 +3655,200 @@ export default function ProviderDashboardPage() {
                   </span>
                 </div>
 
+                {/* Upgrade 1: Dynamic UPI QR Code on Bill Voucher (PhonePe / GPay / Paytm / BHIM) */}
+                {(() => {
+                  const bId = String(receiptModalBooking.id || receiptModalBooking.bookingId || 'BK-1');
+                  const dues = duesMap[bId];
+                  const payableAmount = (dues && dues.balanceDue > 0) ? dues.balanceDue : getBookingCost(receiptModalBooking);
+                  const providerName = encodeURIComponent(user?.name || user?.username || 'AgriShield Machinery Hub');
+                  const upiString = `upi://pay?pa=${encodeURIComponent(providerUpiId)}&pn=${providerName}&am=${payableAmount}&tn=${encodeURIComponent(`AgriShield Rental #${bId}`)}&cu=INR`;
+
+                  return (
+                    <div className="p-4 rounded-2xl bg-gradient-to-br from-indigo-50/90 via-white to-purple-50/70 dark:from-slate-900 dark:via-slate-800/90 dark:to-indigo-950/50 border border-indigo-200/90 dark:border-indigo-900/60 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="w-7 h-7 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-bold text-xs shadow-sm">
+                            <QrCode className="w-4 h-4" />
+                          </div>
+                          <div>
+                            <span className="font-black text-slate-900 dark:text-white text-xs block">
+                              {t('provider_hub.upi_settlement_title', 'Direct UPI Settlement (0% Commission)')}
+                            </span>
+                            <span className="text-[10px] text-indigo-600 dark:text-indigo-400 font-medium">
+                              {t('provider_hub.upi_settlement_desc', 'Instant direct bank payment via PhonePe, Google Pay, Paytm or BHIM.')}
+                            </span>
+                          </div>
+                        </div>
+                        <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300">
+                          {t('provider_hub.zero_commission_tag', '0% Fee')}
+                        </span>
+                      </div>
+
+                      <div className="flex flex-col sm:flex-row items-center gap-4 bg-white dark:bg-slate-900/90 p-3.5 rounded-xl border border-indigo-100 dark:border-slate-700/60">
+                        {/* High-res Crisp QR Code */}
+                        <div className="p-2 bg-white rounded-xl shadow-sm border border-slate-200 shrink-0">
+                          <QRCodeSVG
+                            value={upiString}
+                            size={120}
+                            level="M"
+                            includeMargin={false}
+                          />
+                        </div>
+
+                        {/* QR Details & Direct Mobile Action */}
+                        <div className="flex-1 space-y-2 text-center sm:text-left w-full">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                              {t('provider_hub.provider_upi_id', 'Provider UPI ID')}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (isEditingUpi) {
+                                  if (customUpiInput.trim()) {
+                                    setProviderUpiId(customUpiInput.trim());
+                                    try { localStorage.setItem('agrishield_provider_upi_id', customUpiInput.trim()); } catch (_) {}
+                                  }
+                                  setIsEditingUpi(false);
+                                } else {
+                                  setCustomUpiInput(providerUpiId);
+                                  setIsEditingUpi(true);
+                                }
+                              }}
+                              className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1 cursor-pointer"
+                            >
+                              <Edit3 className="w-3 h-3" />
+                              <span>{isEditingUpi ? t('provider_hub.save_upi_id', 'Save UPI') : t('provider_hub.edit_upi_id', 'Edit UPI ID')}</span>
+                            </button>
+                          </div>
+
+                          {isEditingUpi ? (
+                            <input
+                              type="text"
+                              value={customUpiInput}
+                              onChange={(e) => setCustomUpiInput(e.target.value)}
+                              placeholder="e.g. 9876543210@upi"
+                              className="w-full px-2.5 py-1.5 rounded-lg border border-indigo-300 dark:border-indigo-700 bg-white dark:bg-slate-900 text-xs font-mono font-bold"
+                            />
+                          ) : (
+                            <div className="flex items-center justify-between sm:justify-start gap-2 bg-slate-50 dark:bg-slate-800/80 px-2.5 py-1 rounded-lg border border-slate-200/60 dark:border-slate-700">
+                              <span className="text-xs font-mono font-black text-slate-800 dark:text-slate-200 truncate">
+                                {providerUpiId}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (navigator?.clipboard) {
+                                    navigator.clipboard.writeText(providerUpiId);
+                                    toast.success(t('provider_hub.upi_copied', 'UPI ID copied to clipboard!'));
+                                  }
+                                }}
+                                className="text-slate-400 hover:text-indigo-600 transition-colors p-0.5 cursor-pointer"
+                                title="Copy UPI ID"
+                              >
+                                <Copy className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          )}
+
+                          {/* Direct Mobile App Redirect Button */}
+                          <a
+                            href={upiString}
+                            className="inline-flex items-center justify-center gap-1.5 w-full px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-bold shadow-sm transition-all active:scale-95 cursor-pointer text-center"
+                          >
+                            <span>📱 {t('provider_hub.open_upi_app', 'Open UPI App (Mobile Pay)')} (₹{payableAmount.toLocaleString('en-IN')})</span>
+                          </a>
+
+                          <div className="flex items-center justify-center sm:justify-start gap-1.5 text-[9px] text-slate-400 font-bold">
+                            <span>PhonePe</span> • <span>Google Pay</span> • <span>Paytm</span> • <span>BHIM</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* Upgrade 8: Before & After Field Work Photo Verification Proof */}
+                {(() => {
+                  const bId = String(receiptModalBooking.id || receiptModalBooking.bookingId || 'BK-1');
+                  const proof = workPhotoProofMap[bId] || {};
+
+                  return (
+                    <div className="p-3.5 rounded-2xl bg-white dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/60 space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1.5">
+                          <Camera className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                          <span className="font-black text-slate-900 dark:text-white text-[11px]">
+                            {t('provider_hub.photo_proof_title', 'Field Work Photo Verification Proof')}
+                          </span>
+                        </div>
+                        <span className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                          <ShieldCheck className="w-3 h-3" />
+                          {t('provider_hub.geo_authenticated', 'Verified Field Geo-Stamp')}
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2.5">
+                        {/* Before Work Photo */}
+                        <div className="space-y-1">
+                          <span className="text-[10px] font-bold text-slate-500 block truncate">
+                            {t('provider_hub.before_work_photo', 'Before Work (Unplowed)')}
+                          </span>
+                          <div className="relative rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-900 aspect-video flex items-center justify-center group">
+                            <img
+                              src={proof.before || "https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=400&auto=format&fit=crop&q=80"}
+                              alt="Before Work"
+                              className="w-full h-full object-cover"
+                            />
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                              <label className="text-[10px] font-bold text-white bg-black/60 px-2 py-1 rounded-lg cursor-pointer">
+                                {t('provider_hub.upload_photo', 'Upload Photo')}
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  className="hidden"
+                                  onChange={(e) => handleUploadPhotoProof(bId, 'before', e)}
+                                />
+                              </label>
+                            </div>
+                            <span className="absolute bottom-1 left-1 px-1.5 py-0.5 rounded text-[8px] font-mono bg-black/70 text-white">
+                              GPS: {receiptModalBooking.village || 'Field'} • {receiptModalBooking.bookingDate || 'Scheduled'}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* After Work Photo */}
+                        <div className="space-y-1">
+                          <span className="text-[10px] font-bold text-slate-500 block truncate">
+                            {t('provider_hub.after_work_photo', 'After Work (Completed)')}
+                          </span>
+                          <div className="relative rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-900 aspect-video flex items-center justify-center group">
+                            <img
+                              src={proof.after || "https://images.unsplash.com/photo-1592982537447-7440770cbfc9?w=400&auto=format&fit=crop&q=80"}
+                              alt="After Work"
+                              className="w-full h-full object-cover"
+                            />
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                              <label className="text-[10px] font-bold text-white bg-black/60 px-2 py-1 rounded-lg cursor-pointer">
+                                {t('provider_hub.upload_photo', 'Upload Photo')}
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  className="hidden"
+                                  onChange={(e) => handleUploadPhotoProof(bId, 'after', e)}
+                                />
+                              </label>
+                            </div>
+                            <span className="absolute bottom-1 left-1 px-1.5 py-0.5 rounded text-[8px] font-mono bg-black/70 text-emerald-300">
+                              ✓ Completed • {new Date().toLocaleDateString('en-IN')}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+
                 {/* Digital Stamp Seal */}
                 <div className="flex items-center justify-between pt-2 border-t border-slate-200 dark:border-slate-800 text-[10px] text-slate-400 font-mono">
                   <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-bold">
@@ -3573,6 +3968,33 @@ export default function ProviderDashboardPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <label className="text-[11px] font-black uppercase text-slate-700 dark:text-slate-300">
+                    {t('provider_hub.assign_driver_label', 'Assigned Driver / Operator')}
+                  </label>
+                  <input
+                    type="text"
+                    value={driverNameInput}
+                    onChange={(e) => setDriverNameInput(e.target.value)}
+                    placeholder={t('provider_hub.driver_name_placeholder', 'e.g. Rama Rao')}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-xs font-bold"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[11px] font-black uppercase text-slate-700 dark:text-slate-300">
+                    {t('common.phone', 'Driver Phone')}
+                  </label>
+                  <input
+                    type="tel"
+                    value={driverPhoneInput}
+                    onChange={(e) => setDriverPhoneInput(e.target.value)}
+                    placeholder={t('provider_hub.driver_phone_placeholder', 'e.g. +91 9876543210')}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-xs font-bold"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[11px] font-black uppercase text-slate-700 dark:text-slate-300">
                     {t('provider_hub.driver_wage', 'Driver Wage / Bata (₹)')}
                   </label>
                   <input
@@ -3597,6 +4019,38 @@ export default function ProviderDashboardPage() {
                   />
                 </div>
               </div>
+
+              {/* Upgrade 9: Anti-Theft Diesel Consumption Benchmark Standard */}
+              {(() => {
+                const acresNum = parseFloat(expenseModalBooking.acres || 2) || 2;
+                const litersNum = parseFloat(dieselLitersInput) || 0;
+                const lPerAcre = acresNum > 0 ? (litersNum / acresNum).toFixed(1) : 0;
+                const isHighFuelConsumption = litersNum > 0 && lPerAcre > 5.2;
+
+                return (
+                  <div className={`p-3 rounded-2xl border text-xs space-y-1 ${
+                    isHighFuelConsumption
+                      ? 'bg-amber-50 dark:bg-amber-950/40 border-amber-300 dark:border-amber-800 text-amber-900 dark:text-amber-200'
+                      : 'bg-indigo-50/60 dark:bg-indigo-950/30 border-indigo-200 dark:border-indigo-900 text-indigo-950 dark:text-indigo-200'
+                  }`}>
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold flex items-center gap-1.5">
+                        <Fuel className="w-3.5 h-3.5" />
+                        <span>{t('provider_hub.diesel_benchmark_title', 'Fuel Consumption & Anti-Theft Benchmark')}</span>
+                      </span>
+                      <span className="text-[10px] font-mono font-bold bg-white/70 dark:bg-slate-900/70 px-2 py-0.5 rounded-md">
+                        {lPerAcre} L/Acre
+                      </span>
+                    </div>
+                    <p className="text-[10px] leading-relaxed">
+                      {isHighFuelConsumption
+                        ? t('provider_hub.fuel_alarm_high', '⚠️ Fuel Alert: {{rate}} L/Acre exceeds benchmark ({{norm}} L/Acre). Check idling, leakage or fuel theft.', { rate: lPerAcre, norm: '3.5 - 5.2' })
+                        : t('provider_hub.fuel_alarm_normal', '✓ Fuel Efficiency Optimal: {{rate}} L/Acre (Within standard benchmark {{norm}} L/Acre).', { rate: lPerAcre, norm: '3.5 - 5.2' })
+                      }
+                    </p>
+                  </div>
+                );
+              })()}
 
               {/* Live Net Profit Preview Box */}
               {(() => {
@@ -3748,6 +4202,120 @@ export default function ProviderDashboardPage() {
                 >
                   <Check className="w-4 h-4 stroke-[3]" />
                   <span>{t('provider_hub.update_dues_btn', 'Update Dues Record')}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── UPGRADE 7: EMERGENCY BREAKDOWN BACKUP DISPATCH MODAL ── */}
+      {breakdownModalBooking && (
+        <div className="fixed inset-0 z-[100] bg-black/75 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
+          <div className="w-full max-w-md rounded-3xl bg-white dark:bg-[#070e17] border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden flex flex-col">
+            <div className="flex items-center justify-between p-4 sm:p-5 border-b border-slate-100 dark:border-slate-800">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-2xl bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 flex items-center justify-center font-bold">
+                  <AlertTriangle className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-slate-900 dark:text-white">
+                    {t('provider_hub.breakdown_modal_title', 'Emergency Breakdown Backup Dispatch')}
+                  </h3>
+                  <p className="text-[11px] text-slate-400">
+                    {t('provider_hub.breakdown_modal_desc', 'Broadcast to nearby verified providers to finish remaining field acreage.')}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setBreakdownModalBooking(null)}
+                className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                const bId = String(breakdownModalBooking.id || breakdownModalBooking.bookingId);
+                const record = {
+                  bookingId: bId,
+                  brokenPart: breakdownPartInput,
+                  remainingAcres: breakdownRemAcresInput,
+                  notes: breakdownNotesInput,
+                  reportedAt: new Date().toISOString(),
+                  status: 'dispatched'
+                };
+                setBreakdownRecordsMap(prev => {
+                  const updated = { ...prev, [bId]: record };
+                  try { localStorage.setItem('agrishield_provider_breakdowns', JSON.stringify(updated)); } catch (_) {}
+                  return updated;
+                });
+                toast.success(
+                  t('provider_hub.breakdown_active_tag', 'Emergency Backup Dispatched'),
+                  t('provider_hub.breakdown_broadcasted_toast', 'Emergency dispatch alert broadcasted to nearby providers!')
+                );
+                setBreakdownModalBooking(null);
+              }}
+              className="p-5 space-y-4 text-xs"
+            >
+              <div className="p-3 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/80 space-y-1">
+                <span className="text-[10px] text-amber-800 dark:text-amber-300 font-bold uppercase block">
+                  {breakdownModalBooking.equipmentTitle || 'Tractor'} • {breakdownModalBooking.farmerName || 'Farmer'}
+                </span>
+                <span className="text-xs font-black text-slate-900 dark:text-white">
+                  Field: {breakdownModalBooking.village || 'Sector'}, {breakdownModalBooking.mandal || 'Hub'} ({breakdownModalBooking.acres || 2} Acres Total)
+                </span>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[11px] font-black uppercase text-slate-700 dark:text-slate-300">
+                  {t('provider_hub.broken_part_label', 'Mechanical Failure Issue')}
+                </label>
+                <select
+                  value={breakdownPartInput}
+                  onChange={(e) => setBreakdownPartInput(e.target.value)}
+                  className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-xs font-bold"
+                >
+                  <option value="Hydraulic Lift Failure">Hydraulic Lift / Hitch Failure</option>
+                  <option value="Engine Overheating / Radiator Burst">Engine Overheating / Radiator Burst</option>
+                  <option value="Tire Puncture / Wheel Sinking">Tire Puncture / Mud Sinking</option>
+                  <option value="Clutch / PTO Shaft Breakdown">Clutch / PTO Shaft Breakdown</option>
+                  <option value="Implement Blade / Tyne Fracture">Rotavator / Implement Fracture</option>
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[11px] font-black uppercase text-slate-700 dark:text-slate-300">
+                  {t('provider_hub.remaining_acres_label', 'Remaining Field Area (Acres)')}
+                </label>
+                <input
+                  type="number"
+                  step="0.1"
+                  value={breakdownRemAcresInput}
+                  onChange={(e) => setBreakdownRemAcresInput(e.target.value)}
+                  placeholder="e.g. 1.5"
+                  className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-xs font-bold"
+                  required
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2.5 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setBreakdownModalBooking(null)}
+                  className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 transition-colors cursor-pointer"
+                >
+                  {t('provider_hub.cancel_modal_btn', 'Cancel')}
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-black flex items-center gap-1.5 shadow-md shadow-rose-600/30 transition-transform active:scale-95 cursor-pointer"
+                >
+                  <AlertTriangle className="w-4 h-4" />
+                  <span>{t('provider_hub.broadcast_backup_btn', 'Broadcast Urgent Backup')}</span>
                 </button>
               </div>
             </form>

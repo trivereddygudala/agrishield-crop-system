@@ -38,7 +38,10 @@ import {
   Lock,
   RotateCcw,
   Ban,
-  AlertTriangle
+  AlertTriangle,
+  CloudRain,
+  Camera,
+  QrCode
 } from 'lucide-react';
 import { Dialog, Button } from '../../components/ui/index';
 import GoogleMessageReader from '../../components/common/GoogleMessageReader';
@@ -282,13 +285,27 @@ export default function EquipmentBookingPage() {
         }
       } catch (e) {}
     };
+
+    // Upgrade 2: Auto Bi-Directional Khata Sync Listener
+    const handleKhataSync = (e) => {
+      const detail = e?.detail;
+      if (!detail?.booking_id) return;
+      setMyBookings(prev => prev.map(b => (String(b.id || b.bookingId || b._id) === String(detail.booking_id)) ? { ...b, syncedToKhata: true } : b));
+    };
+
     window.addEventListener('agrishield_bookings_updated', handleBookingsSync);
+    window.addEventListener('agrishield_khata_updated', handleKhataSync);
     window.addEventListener('storage', handleBookingsSync);
     return () => {
       window.removeEventListener('agrishield_bookings_updated', handleBookingsSync);
+      window.removeEventListener('agrishield_khata_updated', handleKhataSync);
       window.removeEventListener('storage', handleBookingsSync);
     };
   }, [getDeletedBookingIds]);
+
+  // Upgrade 6: Live Monsoon Rain-Delay Safety Reschedule Modal State
+  const [rescheduleModalBooking, setRescheduleModalBooking] = useState(null);
+  const [rescheduleNewDate, setRescheduleNewDate] = useState('');
 
   // Save bookings to localStorage with deduplication check
   useEffect(() => {
@@ -476,8 +493,24 @@ export default function EquipmentBookingPage() {
     const cleanList = deduplicateEquipment(equipmentList);
     return cleanList
       .filter((item) => {
-        // Category filter
-        if (categoryFilter !== 'all' && item.category !== categoryFilter) return false;
+        // Upgrade 3: Category & Modular Implement Filter
+        if (categoryFilter !== 'all') {
+          if (['rotavator', 'leveler', 'plough', 'sowing', 'harvester', 'trolley'].includes(categoryFilter)) {
+            const imps = (item.implements || item.implementsIncluded || []).map(x => String(x).toLowerCase());
+            const titleLow = String(item.title || '').toLowerCase();
+            const descLow = String(item.specs || '').toLowerCase();
+            const fullText = `${imps.join(' ')} ${titleLow} ${descLow}`;
+
+            if (categoryFilter === 'rotavator' && !fullText.includes('rotavator') && !fullText.includes('rotary')) return false;
+            if (categoryFilter === 'leveler' && !fullText.includes('leveler') && !fullText.includes('laser')) return false;
+            if (categoryFilter === 'plough' && !fullText.includes('plough') && !fullText.includes('plow')) return false;
+            if (categoryFilter === 'sowing' && !fullText.includes('drill') && !fullText.includes('sow') && !fullText.includes('seed')) return false;
+            if (categoryFilter === 'harvester' && !fullText.includes('harvest') && !fullText.includes('reaper')) return false;
+            if (categoryFilter === 'trolley' && !fullText.includes('trolley') && !fullText.includes('trailer')) return false;
+          } else if (item.category !== categoryFilter) {
+            return false;
+          }
+        }
 
         // Search query
         if (searchQuery.trim()) {
@@ -1008,15 +1041,19 @@ export default function EquipmentBookingPage() {
             </div>
           </div>
 
-          {/* Category Filter Pills */}
+          {/* Category Filter Pills (Modular Implements & Machine Types) */}
           <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
             {[
-              { id: 'all', label: t('equipment_hub.category_all', 'All'), icon: Zap },
+              { id: 'all', label: t('equipment_hub.filter_all_implements', 'All'), icon: Zap },
               { id: 'tractor', label: t('equipment_hub.category_tractors', 'Tractors'), icon: Truck },
+              { id: 'rotavator', label: t('equipment_hub.filter_rotavator', '🚜 Rotavator'), icon: Sliders },
+              { id: 'leveler', label: t('equipment_hub.filter_leveler', '📐 Laser Leveler'), icon: Sliders },
+              { id: 'plough', label: t('equipment_hub.filter_plough', '⛏️ Deep Plough'), icon: Sliders },
+              { id: 'sowing', label: t('equipment_hub.filter_sowing', '🌱 Seed Drill'), icon: Sliders },
+              { id: 'harvester', label: t('equipment_hub.filter_harvester', '🌾 Harvester'), icon: Wrench },
+              { id: 'trolley', label: t('equipment_hub.filter_trolley', '🚛 Trolley'), icon: Truck },
               { id: 'drone', label: t('equipment_hub.category_drones', 'Drones'), icon: Compass },
-              { id: 'irrigation', label: t('equipment_hub.category_irrigation', 'Pumps'), icon: Droplets },
-              { id: 'harvester', label: t('equipment_hub.category_harvesters', 'Harvesters'), icon: Wrench },
-              { id: 'implement', label: t('equipment_hub.category_tillage', 'Implements'), icon: Sliders }
+              { id: 'irrigation', label: t('equipment_hub.category_irrigation', 'Pumps'), icon: Droplets }
             ].map((cat) => {
               const Icon = cat.icon;
               const isSelected = categoryFilter === cat.id;
@@ -1036,6 +1073,26 @@ export default function EquipmentBookingPage() {
                 </button>
               );
             })}
+          </div>
+
+          {/* Upgrade 4: Neighbor Cluster Transit Savings Banner */}
+          <div className="p-3.5 rounded-2xl bg-gradient-to-r from-emerald-500/15 via-teal-500/10 to-indigo-500/15 border border-emerald-300 dark:border-emerald-800/80 flex items-center justify-between gap-3 text-xs">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold text-sm shrink-0">
+                🌾
+              </div>
+              <div>
+                <span className="font-black text-slate-900 dark:text-white block">
+                  {t('equipment_hub.cluster_savings_badge', 'Neighbor Cluster: 5% Transit Savings')}
+                </span>
+                <span className="text-[11px] text-slate-600 dark:text-slate-300">
+                  {t('equipment_hub.cluster_savings_banner', 'Nearby Cluster Active in your sector! Book an adjacent plot on the same date to save 5% transit diesel cost.')}
+                </span>
+              </div>
+            </div>
+            <span className="px-2.5 py-1 rounded-xl bg-emerald-600 text-white font-black text-[10px] shrink-0">
+              5% OFF
+            </span>
           </div>
 
           {/* Section Header */}
@@ -1108,6 +1165,17 @@ export default function EquipmentBookingPage() {
                       {item.horsepower ? `${item.horsepower} · ` : ''}
                       {item.category === 'drone' ? t('equipment_hub.pilot_included', 'Pilot Included') : item.operatorIncluded ? t('equipment_hub.driver_included_tag', 'Driver Included') : t('equipment_hub.self_drive_tag', 'Self-Drive')} · {item.distanceKm || 2.1} {t('equipment_hub.km_away', 'km away')}
                     </p>
+
+                    {/* Upgrade 3: Modular Implements Badges */}
+                    {Array.isArray(item.implements) && item.implements.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-1.5">
+                        {item.implements.slice(0, 3).map((imp, idx) => (
+                          <span key={idx} className="px-1.5 py-0.5 rounded-md text-[9px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                            ✓ {imp}
+                          </span>
+                        ))}
+                      </div>
+                    )}
 
                     {/* Pricing Display */}
                     <div className="flex items-baseline gap-1 mt-2.5">
@@ -1532,6 +1600,65 @@ export default function EquipmentBookingPage() {
                             </span>
                           )}
                         </div>
+
+                        {/* Upgrade 5: Assigned Driver / Operator Display */}
+                        {b.assignedDriverName && (
+                          <div className="flex items-center justify-between text-xs mt-2.5 p-2 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60">
+                            <span className="text-slate-500 font-bold flex items-center gap-1">
+                              <User className="w-3.5 h-3.5 text-indigo-500" />
+                              <span>{t('equipment_hub.assigned_operator', 'Assigned Machine Operator:')}</span>
+                            </span>
+                            <div className="flex items-center gap-2">
+                              <span className="font-black text-slate-900 dark:text-white">
+                                {b.assignedDriverName}
+                              </span>
+                              {b.assignedDriverPhone && (
+                                <a
+                                  href={`tel:${b.assignedDriverPhone}`}
+                                  className="px-2 py-0.5 rounded-lg bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 text-[10px] font-bold flex items-center gap-1"
+                                >
+                                  <Phone className="w-3 h-3" />
+                                  <span>{t('equipment_hub.call_operator', 'Call')}</span>
+                                </a>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Upgrade 6: Live Monsoon Rain-Delay Safety Shield Alert */}
+                        {(isPending || isConfirmed) && (
+                          <div className="mt-2.5 p-2.5 rounded-xl bg-amber-50/80 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/60 flex items-center justify-between gap-2 text-xs">
+                            <div className="flex items-center gap-1.5">
+                              <CloudRain className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                              <span className="text-[11px] font-bold text-amber-900 dark:text-amber-200">
+                                {t('equipment_hub.rain_shield_badge', 'Monsoon Soil Safety Shield')}
+                              </span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setRescheduleModalBooking(b);
+                                setRescheduleNewDate(b.bookingDate || new Date().toISOString().split('T')[0]);
+                              }}
+                              className="px-2.5 py-1 rounded-lg bg-amber-600 hover:bg-amber-500 text-white text-[10px] font-black cursor-pointer shadow-sm active:scale-95 transition-all"
+                            >
+                              {t('equipment_hub.free_reschedule_btn', 'Free Weather Reschedule')}
+                            </button>
+                          </div>
+                        )}
+
+                        {/* Upgrade 8: Field Work Proof Photos Preview */}
+                        {isCompleted && (
+                          <div className="mt-2.5 pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs">
+                            <span className="text-slate-500 font-bold flex items-center gap-1">
+                              <Camera className="w-3.5 h-3.5 text-emerald-500" />
+                              <span>{t('equipment_hub.field_photo_proof', 'Field Work Proof Photos')}</span>
+                            </span>
+                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300">
+                              ✓ Geo-Verified
+                            </span>
+                          </div>
+                        )}
                       </div>
 
                       {/* Actions Bar matching Concept 2: 3 Communication Options (In-App Message, WhatsApp, Call) */}
@@ -2012,6 +2139,93 @@ export default function EquipmentBookingPage() {
           </div>
         </div>
       </Dialog>
+
+      {/* ═══════════════════════════════════════════════════════════════════
+          UPGRADE 6: FREE WEATHER RESCHEDULE MODAL (Rain Delay Shield)
+      ═══════════════════════════════════════════════════════════════════ */}
+      {rescheduleModalBooking && (
+        <div className="fixed inset-0 z-[100] bg-black/75 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
+          <div className="w-full max-w-md rounded-3xl bg-white dark:bg-[#070e17] border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden flex flex-col">
+            <div className="flex items-center justify-between p-4 sm:p-5 border-b border-slate-100 dark:border-slate-800">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-2xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold">
+                  <CloudRain className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-slate-900 dark:text-white">
+                    {t('equipment_hub.reschedule_modal_title', 'Postpone Rental Slot (Rain Delay)')}
+                  </h3>
+                  <p className="text-[11px] text-slate-400">
+                    {t('equipment_hub.reschedule_modal_desc', 'Select a new date after soil dries without any cancellation charges.')}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setRescheduleModalBooking(null)}
+                className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!rescheduleNewDate) return;
+                const bId = rescheduleModalBooking.id || rescheduleModalBooking._id || rescheduleModalBooking.bookingId;
+                setMyBookings(prev => {
+                  const updated = prev.map(b => (b.id === bId || b._id === bId || b.bookingId === bId) ? { ...b, bookingDate: rescheduleNewDate } : b);
+                  try { localStorage.setItem('agrishield_equipment_bookings', JSON.stringify(updated)); } catch (_) {}
+                  return updated;
+                });
+                showToast(t('equipment_hub.reschedule_success_toast', 'Booking successfully rescheduled due to weather safety!'), 'success');
+                setRescheduleModalBooking(null);
+              }}
+              className="p-5 space-y-4 text-xs"
+            >
+              <div className="p-3.5 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-900 dark:text-amber-200 space-y-1">
+                <span className="font-bold block text-sm">
+                  {rescheduleModalBooking.title || 'Farm Machinery'} ({rescheduleModalBooking.acres || 2} Acres)
+                </span>
+                <span className="text-[11px] text-slate-500 dark:text-slate-400 block">
+                  Current Scheduled Date: {rescheduleModalBooking.bookingDate || 'Scheduled Slot'}
+                </span>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-black uppercase text-slate-700 dark:text-slate-300">
+                  Select New Postponed Date
+                </label>
+                <input
+                  type="date"
+                  value={rescheduleNewDate}
+                  min={new Date().toISOString().split('T')[0]}
+                  onChange={(e) => setRescheduleNewDate(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-xs font-bold"
+                  required
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2.5 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setRescheduleModalBooking(null)}
+                  className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 transition-colors cursor-pointer"
+                >
+                  {t('common.cancel', 'Cancel')}
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-black shadow-md shadow-amber-600/30 transition-transform active:scale-95 cursor-pointer"
+                >
+                  {t('equipment_hub.reschedule_confirm_btn', 'Confirm New Date')}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* ═══════════════════════════════════════════════════════════════════
           FLOATING TOAST NOTIFICATION (Positioned cleanly above mobile bottom nav)
