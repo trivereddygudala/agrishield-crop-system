@@ -41,7 +41,14 @@ export const providerHubResources = {
       "mark_serviced": "Mark Serviced",
       "service_ok": "Service Optimal",
       "service_urgent": "Service Due Soon",
-      "upload_machine_photo": "Upload Real Tractor Photo"
+      "upload_machine_photo": "Upload Real Tractor Photo",
+      "complete_and_paid": "Complete & Paid (₹{{cost}})",
+      "completed_with_due": "Completed (Due: ₹{{due}})",
+      "pay_on_completion": "Pay on Field Completion",
+      "mark_due_paid": "Mark Due Paid",
+      "full_paid_toast": "marked 100% paid on field.",
+      "quick_settle_btn": "1-Tap Settle ✓",
+      "payment_badge": "Payment:"
     }
   },
   "te": {
@@ -81,7 +88,14 @@ export const providerHubResources = {
       "mark_serviced": "సర్వీస్ పూర్తయింది",
       "service_ok": "పరిస్థితి బాగుంది",
       "service_urgent": "వెంటనే ఆయిల్ మార్చాలి",
-      "upload_machine_photo": "ట్రాక్టర్ ఫోటో అప్‌లోడ్"
+      "upload_machine_photo": "ట్రాక్టర్ ఫోటో అప్‌లోడ్",
+      "complete_and_paid": "పని పూర్తయింది & మొత్తం వసూలైంది (₹{{cost}})",
+      "completed_with_due": "పూర్తయింది (బాకీ: ₹{{due}})",
+      "pay_on_completion": "పని ముగిసిన తర్వాత చెల్లింపు",
+      "mark_due_paid": "బాకీ వసూలైంది",
+      "full_paid_toast": "పొలంలో మొత్తం చెల్లించబడింది.",
+      "quick_settle_btn": "1-ట్యాప్ వసూలు ✓",
+      "payment_badge": "చెల్లింపు:"
     }
   },
   "hi": {

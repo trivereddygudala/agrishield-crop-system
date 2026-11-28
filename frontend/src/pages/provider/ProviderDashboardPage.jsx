@@ -421,6 +421,35 @@ export default function ProviderDashboardPage() {
     setDuesModalBooking(null);
   };
 
+  // Upgrade A: 1-Tap Direct Quick Settle (Zero Modals)
+  const handleQuickSettleDue = (booking) => {
+    if (!booking) return;
+    const bId = String(booking.id || booking.bookingId);
+    const total = getBookingCost(booking);
+    setDuesMap(prev => {
+      const updated = {
+        ...prev,
+        [bId]: {
+          bookingId: bId,
+          total,
+          advancePaid: total,
+          balanceDue: 0,
+          isSettled: true,
+          updatedAt: new Date().toISOString()
+        }
+      };
+      try {
+        localStorage.setItem('agrishield_provider_booking_dues', JSON.stringify(updated));
+      } catch (err) { }
+      return updated;
+    });
+
+    toast.success(
+      t('provider_hub.fully_settled', 'Fully Paid & Settled'),
+      `₹${total.toLocaleString('en-IN')} ${t('provider_hub.full_paid_toast', 'marked 100% paid on field.')}`
+    );
+  };
+
   // ── 6. Machinery Hours & Service Maintenance Meter ──
   const [serviceHoursMap, setServiceHoursMap] = useState(() => {
     try {
@@ -1350,6 +1379,34 @@ export default function ProviderDashboardPage() {
           } catch (e) { }
           return synced;
         });
+
+        if (nextStatus === 'completed') {
+          // Upgrade A: Auto-Settle 100% Payment on Completion (Zero Extra Clicks)
+          const cost = getBookingCost(targetBooking);
+          const bIdStr = String(bookingId);
+          setDuesMap(prev => {
+            const current = prev[bIdStr];
+            const hadExplicitDue = current && current.balanceDue > 0;
+            const advance = hadExplicitDue ? current.advancePaid : cost;
+            const balance = hadExplicitDue ? current.balanceDue : 0;
+            const updated = {
+              ...prev,
+              [bIdStr]: {
+                bookingId: bIdStr,
+                total: cost,
+                advancePaid: advance,
+                balanceDue: balance,
+                isSettled: balance === 0,
+                autoSettledOnCompletion: !hadExplicitDue,
+                updatedAt: new Date().toISOString()
+              }
+            };
+            try {
+              localStorage.setItem('agrishield_provider_booking_dues', JSON.stringify(updated));
+            } catch (err) { }
+            return updated;
+          });
+        }
       }
 
       // Success toast
@@ -2546,15 +2603,36 @@ export default function ProviderDashboardPage() {
                       {(() => {
                         const bId = String(booking.id || booking.bookingId);
                         const dues = duesMap[bId];
-                        if (!dues) return null;
+                        const isFullyPaid = isCompleted
+                          ? (!dues || dues.balanceDue === 0)
+                          : (dues && dues.balanceDue === 0);
+                        const hasBalanceDue = dues && dues.balanceDue > 0;
+
                         return (
                           <div className="mt-2.5 px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 flex items-center justify-between text-[11px] font-bold">
-                            <span className="text-slate-500">
-                              {t('provider_hub.advance_paid', 'Advance')}: ₹{(dues.advancePaid || 0).toLocaleString('en-IN')}
+                            <span className="text-slate-500 flex items-center gap-1.5">
+                              <span>{t('provider_hub.payment_badge', 'Payment:')}</span>
+                              <span className={isFullyPaid ? 'text-emerald-600 dark:text-emerald-400 font-black' : hasBalanceDue ? 'text-amber-600 dark:text-amber-400 font-black' : 'text-slate-600 dark:text-slate-300'}>
+                                {isFullyPaid
+                                  ? `✓ ${t('provider_hub.fully_settled', '100% Paid on Field')}`
+                                  : hasBalanceDue
+                                  ? `${t('provider_hub.balance_due', 'Due')}: ₹${dues.balanceDue.toLocaleString('en-IN')}`
+                                  : t('provider_hub.pay_on_completion', 'Pay on Field Completion')}
+                              </span>
                             </span>
-                            <span className={dues.balanceDue > 0 ? 'text-amber-600 dark:text-amber-400 font-black' : 'text-emerald-600 dark:text-emerald-400 font-black'}>
-                              {dues.balanceDue > 0 ? `${t('provider_hub.balance_due', 'Due')}: ₹${dues.balanceDue.toLocaleString('en-IN')}` : `✓ ${t('provider_hub.fully_settled', 'Fully Paid')}`}
-                            </span>
+                            {hasBalanceDue ? (
+                              <button
+                                type="button"
+                                onClick={() => handleQuickSettleDue(booking)}
+                                className="px-2 py-0.5 rounded-lg bg-emerald-100 hover:bg-emerald-200 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-200 text-[10px] font-black cursor-pointer transition-colors"
+                              >
+                                {t('provider_hub.quick_settle_btn', '1-Tap Settle ✓')}
+                              </button>
+                            ) : (
+                              <span className="text-[10px] text-slate-400 font-medium">
+                                {isCompleted ? 'Direct Pay' : 'On Completion'}
+                              </span>
+                            )}
                           </div>
                         );
                       })()}
@@ -2600,13 +2678,14 @@ export default function ProviderDashboardPage() {
                             onClick={() => handleUpdateBookingStatus(booking.id || booking.bookingId, 'completed')}
                             className={`w-full py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs flex items-center justify-center gap-1.5 shadow-md shadow-emerald-600/20 active:scale-95 transition-all cursor-pointer ${updatingBookingId === (booking.id || booking.bookingId) ? 'opacity-50 cursor-not-allowed' : ''
                               }`}
+                            title="Complete work & auto-settle full payment directly"
                           >
                             {updatingBookingId === (booking.id || booking.bookingId) ? (
                               <RefreshCw className="w-4 h-4 animate-spin" />
                             ) : (
                               <CheckCircle2 className="w-4 h-4" />
                             )}
-                            <span>{t('provider_hub.mark_completed', 'Complete')}</span>
+                            <span>{t('provider_hub.complete_and_paid', 'Complete & Paid (₹{{cost}})', { cost: totalCost })}</span>
                           </button>
                           <button
                             type="button"
@@ -2622,11 +2701,38 @@ export default function ProviderDashboardPage() {
                       )}
 
                       {isCompleted && (
-                        <div className="flex items-center justify-between">
+                        <div className="flex items-center justify-between gap-2 flex-wrap">
                           <span className="px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 text-xs font-black flex items-center gap-1.5">
                             <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                            <span>{t('provider_hub.settled_logged', 'Settled & Logged')}</span>
+                            <span>
+                              {(() => {
+                                const dues = duesMap[String(booking.id || booking.bookingId)];
+                                if (dues && dues.balanceDue > 0) {
+                                  return t('provider_hub.completed_with_due', 'Completed (Due: ₹{{due}})', { due: dues.balanceDue.toLocaleString('en-IN') });
+                                }
+                                return `${t('provider_hub.settled_logged', 'Completed & Paid')} (₹${Number(totalCost).toLocaleString('en-IN')})`;
+                              })()}
+                            </span>
                           </span>
+
+                          {/* 1-Tap Quick Settle Due Button if any balance is owed */}
+                          {(() => {
+                            const dues = duesMap[String(booking.id || booking.bookingId)];
+                            if (dues && dues.balanceDue > 0) {
+                              return (
+                                <button
+                                  type="button"
+                                  onClick={() => handleQuickSettleDue(booking)}
+                                  className="px-2.5 py-1 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs flex items-center gap-1 shadow-sm active:scale-95 transition-all cursor-pointer"
+                                  title="1-Tap Mark Full Balance Paid"
+                                >
+                                  <Check className="w-3.5 h-3.5 stroke-[3]" />
+                                  <span>{t('provider_hub.mark_due_paid', 'Mark Due Paid')}</span>
+                                </button>
+                              );
+                            }
+                            return null;
+                          })()}
                         </div>
                       )}
 
@@ -2682,11 +2788,24 @@ export default function ProviderDashboardPage() {
                         <button
                           type="button"
                           onClick={() => handleOpenDuesModal(booking)}
-                          className="py-1.5 px-2 rounded-xl border border-rose-200 dark:border-rose-800 bg-rose-50/70 dark:bg-rose-950/40 hover:bg-rose-100 text-rose-800 dark:text-rose-200 text-xs font-bold flex items-center justify-center gap-1 transition-colors cursor-pointer"
+                          className={`py-1.5 px-2 rounded-xl border text-xs font-bold flex items-center justify-center gap-1 transition-colors cursor-pointer ${(() => {
+                            const dues = duesMap[String(booking.id || booking.bookingId)];
+                            if (dues && dues.balanceDue > 0) {
+                              return 'border-rose-300 dark:border-rose-800 bg-rose-50/80 dark:bg-rose-950/50 text-rose-800 dark:text-rose-200';
+                            }
+                            return 'border-emerald-200 dark:border-emerald-800 bg-emerald-50/60 dark:bg-emerald-950/30 text-emerald-800 dark:text-emerald-200';
+                          })()}`}
                           title="Record Advance Paid & Track Pending Balance Dues"
                         >
                           <AlertCircle className="w-3.5 h-3.5 text-rose-600" />
-                          <span>Dues</span>
+                          <span>
+                            {(() => {
+                              const dues = duesMap[String(booking.id || booking.bookingId)];
+                              if (dues && dues.balanceDue > 0) return `Due: ₹${dues.balanceDue}`;
+                              if (isCompleted) return 'Paid ✓';
+                              return 'Dues';
+                            })()}
+                          </span>
                         </button>
                       </div>
 
@@ -3164,15 +3283,32 @@ export default function ProviderDashboardPage() {
                             <span>Expenses</span>
                           </button>
 
+                          {/* 1-Tap Quick Settle in Earnings */}
+                          {hasDues && (
+                            <button
+                              type="button"
+                              onClick={() => handleQuickSettleDue(b)}
+                              className="px-2.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer shadow-xs active:scale-95"
+                              title="1-Tap Mark Full Balance Paid"
+                            >
+                              <Check className="w-3.5 h-3.5 stroke-[3]" />
+                              <span>Mark Paid</span>
+                            </button>
+                          )}
+
                           {/* Action 3: Advance & Balance Dues */}
                           <button
                             type="button"
                             onClick={() => handleOpenDuesModal(b)}
-                            className="px-2.5 py-1.5 rounded-xl border border-rose-200 dark:border-rose-800 bg-rose-50/70 dark:bg-rose-950/40 hover:bg-rose-100 text-rose-800 dark:text-rose-200 text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer"
+                            className={`px-2.5 py-1.5 rounded-xl border text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer ${
+                              hasDues
+                                ? 'border-rose-200 dark:border-rose-800 bg-rose-50/70 dark:bg-rose-950/40 text-rose-800 dark:text-rose-200 hover:bg-rose-100'
+                                : 'border-emerald-200 dark:border-emerald-800 bg-emerald-50/60 dark:bg-emerald-950/30 text-emerald-800 dark:text-emerald-200 hover:bg-emerald-100'
+                            }`}
                             title="Update Advance Paid & Balance Dues"
                           >
-                            <AlertCircle className="w-3.5 h-3.5 text-rose-600" />
-                            <span>Dues</span>
+                            <AlertCircle className={`w-3.5 h-3.5 ${hasDues ? 'text-rose-600' : 'text-emerald-600'}`} />
+                            <span>{hasDues ? `Due: ₹${dues.balanceDue}` : 'Settled ✓'}</span>
                           </button>
                         </div>
                       </div>
